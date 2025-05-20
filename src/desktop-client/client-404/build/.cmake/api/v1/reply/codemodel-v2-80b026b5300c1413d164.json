@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-0876afb04150199b80cf.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "client-404",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "client-404::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client-404-Debug-40b35e1f65bd0f89c119.json",
+					"name" : "client-404",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "client-404_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client-404_autogen-Debug-f47fb013e8d9a9e89fa0.json",
+					"name" : "client-404_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "client-404_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-client-404_autogen_timestamp_deps-Debug-95a8ddd0d686fc018a3b.json",
+					"name" : "client-404_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "D:/Block8/404/fourohfour/src/desktop-client/client-404/build",
+		"source" : "D:/Block8/404/fourohfour/src/desktop-client/client-404"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}

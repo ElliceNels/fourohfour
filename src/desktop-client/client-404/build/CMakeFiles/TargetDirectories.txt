@@ -1,0 +1,9 @@
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/client-404.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/edit_cache.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/rebuild_cache.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/list_install_components.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/install.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/install/local.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/install/strip.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/client-404_autogen_timestamp_deps.dir
+D:/Block8/404/fourohfour/src/desktop-client/client-404/build/CMakeFiles/client-404_autogen.dir

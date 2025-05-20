@@ -17,12 +17,16 @@ set(PROJECT_SOURCES
         mainwindow.cpp
         mainwindow.h
         mainwindow.ui
+        password_utils.cpp
+        password_utils.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        password_utils.h
+        password_utils.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET client-404 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -68,3 +72,8 @@ install(TARGETS client-404
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(client-404)
 endif()
+
+# --- Libsodium integration ---
+target_include_directories(client-404 PRIVATE "../include")
+target_link_directories(client-404 PRIVATE "../lib")
+target_link_libraries(client-404 PRIVATE sodium)
