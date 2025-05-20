@@ -21,11 +21,27 @@ void MainWindow::on_uploadButton_clicked()
         if (!filePath.isEmpty()) {
             QFileInfo fileInfo(filePath);
 
+            // Gets the metadata that won't be encrypted but will be authentication
             QString fileName = fileInfo.fileName();
             qint64 fileSize = fileInfo.size();  // originally in bytes
             QString fileType = fileInfo.suffix();
             QDateTime lastModified = fileInfo.lastModified();
             QDateTime uploadTime = QDateTime::currentDateTime();
+
+            if (fileSize > 104857600){
+                ui->textEdit->setText("file exceeds 100MB limit");
+                return;
+            }
+
+            // Gets the actual  file data to be encrypted
+            QFile file(filePath);
+            if (!file.open(QIODevice::ReadOnly)) {
+                ui->textEdit->setText("Failed to open file.");
+                return;
+            }
+            QByteArray fileData = file.readAll();
+            file.close();
+
 
             QString info = QString(
                                "File Name: %1\n"

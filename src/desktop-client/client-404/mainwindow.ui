@@ -37,8 +37,7 @@
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">align-text: center;
-justify-text: center;</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string>Upload  File</string>
