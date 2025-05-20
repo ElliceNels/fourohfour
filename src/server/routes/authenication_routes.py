@@ -26,11 +26,6 @@ def change_password():
     # This route should handle password change and return a success message
     ...
 
-# Are we allowing this?
-@authentication_routes.route('/reset_password', methods=['POST'])
-def reset_password():
-    ...
-
 @authentication_routes.route('/delete_account', methods=['POST'])
 def delete_account():
     """Delete account route to remove user account."""
@@ -47,10 +42,4 @@ def update_profile():
 def get_user_info():
     """Get user info route to retrieve user information."""
     # This route should return user information based on the JWT token
-    ...
-
-# Is this File route or Auth route?
-@authentication_routes.route('/get_user_files', methods=['GET'])
-def get_user_files():
-    """Get user files route to retrieve files owned by the user."""
     ...
