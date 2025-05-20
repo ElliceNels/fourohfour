@@ -8,3 +8,4 @@ libsodium-*.zip
 *.dll
 *.a
 *.lib
+**/build/
