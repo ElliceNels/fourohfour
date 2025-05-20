@@ -10,8 +10,8 @@ def upload_file():
     - encrypted_file: The encrypted file data
     """
     # TODO: Store the file on the server
-    #TODO Add an entry to the file database, inlcuding file location etc
-    return 
+    #TODO Add an entry to the file database, including file location etc
+    return jsonify({'message': 'Not implemented'})
 
 @files_bp.route('/', methods=['GET'])
 def list_files():
@@ -26,7 +26,7 @@ def list_files():
     # TODO: Check if the user and file have a corresponding entry in the filePermission database, or are the owner
     # TODO: If owner, send only encryted file
     # TODO: If shared, send both encrypted file and encrypted key
-    return
+    return jsonify({'message': 'Not implemented'})
 
 
 @files_bp.route('/<file_id>', methods=['GET'])
@@ -41,9 +41,9 @@ def get_file(file_id):
     """
     # TODO: Get user ID from authentication
     # TODO: Find the file in the database
-    # TODO  : Check if the user and file have a correspoinding entry in the filePermission database
+    # TODO  : Check if the user and file have a corresponding entry in the filePermission database
     # TODO: Return file and key from database
-    return 
+    return jsonify({'message': 'Not implemented'})
 
 # Delete a specific file
 @files_bp.route('/<file_id>', methods=['DELETE'])
@@ -58,4 +58,4 @@ def delete_file(file_id):
     # TODO: Verify if the user is the owner of the file
     # TODO: Delete the file. FilePermissions should cascade delete. 
 
-    return jsonify({"message": "File deleted successfully"}), 200 
+    return jsonify({'message': 'Not implemented'})

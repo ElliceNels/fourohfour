@@ -10,12 +10,12 @@ def get_public_key():
     - user_id: The ID of the user
     """
     #TODO : Look up the user_id in the database, return their public key
-    return 
+    return jsonify({'message': 'Not implemented'})
 
-@permission_bp.route('/add', methods=['POST'])
-def add_permission():
+@permission_bp.route('', methods=['POST'])
+def create_permission():
     """
-    Adds a permission to a file
+    Creates a new permission
     Expects:
     - file_id: The ID of the file
     - user_id: The ID of the user
@@ -25,9 +25,9 @@ def add_permission():
     #TODO : Check if the file_id and user_id exist
     #TODO: Add a filePermission entry to the database
 
-    return
+    return jsonify({'message': 'Not implemented'})
 
-@permission_bp.route('/remove', methods=['POST'])
+@permission_bp.route('', methods=['DELETE'])
 def remove_permission():
     """
     Removes a permission from a file
@@ -37,5 +37,5 @@ def remove_permission():
     """
     #TODO: Check if the user making the request is the owner of the file
     #TODO check if the file_id and user_id exist
-    #TODO: Remove the filePermissoin entry from the database
-    return
+    #TODO: Remove the filePermission entry from the database
+    return jsonify({'message': 'Not implemented'})
