@@ -10,3 +10,7 @@ bin/
 libsodium-*
 *.tar.gz
 *.zip
+
+# Ignore Qt Creator user files
+*.user
+*.user.*
