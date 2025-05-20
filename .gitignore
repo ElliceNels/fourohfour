@@ -1,0 +1,10 @@
+# Ignore libsodium binaries and headers
+/include/
+/lib/
+/bin/
+/libsodium-*
+libsodium-*.tar.gz
+libsodium-*.zip
+*.dll
+*.a
+*.lib
