@@ -13,16 +13,21 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
 
 set(PROJECT_SOURCES
-        main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
+    main.cpp
+    mainwindow.cpp
+    mainwindow.h
+    mainwindow.ui
+    password_utils.cpp
+    password_utils.h
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        password_utils.h
+        password_utils.h
+        password_utils.cpp
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET client-404 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
@@ -42,6 +47,9 @@ else()
     endif()
 endif()
 
+target_include_directories(client-404 PRIVATE "../include")
+target_link_directories(client-404 PRIVATE "../lib")
+target_link_libraries(client-404 PRIVATE sodium)
 target_link_libraries(client-404 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
