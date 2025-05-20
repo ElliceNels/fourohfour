@@ -1,0 +1,12 @@
+# Ignore build and external dependencies
+/build/
+**/build/
+include/
+lib/
+bin/
+*.dll
+*.a
+*.lib
+libsodium-*
+*.tar.gz
+*.zip
