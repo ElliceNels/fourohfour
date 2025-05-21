@@ -35,6 +35,7 @@ def upload_file():
             uploaded_at=datetime.utcnow()
         )
         db.session.add(new_file)
+        db.session.flush() #so new file record is generated before we reference it below in metadata.
         
         # Create metadata entry
         file_metadata = FileMetadata(
