@@ -19,27 +19,24 @@ set(PROJECT_SOURCES
     mainwindow.ui
     password_utils.cpp
     password_utils.h
+    registerpage.cpp
+    registerpage.h
+    registerpage.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        password_utils.h
-        password_utils.h
-        password_utils.cpp
+        registerpage.ui
+        registerpage.ui
+
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET client-404 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
     if(ANDROID)
         add_library(client-404 SHARED
             ${PROJECT_SOURCES}
         )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(client-404
             ${PROJECT_SOURCES}
