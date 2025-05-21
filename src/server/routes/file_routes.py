@@ -22,7 +22,8 @@ def upload_file():
         
         # Save the file to disk (assuming we have a configured upload directory)
         file = request.files['encrypted_file']
-        filename = f"{current_user.id}_{file.filename}"  # Assuming we want to prefix with user ID
+        sanitized_filename = secure_filename(file.filename)
+        filename = f"{current_user.id}_{sanitized_filename}"  # Prefix with user ID
         file_path = os.path.join('uploads', filename)  # Assuming we have an 'uploads' directory
         file.save(file_path)
 
