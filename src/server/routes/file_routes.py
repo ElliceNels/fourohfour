@@ -1,4 +1,7 @@
 from flask import Blueprint, jsonify, request
+from ..models import File, FilePermission  # Assuming we have these models
+from ..utils.auth import get_current_user  # Assuming we have this utility
+import os  # Assuming we need this for file operations
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -9,9 +12,43 @@ def upload_file():
     Expects:
     - encrypted_file: The encrypted file data
     """
-    # TODO: Store the file on the server
-    #TODO Add an entry to the file database, including file location etc
-    return jsonify({'message': 'Not implemented'})
+    if 'encrypted_file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+
+    try:
+        # Get the current user from the request (assuming we have authentication middleware)
+        current_user = get_current_user()
+        
+        # Save the file to disk (assuming we have a configured upload directory)
+        file = request.files['encrypted_file']
+        filename = f"{current_user.id}_{file.filename}"  # Assuming we want to prefix with user ID
+        file_path = os.path.join('uploads', filename)  # Assuming we have an 'uploads' directory
+        file.save(file_path)
+
+        # Create database entry
+        new_file = File(
+            owner_id=current_user.id,
+            filename=file.filename,
+            file_path=file_path,
+            file_size=os.path.getsize(file_path)
+        )
+        db.session.add(new_file)
+        db.session.commit()
+
+        return jsonify({
+            'message': 'File uploaded successfully',
+            'file_id': new_file.id
+        }), 201
+
+    except Exception as e:
+        # Clean up file if database operation fails
+        if 'file_path' in locals():
+            try:
+                os.remove(file_path)
+            except:
+                pass
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/', methods=['GET'])
 def list_files():
@@ -19,15 +56,43 @@ def list_files():
     List all files for the authenticated user, both in the file database and the filePermission database
     Returns:
     - files: A list of encrypted files
-    -keys: A list of encrypted keys
+    - keys: A list of encrypted keys
     """
-    # TODO: Query database for user's files
-    # TODO: Find all files relating to user, both in the file database and the filePermission database
-    # TODO: Check if the user and file have a corresponding entry in the filePermission database, or are the owner
-    # TODO: If owner, send only encryted file
-    # TODO: If shared, send both encrypted file and encrypted key
-    return jsonify({'message': 'Not implemented'})
+    try:
+        # Get the current user from the request (assuming we have authentication middleware)
+        current_user = get_current_user()
+        
+        # Get files owned by the user
+        owned_files = File.query.filter_by(owner_id=current_user.id).all()
+        owned_files_data = [{
+            'id': file.id,
+            'filename': file.filename,
+            'file_size': file.file_size,
+            'is_owner': True,
+            'encrypted_file': file.file_path  # Assuming we store the path to the encrypted file
+        } for file in owned_files]
 
+        # Get files shared with the user
+        shared_permissions = FilePermission.query.filter_by(user_id=current_user.id).all()
+        shared_files_data = []
+        for permission in shared_permissions:
+            file = File.query.get(permission.file_id)
+            if file:  # File might have been deleted
+                shared_files_data.append({
+                    'id': file.id,
+                    'filename': file.filename,
+                    'file_size': file.file_size,
+                    'is_owner': False,
+                    'encrypted_file': file.file_path,
+                    'encrypted_key': permission.encrypted_key
+                })
+
+        return jsonify({
+            'files': owned_files_data + shared_files_data
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/<file_id>', methods=['GET'])
 def get_file(file_id):
@@ -39,13 +104,48 @@ def get_file(file_id):
     - encrypted_file: The encrypted file data
     - encrypted_keys: The encrypted keys for sharing
     """
-    # TODO: Get user ID from authentication
-    # TODO: Find the file in the database
-    # TODO  : Check if the user and file have a corresponding entry in the filePermission database
-    # TODO: Return file and key from database
-    return jsonify({'message': 'Not implemented'})
+    try:
+        # Get the current user from the request (assuming we have authentication middleware)
+        current_user = get_current_user()
+        
+        # Find the file
+        file = File.query.get(file_id)
+        if not file:
+            return jsonify({'error': 'File not found'}), 404
 
-# Delete a specific file
+        # Check if user has access
+        if file.owner_id != current_user.id:
+            # Check if file is shared with user
+            permission = FilePermission.query.filter_by(
+                file_id=file_id,
+                user_id=current_user.id
+            ).first()
+            if not permission:
+                return jsonify({'error': 'Not authorized to access this file'}), 403
+
+        # Read the encrypted file
+        try:
+            with open(file.file_path, 'rb') as f:
+                encrypted_file = f.read()
+        except Exception as e:
+            return jsonify({'error': 'Error reading file'}), 500
+
+        response_data = {
+            'encrypted_file': encrypted_file
+        }
+
+        # If user is owner, include all sharing keys
+        if file.owner_id == current_user.id:
+            permissions = FilePermission.query.filter_by(file_id=file_id).all()
+            response_data['encrypted_keys'] = {
+                perm.user_id: perm.encrypted_key for perm in permissions
+            }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @files_bp.route('/<file_id>', methods=['DELETE'])
 def delete_file(file_id):
     """
@@ -53,9 +153,31 @@ def delete_file(file_id):
     Expects:
     - file_id: The ID of the file
     """
-    # TODO: Get user ID from authentication
-    # TODO: Find file in the database
-    # TODO: Verify if the user is the owner of the file
-    # TODO: Delete the file. FilePermissions should cascade delete. 
+    try:
+        # Get the current user from the request (assuming we have authentication middleware)
+        current_user = get_current_user()
+        
+        # Find the file
+        file = File.query.get(file_id)
+        if not file:
+            return jsonify({'error': 'File not found'}), 404
 
-    return jsonify({'message': 'Not implemented'})
+        # Verify ownership
+        if file.owner_id != current_user.id:
+            return jsonify({'error': 'Not authorized to delete this file'}), 403
+
+        # Delete the file from disk
+        try:
+            os.remove(file.file_path)
+        except Exception as e:
+            return jsonify({'error': 'Error deleting file from disk'}), 500
+
+        # Delete from database (assuming we have cascade delete set up for FilePermission)
+        db.session.delete(file)
+        db.session.commit()
+
+        return jsonify({'message': 'File deleted successfully'})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
