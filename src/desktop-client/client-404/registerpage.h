@@ -3,6 +3,8 @@
 
 #include <QWidget>
 
+using namespace std;
+
 namespace Ui {
 class RegisterPage;
 }
@@ -17,6 +19,8 @@ public:
 
 private slots:
     void onCreateAccountClicked();
+    void onShowPasswordClicked();
+    void sendCredentials(string name, string email, string password);
 
 private:
     Ui::RegisterPage *ui;
