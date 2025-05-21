@@ -1,7 +1,8 @@
 from flask import Blueprint, jsonify, request
-from ..models import File, FilePermission  # Assuming we have these models
-from ..utils.auth import get_current_user  # Assuming we have this utility
-import os  # Assuming we need this for file operations
+from ..models.tables import Files, FilePermissions, Users, FileMetadata  
+from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
+import os
+from datetime import datetime
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -26,13 +27,23 @@ def upload_file():
         file.save(file_path)
 
         # Create database entry
-        new_file = File(
+        new_file = Files(
             owner_id=current_user.id,
-            filename=file.filename,
-            file_path=file_path,
-            file_size=os.path.getsize(file_path)
+            name=file.filename,
+            path=file_path,
+            uploaded_at=datetime.utcnow()
         )
         db.session.add(new_file)
+        
+        # Create metadata entry
+        file_metadata = FileMetadata(
+            file_id=new_file.id,
+            size=os.path.getsize(file_path),
+            format=file.filename.split('.')[-1] if '.' in file.filename else 'unknown',
+            last_updated_at=datetime.utcnow()
+        )
+        db.session.add(file_metadata)
+        
         db.session.commit()
 
         return jsonify({
@@ -59,32 +70,31 @@ def list_files():
     - keys: A list of encrypted keys
     """
     try:
-        # Get the current user from the request (assuming we have authentication middleware)
         current_user = get_current_user()
         
         # Get files owned by the user
-        owned_files = File.query.filter_by(owner_id=current_user.id).all()
+        owned_files = Files.query.filter_by(owner_id=current_user.id).all()
         owned_files_data = [{
             'id': file.id,
-            'filename': file.filename,
-            'file_size': file.file_size,
+            'filename': file.name,
+            'file_size': file.metadata.size if file.metadata else None,
             'is_owner': True,
-            'encrypted_file': file.file_path  # Assuming we store the path to the encrypted file
+            'encrypted_file': file.path
         } for file in owned_files]
 
         # Get files shared with the user
-        shared_permissions = FilePermission.query.filter_by(user_id=current_user.id).all()
+        shared_permissions = FilePermissions.query.filter_by(user_id=current_user.id).all()
         shared_files_data = []
         for permission in shared_permissions:
-            file = File.query.get(permission.file_id)
+            file = Files.query.get(permission.file_id)
             if file:  # File might have been deleted
                 shared_files_data.append({
                     'id': file.id,
-                    'filename': file.filename,
-                    'file_size': file.file_size,
+                    'filename': file.name,
+                    'file_size': file.metadata.size if file.metadata else None,
                     'is_owner': False,
-                    'encrypted_file': file.file_path,
-                    'encrypted_key': permission.encrypted_key
+                    'encrypted_file': file.path,
+                    'encrypted_key': permission.encryption_key
                 })
 
         return jsonify({
@@ -109,14 +119,14 @@ def get_file(file_id):
         current_user = get_current_user()
         
         # Find the file
-        file = File.query.get(file_id)
+        file = Files.query.get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
 
         # Check if user has access
         if file.owner_id != current_user.id:
             # Check if file is shared with user
-            permission = FilePermission.query.filter_by(
+            permission = FilePermissions.query.filter_by(
                 file_id=file_id,
                 user_id=current_user.id
             ).first()
@@ -125,7 +135,7 @@ def get_file(file_id):
 
         # Read the encrypted file
         try:
-            with open(file.file_path, 'rb') as f:
+            with open(file.path, 'rb') as f:
                 encrypted_file = f.read()
         except Exception as e:
             return jsonify({'error': 'Error reading file'}), 500
@@ -136,9 +146,9 @@ def get_file(file_id):
 
         # If user is owner, include all sharing keys
         if file.owner_id == current_user.id:
-            permissions = FilePermission.query.filter_by(file_id=file_id).all()
+            permissions = FilePermissions.query.filter_by(file_id=file_id).all()
             response_data['encrypted_keys'] = {
-                perm.user_id: perm.encrypted_key for perm in permissions
+                perm.user_id: perm.encryption_key for perm in permissions
             }
 
         return jsonify(response_data)
@@ -154,11 +164,10 @@ def delete_file(file_id):
     - file_id: The ID of the file
     """
     try:
-        # Get the current user from the request (assuming we have authentication middleware)
         current_user = get_current_user()
         
         # Find the file
-        file = File.query.get(file_id)
+        file = Files.query.get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
 
@@ -168,7 +177,7 @@ def delete_file(file_id):
 
         # Delete the file from disk
         try:
-            os.remove(file.file_path)
+            os.remove(file.path)
         except Exception as e:
             return jsonify({'error': 'Error deleting file from disk'}), 500
 

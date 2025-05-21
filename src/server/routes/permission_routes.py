@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
-from ..models import User, File, FilePermission  # Assuming we have these models
-from ..utils.auth import get_current_user  # Assuming we have this utility
+from ..models.tables import Users, Files, FilePermissions 
+from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
+from datetime import datetime
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
 
@@ -16,7 +17,7 @@ def get_public_key():
         return jsonify({'error': 'user_id is required'}), 400
 
     try:
-        user = User.query.get(user_id)
+        user = Users.query.get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -45,23 +46,22 @@ def create_permission():
             return jsonify({'error': f'{field} is required'}), 400
 
     try:
-        # Get the current user from the request (assuming we have authentication middleware)
         current_user = get_current_user()
         
         # Check if the file exists and belongs to the current user
-        file = File.query.get(data['file_id'])
+        file = Files.query.get(data['file_id'])
         if not file:
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != current_user.id:
             return jsonify({'error': 'Not authorized to share this file'}), 403
 
         # Check if the recipient user exists
-        recipient = User.query.get(data['user_id'])
+        recipient = Users.query.get(data['user_id'])
         if not recipient:
             return jsonify({'error': 'Recipient user not found'}), 404
 
         # Check if permission already exists
-        existing_permission = FilePermission.query.filter_by(
+        existing_permission = FilePermissions.query.filter_by(
             file_id=data['file_id'],
             user_id=data['user_id']
         ).first()
@@ -69,10 +69,12 @@ def create_permission():
             return jsonify({'error': 'Permission already exists'}), 409
 
         # Create new permission
-        new_permission = FilePermission(
+        new_permission = FilePermissions(
             file_id=data['file_id'],
             user_id=data['user_id'],
-            encrypted_key=data['key_for_recipient']
+            encryption_key=data['key_for_recipient'],
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
         )
         db.session.add(new_permission)
         db.session.commit()
@@ -101,18 +103,17 @@ def remove_permission():
             return jsonify({'error': f'{field} is required'}), 400
 
     try:
-        # Get the current user from the request (assuming we have authentication middleware)
         current_user = get_current_user()
         
         # Check if the file exists and belongs to the current user
-        file = File.query.get(data['file_id'])
+        file = Files.query.get(data['file_id'])
         if not file:
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != current_user.id:
             return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
         # Find and delete the permission
-        permission = FilePermission.query.filter_by(
+        permission = FilePermissions.query.filter_by(
             file_id=data['file_id'],
             user_id=data['user_id']
         ).first()
