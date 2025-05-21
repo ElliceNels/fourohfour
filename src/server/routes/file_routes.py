@@ -85,9 +85,12 @@ def list_files():
 
         # Get files shared with the user
         shared_permissions = FilePermissions.query.filter_by(user_id=current_user.id).all()
+        shared_file_ids = [permission.file_id for permission in shared_permissions]
+        shared_files = Files.query.filter(Files.id.in_(shared_file_ids)).all()
+        shared_files_map = {file.id: file for file in shared_files}
         shared_files_data = []
         for permission in shared_permissions:
-            file = Files.query.get(permission.file_id)
+            file = shared_files_map.get(permission.file_id)
             if file:  # File might have been deleted
                 shared_files_data.append({
                     'id': file.id,
