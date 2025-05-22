@@ -7,7 +7,7 @@ class Users(Base):
     """User table to store user information."""
     __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(100), nullable=False)
     salt = Column(BLOB, nullable=False)
@@ -31,7 +31,7 @@ class FilePermissions(Base):
     """File permissions table to store user-specific file access permissions."""
     __tablename__ = 'file_permissions'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
     encryption_key = Column(BLOB, nullable=False)
@@ -45,7 +45,7 @@ class Files(Base):
     """Files table to store file information."""
     __tablename__ = 'files'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
     path = Column(String(512), nullable=False)
     uploaded_at = Column(DateTime, nullable=False, index=True)
@@ -69,7 +69,7 @@ class FileMetadata(Base):
     """File metadata table to store additional file information."""
     __tablename__ = 'file_metadata'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     file_id = Column(Integer, ForeignKey('files.id'), unique=True, nullable=False)
     size = Column(DECIMAL(10, 2), nullable=False)
     __table_args__ = (
