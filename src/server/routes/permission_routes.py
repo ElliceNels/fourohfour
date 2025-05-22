@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from ..models.tables import Users, Files, FilePermissions 
 from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
-from datetime import datetime
+from datetime import datetime, UTC
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
 
@@ -80,8 +80,8 @@ def create_permission():
             file_id=data['file_id'],
             user_id=data['user_id'],
             encryption_key=data['key_for_recipient'],
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
         db.session.add(new_permission)
         db.session.commit()

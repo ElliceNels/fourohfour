@@ -4,7 +4,7 @@ from ..models.tables import Files, FilePermissions, Users, FileMetadata
 from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -14,6 +14,8 @@ def upload_file():
     Upload a new file
     Expects:
     - encrypted_file: The encrypted file data
+    - size: File size in bytes
+    - format: File format/extension
     """
     if 'encrypted_file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
@@ -34,17 +36,17 @@ def upload_file():
             owner_id=current_user.id,
             name=file.filename,
             path=file_path,
-            uploaded_at=datetime.utcnow()
+            uploaded_at=datetime.now(UTC)
         )
         db.session.add(new_file)
         db.session.flush() #so new file record is generated before we reference it below in metadata.
         
-        # Create metadata entry
+        # Create metadata entry using data from request
         file_metadata = FileMetadata(
             file_id=new_file.id,
-            size=os.path.getsize(file_path),
-            format=file.filename.split('.')[-1] if '.' in file.filename else 'unknown',
-            last_updated_at=datetime.utcnow()
+            size=request.metadata['size'],
+            format=request.metadata['format'],
+            last_updated_at=datetime.now(UTC)
         )
         db.session.add(file_metadata)
         
