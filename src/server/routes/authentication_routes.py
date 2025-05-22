@@ -166,23 +166,4 @@ def get_current_user():
         return auth_utils.current_user(token)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
-    
-@authentication_routes.route('/get_user_pk', methods=['GET'])
-def get_user_pk():
-    """Get user public key route to retrieve a user's public key by username.
-    
-    Expected query parameters:
-    - username: <username>
 
-    Expected response:
-    {
-        "public_key": "<public_key>",
-    }
-    """
-
-    # Extract the username from the query parameters
-    username = request.args.get('username')
-    if not username:
-        return jsonify({"error": "Missing username parameter"}), 400
-
-    return auth_utils.get_user(username)

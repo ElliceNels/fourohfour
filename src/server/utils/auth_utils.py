@@ -213,25 +213,3 @@ def current_user(token: str) -> dict:
         "updated_at": user.updated_at
     }
     return jsonify(user_info), 200
-
-def get_user_public_key(username: str) -> dict:
-    """Get user public key route to retrieve a user's public key by username.
-
-    Args:
-        username (str): Username of the user.
-
-    Returns:
-        dict: response containing user's public key or error message.
-    """
-
-    if not username:
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    db = Session()
-    user: Users = db.query(Users).filter_by(username=username).first()
-    db.close()
-
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-    
-    return jsonify({"public_key": user.public_key}), 200
