@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
 from server.utils import auth_utils
+import logging
+
+logger = logging.getLogger(__name__)
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
@@ -20,6 +23,7 @@ def login():
     """
 
     data = request.get_json()
+    logger.debug(f"Received login request with data: {data}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
 
@@ -44,6 +48,7 @@ def sign_up():
     """
     
     data = request.get_json()
+    logger.debug(f"Received sign up request with data: {data}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
     public_key = data.get('public_key')
@@ -158,6 +163,7 @@ def get_current_user():
         "updated_at": "<updated_at>"
     }
     """
+    logger.debug("Received request to get current user")
 
     # Extract the JWT token from the request headers
     auth_header = request.headers.get('Authorization')

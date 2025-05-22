@@ -1,3 +1,4 @@
+import logging
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -10,8 +11,14 @@ from models.tables import Base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
+from logger import setup_logger
+
+logger = logging.getLogger(__name__)
+
 # Load environment variables
 load_dotenv()
+# Initialize the logger
+setup_logger()
 
 def create_app():
     app = Flask(__name__)
@@ -35,6 +42,8 @@ def create_app():
     app.register_blueprint(auth_bp)
     app.register_blueprint(permission_bp)
     app.register_blueprint(files_bp)
+
+    logger.info('Flask app created and blueprints registered')
 
     @app.route('/')
     def index():
