@@ -8,6 +8,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include "key_utils.h"
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
@@ -65,11 +66,24 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
+
+    QString pubKeyBase64, privKeyBase64;
+    if (!generateSodiumKeyPair(pubKeyBase64, privKeyBase64)) {
+        QMessageBox::critical(this, "Error", "libsodium initialization failed!");
+        return;
+    }
+
+    saveKeyToFile(this, pubKeyBase64, "public_key.txt");
+    saveKeyToFile(this, privKeyBase64, "private_key.txt");
+
+    //sendCredentials(sAccountName, sEmail, hashed);
     cout << sAccountName << endl;
     cout << sEmail << endl;
     cout << hashed << endl;
+    cout << pubKeyBase64.toStdString() << endl;
+    cout << privKeyBase64.toStdString() << endl;
 
-    //sendCredentials(sAccountName, sEmail, hashed);
+
 
 
 

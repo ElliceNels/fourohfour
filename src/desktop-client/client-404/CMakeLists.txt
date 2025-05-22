@@ -31,6 +31,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         registerpage.ui
         registerpage.ui
+        key_utils.h
+        key_utils.cpp
+
+
     )
 else()
     if(ANDROID)

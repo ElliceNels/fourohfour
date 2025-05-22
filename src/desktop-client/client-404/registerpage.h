@@ -20,7 +20,7 @@ public:
 private slots:
     void onCreateAccountClicked();
     void onShowPasswordClicked();
-    void sendCredentials(string name, string email, string password);
+    void sendCredentials(string name, string email, string password, string publicKey);
 
 private:
     Ui::RegisterPage *ui;
