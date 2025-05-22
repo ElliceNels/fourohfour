@@ -1,5 +1,7 @@
 #include "password_utils.h"
 #include <sodium.h>
+#include <QSet>
+#include <QStringList>
 using namespace std;
 
 bool hash_password(const string& password, string& hashed) {
@@ -21,3 +23,32 @@ string verify_password(const string& hashed, const string& password) {
         return "Failed verification";
     }
 }
+
+
+const QSet<QString> DICTIONARY_WORDS = QSet<QString>({
+    "password",
+    "123456",
+    "12345678",
+    "abc123",
+    "qwerty",
+    "monkey",
+    "letmein",
+    "dragon",
+    "111111",
+    "baseball",
+    "iloveyou",
+    "trustno1",
+    "1234567",
+    "sunshine",
+    "master",
+    "123123",
+    "welcome",
+    "shadow",
+    "ashley",
+    "football",
+    "jesus",
+    "michael",
+    "ninja",
+    "mustang",
+    "password1"
+});

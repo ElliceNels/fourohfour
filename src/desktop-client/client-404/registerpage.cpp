@@ -32,7 +32,6 @@ RegisterPage::~RegisterPage()
 void RegisterPage::onCreateAccountClicked()
 {
     QString accountName = ui->accountNameLineEdit->text();
-    QString email = ui->emailLineEdit->text();
     QString password = ui->passwordLineEdit->text();
     QString confirmPassword = ui->confirmPasswordLineEdit->text();
 
@@ -50,11 +49,27 @@ void RegisterPage::onCreateAccountClicked()
         QMessageBox::warning(this, "Error", "Password must be no more than 64 characters long.");
         return;
     }
-    // Unicode normalization
-    QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);
+    if (accountName.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Error", "Username cannot be empty or only spaces.");
+        return;
+    }
+    if (password.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Error", "Password cannot be empty or only spaces.");
+        return;
+    }
+    if (password.compare(accountName, Qt::CaseInsensitive) == 0) {
+        QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
+        return;
+    }
+    QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (password != normalizedPassword) {
         QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
     }
+    if (DICTIONARY_WORDS.contains(password.toLower())) {
+        QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
+        return;
+    }
+
 
 
     //Hash password
@@ -76,7 +91,6 @@ void RegisterPage::onCreateAccountClicked()
     QString salt = generateSalt(16);
 
     string sAccountName = accountName.toStdString();
-    string sEmail = email.toStdString();
     string sPassword = password.toStdString();
     string pubKey = password.toStdString();
     string sSalt = salt.toStdString();
@@ -84,7 +98,6 @@ void RegisterPage::onCreateAccountClicked()
 
     //Debug prints
     cout << sAccountName << endl;
-    cout << sEmail << endl;
     cout << hashed << endl;
     cout << pubKeyBase64.toStdString() << endl;
     cout << privKeyBase64.toStdString() << endl;
@@ -114,7 +127,6 @@ void RegisterPage::sendCredentials(string name, string email, string password, s
 {
     QJsonObject json;
     json["accountName"] = QString::fromStdString(name);
-    json["email"] = QString::fromStdString(email);
     json["hashedPassword"] = QString::fromStdString(password);
     json["publicKey"] = QString::fromStdString(publicKey);
     json["salt"] = QString::fromStdString(salt);

@@ -22,7 +22,7 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>290</y>
+     <y>350</y>
      <width>161</width>
      <height>31</height>
     </rect>
@@ -31,21 +31,6 @@
     <font>
      <pointsize>9</pointsize>
     </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">  QWidget {
-      background-color: #ffffff;
-  }</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="emailLineEdit">
-   <property name="geometry">
-    <rect>
-     <x>430</x>
-     <y>350</y>
-     <width>161</width>
-     <height>31</height>
-    </rect>
    </property>
    <property name="styleSheet">
     <string notr="true">  QWidget {
@@ -130,26 +115,13 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>270</y>
+     <y>330</y>
      <width>91</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
     <string>Account Name</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>430</x>
-     <y>330</y>
-     <width>49</width>
-     <height>16</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Email</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_4">
