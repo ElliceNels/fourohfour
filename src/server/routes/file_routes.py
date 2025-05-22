@@ -1,3 +1,4 @@
+import base64
 from flask import Blueprint, jsonify, request
 from ..models.tables import Files, FilePermissions, Users, FileMetadata  
 from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
@@ -154,7 +155,7 @@ def get_file(file_id):
             return jsonify({'error': 'Error reading file'}), 500
 
         response_data = {
-            'encrypted_file': encrypted_file
+            'encrypted_file': base64.b64encode(encrypted_file).decode('utf-8')
         }
 
         # If user is owner, include all sharing keys
