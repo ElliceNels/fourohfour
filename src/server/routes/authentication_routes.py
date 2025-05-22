@@ -23,7 +23,7 @@ def login():
     """
 
     data = request.get_json()
-    logger.debug(f"Received login request with data: {data}")
+    logger.debug(f"Received login request for username: {data.get('username')}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
 
@@ -72,7 +72,7 @@ def logout():
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
         # TODO: Invalidate the token
-        logger.info(f"User logged out successfully with token: {token}")
+        logger.info(f"User logged out successfully with token prefix: {token[:6]}...")
         return {"message": "Logged out successfully"}, 200
     else:
         logger.warning("Logout failed: Missing or malformed token")
