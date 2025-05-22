@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from ..models.tables import Files, FilePermissions, Users, FileMetadata  
 from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
+from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
 
@@ -47,6 +48,7 @@ def upload_file():
         db.session.add(file_metadata)
         
         db.session.commit()
+        db.session.close()
 
         return jsonify({
             'message': 'File uploaded successfully',
@@ -61,6 +63,7 @@ def upload_file():
             except:
                 pass
         db.session.rollback()
+        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/', methods=['GET'])
@@ -102,11 +105,13 @@ def list_files():
                     'encrypted_key': permission.encryption_key
                 })
 
+        db.session.close()
         return jsonify({
             'files': owned_files_data + shared_files_data
         })
 
     except Exception as e:
+        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/<file_id>', methods=['GET'])
@@ -126,6 +131,7 @@ def get_file(file_id):
         # Find the file
         file = Files.query.get(file_id)
         if not file:
+            db.session.close()
             return jsonify({'error': 'File not found'}), 404
 
         # Check if user has access
@@ -136,6 +142,7 @@ def get_file(file_id):
                 user_id=current_user.id
             ).first()
             if not permission:
+                db.session.close()
                 return jsonify({'error': 'Not authorized to access this file'}), 403
 
         # Read the encrypted file
@@ -143,6 +150,7 @@ def get_file(file_id):
             with open(file.path, 'rb') as f:
                 encrypted_file = f.read()
         except Exception as e:
+            db.session.close()
             return jsonify({'error': 'Error reading file'}), 500
 
         response_data = {
@@ -156,9 +164,11 @@ def get_file(file_id):
                 perm.user_id: perm.encryption_key for perm in permissions
             }
 
+        db.session.close()
         return jsonify(response_data)
 
     except Exception as e:
+        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/<file_id>', methods=['DELETE'])
@@ -174,24 +184,29 @@ def delete_file(file_id):
         # Find the file
         file = Files.query.get(file_id)
         if not file:
+            db.session.close()
             return jsonify({'error': 'File not found'}), 404
 
         # Verify ownership
         if file.owner_id != current_user.id:
+            db.session.close()
             return jsonify({'error': 'Not authorized to delete this file'}), 403
 
         # Delete the file from disk
         try:
             os.remove(file.path)
         except Exception as e:
+            db.session.close()
             return jsonify({'error': 'Error deleting file from disk'}), 500
 
         # Delete from database (assuming we have cascade delete set up for FilePermission)
         db.session.delete(file)
         db.session.commit()
+        db.session.close()
 
         return jsonify({'message': 'File deleted successfully'})
 
     except Exception as e:
         db.session.rollback()
+        db.session.close()
         return jsonify({'error': str(e)}), 500

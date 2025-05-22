@@ -19,12 +19,15 @@ def get_public_key():
     try:
         user = Users.query.get(user_id)
         if not user:
+            db.session.close()
             return jsonify({'error': 'User not found'}), 404
 
+        db.session.close()
         return jsonify({
             'public_key': user.public_key
         })
     except Exception as e:
+        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @permission_bp.route('', methods=['POST'])
@@ -51,13 +54,16 @@ def create_permission():
         # Check if the file exists and belongs to the current user
         file = Files.query.get(data['file_id'])
         if not file:
+            db.session.close()
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != current_user.id:
+            db.session.close()
             return jsonify({'error': 'Not authorized to share this file'}), 403
 
         # Check if the recipient user exists
         recipient = Users.query.get(data['user_id'])
         if not recipient:
+            db.session.close()
             return jsonify({'error': 'Recipient user not found'}), 404
 
         # Check if permission already exists
@@ -66,6 +72,7 @@ def create_permission():
             user_id=data['user_id']
         ).first()
         if existing_permission:
+            db.session.close()
             return jsonify({'error': 'Permission already exists'}), 409
 
         # Create new permission
@@ -78,11 +85,13 @@ def create_permission():
         )
         db.session.add(new_permission)
         db.session.commit()
+        db.session.close()
 
         return jsonify({'message': 'Permission created successfully'}), 201
 
     except Exception as e:
         db.session.rollback()
+        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @permission_bp.route('', methods=['DELETE'])
@@ -108,8 +117,10 @@ def remove_permission():
         # Check if the file exists and belongs to the current user
         file = Files.query.get(data['file_id'])
         if not file:
+            db.session.close()
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != current_user.id:
+            db.session.close()
             return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
         # Find and delete the permission
@@ -119,13 +130,16 @@ def remove_permission():
         ).first()
         
         if not permission:
+            db.session.close()
             return jsonify({'error': 'Permission not found'}), 404
 
         db.session.delete(permission)
         db.session.commit()
+        db.session.close()
 
         return jsonify({'message': 'Permission removed successfully'}), 200
 
     except Exception as e:
         db.session.rollback()
+        db.session.close()
         return jsonify({'error': str(e)}), 500
