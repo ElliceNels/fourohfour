@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from flask import jsonify
-from server.models.tables import Users, Files, FilePermissions
-from server.app import Session
+from src.server.models.tables import Users, Files, FilePermissions
+from src.server.utils.db_setup import Session
 
 def get_user_public_key(user_id: int) -> dict:
     """Get the public key of a user.

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from server.utils import auth
+from src.server.utils import auth
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
@@ -140,7 +140,7 @@ def change_username():
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
         token = auth_header.split(' ')[1]
-        return auth_utils.change_username(token, new_username)
+        return auth.change_username(token, new_username)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
 
@@ -163,7 +163,7 @@ def get_current_user():
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
         token = auth_header.split(' ')[1]
-        return auth.current_user(token)
+        return auth.get_current_user(token)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
 

@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from server.utils.auth import get_current_user
-from server.utils.permission_utils import get_user_public_key, create_file_permission, remove_file_permission
+from src.server.utils.auth import get_current_user
+from src.server.utils.permission_utils import get_user_public_key, create_file_permission, remove_file_permission
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
 

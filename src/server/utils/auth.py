@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import jsonify
-from src.server.app import Session
+from src.server.utils.db_setup import Session
 from src.server.models.tables import Users
 
 
@@ -183,7 +183,7 @@ def change_username(token: str, new_username: str) -> dict:
     db.close()
     return jsonify({"message": "Username updated successfully"}), 200
 
-def current_user(token: str) -> dict:
+def get_current_user(token: str) -> dict:
     """Get the current user from the JWT token.
 
     Args:

@@ -2,11 +2,11 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from routes.authentication_routes import authentication_routes as auth_bp
-from routes.permission_routes import permission_bp
-from routes.file_routes import files_bp
-from config import config 
-from models.tables import Base
+from src.server.routes.authentication_routes import authentication_routes as auth_bp
+from src.server.routes.permission_routes import permission_bp
+from src.server.routes.file_routes import files_bp
+from src.server.config import config 
+from src.server.models.tables import Base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
