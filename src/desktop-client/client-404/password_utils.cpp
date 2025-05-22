@@ -1,5 +1,9 @@
 #include "password_utils.h"
 #include <sodium.h>
+#include <QSet>
+#include <QStringList>
+#include <QFile>
+#include <QTextStream>
 using namespace std;
 
 bool hash_password(const string& password, string& hashed) {
@@ -20,4 +24,20 @@ string verify_password(const string& hashed, const string& password) {
     } else{
         return "Failed verification";
     }
+}
+
+
+QSet<QString> loadDictionaryWords(const QString& filePath) {
+    QSet<QString> words;
+    QFile file(filePath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+        while (!in.atEnd()) {
+            QString line = in.readLine().trimmed().toLower();
+            if (!line.isEmpty())
+                words.insert(line);
+        }
+        file.close();
+    }
+    return words;
 }
