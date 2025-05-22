@@ -57,7 +57,7 @@ class Files(Base):
         back_populates="file",
         cascade="all, delete-orphan"
     )
-    metadata = relationship(
+    file_metadata = relationship(
         "FileMetadata",
         back_populates="file",
         uselist=False, # Explicity a one-to-one relationship
@@ -78,4 +78,4 @@ class FileMetadata(Base):
     format = Column(String(50), nullable=False)
     last_updated_at = Column(DateTime, nullable=False)
 
-    file = relationship("Files", back_populates="metadata")
+    file = relationship("Files", back_populates="file_metadata")
