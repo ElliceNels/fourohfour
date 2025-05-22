@@ -164,6 +164,7 @@ def invalidate_token(token: str) -> bool:
     except Exception:
         return False
 
+#TODO this has to be called periodically!!!
 def cleanup_expired_tokens(batch_size: int = 1000) -> None:
     """Remove expired tokens from the blacklist.
     
