@@ -59,10 +59,10 @@
          <set>Qt::AlignmentFlag::AlignCenter</set>
         </property>
        </widget>
-       <widget class="QPushButton" name="startButton">
+       <widget class="QPushButton" name="loginButton">
         <property name="geometry">
          <rect>
-          <x>380</x>
+          <x>250</x>
           <y>310</y>
           <width>181</width>
           <height>51</height>
@@ -80,7 +80,7 @@ border: 1px;
 color: rgb(255, 255, 255);</string>
         </property>
         <property name="text">
-         <string>Start</string>
+         <string>Login</string>
         </property>
         <property name="flat">
          <bool>true</bool>
@@ -100,6 +100,33 @@ color: rgb(255, 255, 255);</string>
         </property>
         <property name="text">
          <string/>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="signupButton_2">
+        <property name="geometry">
+         <rect>
+          <x>480</x>
+          <y>310</y>
+          <width>181</width>
+          <height>51</height>
+         </rect>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>23</pointsize>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(96, 150, 186);
+border: 1px;
+color: rgb(255, 255, 255);</string>
+        </property>
+        <property name="text">
+         <string>SignUp</string>
+        </property>
+        <property name="flat">
+         <bool>true</bool>
         </property>
        </widget>
       </widget>
