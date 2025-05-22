@@ -103,6 +103,7 @@ def change_password(token: str, new_password: str) -> dict:
     """
     
     if not token or not new_password:
+        logger.warning("Change password failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
@@ -112,11 +113,13 @@ def change_password(token: str, new_password: str) -> dict:
     
     if not user:
         db.close()
+        logger.warning(f"Change password failed for user {user_id}: User not found")
         return jsonify({"error": "User not found"}), 404
     
     # Cond 1: The new password is the same as the current one
     if user.password == new_password:
         db.close()
+        logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
         return jsonify({"error": "New password is the same as the current one"}), 400
     
     # Update the password
@@ -124,6 +127,8 @@ def change_password(token: str, new_password: str) -> dict:
     user.updated_at = datetime.now()
     db.commit()
     db.close()
+
+    logger.info(f"User {user_id} changed password successfully")
     return jsonify({"message": "Password updated successfully"}), 200
 
 def delete_account(username: str) -> dict:
@@ -137,6 +142,7 @@ def delete_account(username: str) -> dict:
     """
     
     if not username:
+        logger.warning("Delete account failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     db = Session()
@@ -144,12 +150,15 @@ def delete_account(username: str) -> dict:
     
     if not user:
         db.close()
+        logger.warning(f"Delete account failed for user {username}: User not found")
         return jsonify({"error": "User not found"}), 404
     
     # Delete the user
     db.delete(user)
     db.commit()
     db.close()
+
+    logger.info(f"User {username} deleted account successfully")
     return jsonify({"message": "Account deleted successfully"}), 200
 
 
@@ -165,6 +174,7 @@ def change_username(token: str, new_username: str) -> dict:
     """
     
     if not token or not new_username:
+        logger.warning("Change username failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
@@ -173,17 +183,20 @@ def change_username(token: str, new_username: str) -> dict:
     user: Users = db.query(Users).filter_by(id=user_id).first()
     if not user:
         db.close()
+        logger.warning(f"Change username failed for user {user_id}: User not found")
         return jsonify({"error": "User not found"}), 404
     
     # Cond 1: The new username already exists
     existing_user = db.query(Users).filter_by(username=new_username).first()
     if existing_user:
         db.close()
+        logger.warning(f"Change username failed for user {user_id}: Username already exists")
         return jsonify({"error": "Username already exists"}), 409
     
     # Cond 2: Username is the same as the current one
     if user.username == new_username:
         db.close()
+        logger.warning(f"Change username failed for user {user_id}: New username is the same as the current one")
         return jsonify({"error": "New username is the same as the current one"}), 400
     
     # Update the username
@@ -191,6 +204,8 @@ def change_username(token: str, new_username: str) -> dict:
     user.updated_at = datetime.now()
     db.commit()
     db.close()
+
+    logger.info(f"User {user_id} changed username successfully")
     return jsonify({"message": "Username updated successfully"}), 200
 
 def current_user(token: str) -> dict:
@@ -202,7 +217,9 @@ def current_user(token: str) -> dict:
     Returns:
         dict: response containing user information or error message.
     """
+
     if not token:
+        logger.warning("Current user retrieval failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
 
     user_id = -1 # TODO: Replace with actual JWT token decoding logic

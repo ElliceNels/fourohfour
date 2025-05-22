@@ -22,9 +22,11 @@ setup_logger()
 
 def create_app():
     app = Flask(__name__)
+    logger.info('Flask app initialized')
     
     # Enable CORS
     CORS(app)
+    logger.info('CORS enabled for Flask app')
 
     # DB configuration
     DB_USER = os.getenv('DB_USER')
@@ -35,6 +37,7 @@ def create_app():
     # engine = create_engine(db_engine)
     # Base.metadata.create_all(engine)
     # Session = sessionmaker(bind=engine)
+    # logger.info('Database engine created')
     
     # Basic configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
@@ -43,7 +46,7 @@ def create_app():
     app.register_blueprint(permission_bp)
     app.register_blueprint(files_bp)
 
-    logger.info('Flask app created and blueprints registered')
+    logger.info('Blueprints registered')
 
     @app.route('/')
     def index():
