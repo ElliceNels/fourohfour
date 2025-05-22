@@ -17,6 +17,7 @@ public:
 
 private slots:
     void on_signupButton_clicked();
+    void on_loginButton_clicked();
 
 private:
     Ui::TitlePage *ui;

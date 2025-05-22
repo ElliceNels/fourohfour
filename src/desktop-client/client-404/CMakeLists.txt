@@ -43,6 +43,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         key_utils.h
         key_utils.cpp
         titlepage.h titlepage.cpp titlepage.ui
+        pages.h
     )
 else()
     if(ANDROID)
