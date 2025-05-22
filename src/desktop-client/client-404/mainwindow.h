@@ -3,8 +3,9 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
+#include "loginpage.h"
 #include "registerpage.h"
-// #include "loginpage.h"
+#include "loginpage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -30,7 +31,7 @@ private:
     Ui::MainWindow *ui;
     QStackedWidget *stackedWidget;
     RegisterPage *registerPage;
-    // LoginPage *loginPage;
+    LoginPage *loginPage;
 };
 
 #endif // MAINWINDOW_H

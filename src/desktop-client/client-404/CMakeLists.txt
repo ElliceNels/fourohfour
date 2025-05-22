@@ -23,18 +23,17 @@ set(PROJECT_SOURCES
     registerpage.cpp
     registerpage.h
     registerpage.ui
+    key_utils.cpp
+    key_utils.h
+    loginpage.cpp
+    loginpage.h
+    loginpage.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        registerpage.ui
-        registerpage.ui
-        key_utils.h
-        key_utils.cpp
-
-
     )
 else()
     if(ANDROID)
