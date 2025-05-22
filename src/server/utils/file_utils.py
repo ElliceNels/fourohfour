@@ -1,10 +1,9 @@
 from datetime import datetime, UTC
 from flask import jsonify
-from werkzeug.utils import secure_filename
 import os
 import base64
-from ..models.tables import Files, FilePermissions, FileMetadata
-from ..app import Session
+from server.models.tables import Files, FilePermissions, FileMetadata
+from server.app import Session
 
 def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dict:
     """Upload a file to the database and disk storage.
