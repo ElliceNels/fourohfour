@@ -1,43 +1,47 @@
 from flask import Blueprint, jsonify, request
-from ..models.tables import Users, Files, FilePermissions 
-from ..utils.auth import get_current_user  # Assuming we have this utility for now. Spoiler, we don't
-from datetime import datetime, UTC
+from ..utils.auth import get_current_user
+from ..utils.permission_utils import get_user_public_key, create_file_permission, remove_file_permission
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
 
 @permission_bp.route('/public_key', methods=['GET'])
 def get_public_key():
-    """
-    Get the public key of a user
-    Expects:
-    - user_id: The ID of the user
+    """Get the public key of a user.
+    
+    Query Parameters:
+        user_id: The ID of the user whose public key is requested
+
+    Returns:
+    {
+        "public_key": "<user_public_key>"
+    }
     """
     user_id = request.args.get('user_id')
     if not user_id:
         return jsonify({'error': 'user_id is required'}), 400
 
     try:
-        user = Users.query.get(user_id)
-        if not user:
-            db.session.close()
-            return jsonify({'error': 'User not found'}), 404
-
-        db.session.close()
-        return jsonify({
-            'public_key': user.public_key
-        })
+        return get_user_public_key(int(user_id))
+    except ValueError:
+        return jsonify({'error': 'Invalid user_id format'}), 400
     except Exception as e:
-        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @permission_bp.route('', methods=['POST'])
 def create_permission():
-    """
-    Creates a new permission
-    Expects:
-    - file_id: The ID of the file
-    - user_id: The ID of the user
-    - key_for_recipient: The symmetric file key encrypted with the user_id public key
+    """Create a new file permission.
+    
+    Expected JSON payload:
+    {
+        "file_id": <file_id>,
+        "user_id": <user_id>,
+        "key_for_recipient": "<encrypted_symmetric_key>"
+    }
+
+    Returns:
+    {
+        "message": "Permission created successfully"
+    }
     """
     data = request.get_json()
     if not data:
@@ -50,57 +54,29 @@ def create_permission():
 
     try:
         current_user = get_current_user()
-        
-        # Check if the file exists and belongs to the current user
-        file = Files.query.get(data['file_id'])
-        if not file:
-            db.session.close()
-            return jsonify({'error': 'File not found'}), 404
-        if file.owner_id != current_user.id:
-            db.session.close()
-            return jsonify({'error': 'Not authorized to share this file'}), 403
-
-        # Check if the recipient user exists
-        recipient = Users.query.get(data['user_id'])
-        if not recipient:
-            db.session.close()
-            return jsonify({'error': 'Recipient user not found'}), 404
-
-        # Check if permission already exists
-        existing_permission = FilePermissions.query.filter_by(
-            file_id=data['file_id'],
-            user_id=data['user_id']
-        ).first()
-        if existing_permission:
-            db.session.close()
-            return jsonify({'error': 'Permission already exists'}), 409
-
-        # Create new permission
-        new_permission = FilePermissions(
-            file_id=data['file_id'],
-            user_id=data['user_id'],
-            encryption_key=data['key_for_recipient'],
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC)
+        return create_file_permission(
+            data['file_id'],
+            data['user_id'],
+            data['key_for_recipient'],
+            current_user.id
         )
-        db.session.add(new_permission)
-        db.session.commit()
-        db.session.close()
-
-        return jsonify({'message': 'Permission created successfully'}), 201
-
     except Exception as e:
-        db.session.rollback()
-        db.session.close()
         return jsonify({'error': str(e)}), 500
 
 @permission_bp.route('', methods=['DELETE'])
 def remove_permission():
-    """
-    Removes a permission from a file
-    Expects:
-    - file_id: The ID of the file
-    - user_id: The ID of the user
+    """Remove a file permission.
+    
+    Expected JSON payload:
+    {
+        "file_id": <file_id>,
+        "user_id": <user_id>
+    }
+
+    Returns:
+    {
+        "message": "Permission removed successfully"
+    }
     """
     data = request.get_json()
     if not data:
@@ -113,33 +89,10 @@ def remove_permission():
 
     try:
         current_user = get_current_user()
-        
-        # Check if the file exists and belongs to the current user
-        file = Files.query.get(data['file_id'])
-        if not file:
-            db.session.close()
-            return jsonify({'error': 'File not found'}), 404
-        if file.owner_id != current_user.id:
-            db.session.close()
-            return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
-
-        # Find and delete the permission
-        permission = FilePermissions.query.filter_by(
-            file_id=data['file_id'],
-            user_id=data['user_id']
-        ).first()
-        
-        if not permission:
-            db.session.close()
-            return jsonify({'error': 'Permission not found'}), 404
-
-        db.session.delete(permission)
-        db.session.commit()
-        db.session.close()
-
-        return jsonify({'message': 'Permission removed successfully'}), 200
-
+        return remove_file_permission(
+            data['file_id'],
+            data['user_id'],
+            current_user.id
+        )
     except Exception as e:
-        db.session.rollback()
-        db.session.close()
         return jsonify({'error': str(e)}), 500
