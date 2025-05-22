@@ -5,7 +5,7 @@
 #include <QStackedWidget>
 #include "loginpage.h"
 #include "registerpage.h"
-#include "loginpage.h"
+#include "titlepage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -30,6 +30,7 @@ private slots:
 private:
     Ui::MainWindow *ui;
     QStackedWidget *stackedWidget;
+    TitlePage *titlePage;
     RegisterPage *registerPage;
     LoginPage *loginPage;
 };
