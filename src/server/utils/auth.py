@@ -3,7 +3,9 @@ from flask import jsonify, request
 from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+import logging
 
+logger = logging.getLogger(__name__)
 
 def login(username: str, hash_password: bytes) -> dict:
     """Login route to authenticate users.
@@ -17,6 +19,7 @@ def login(username: str, hash_password: bytes) -> dict:
     """
 
     if not username or not hash_password:
+        logger.warning("Login failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     # Check the username and password against the database
@@ -26,13 +29,16 @@ def login(username: str, hash_password: bytes) -> dict:
 
     # Cond 1: Username doesnt exist
     if not user:
+        logger.warning(f"Login failed for user {username}: User not found")
         return jsonify({"error": "User not found"}), 404
     
     # Cond 2: Password is incorrect for the given username
     if user.password != hash_password:
+        logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
     access_token, refresh_token = generate_token(user.id)
+    logger.info(f"User {username} logged in successfully")
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token
@@ -52,6 +58,7 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     """
     
     if not username or not password or not public_key or not salt:
+        logger.warning("Sign up failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     db = get_session()
@@ -60,12 +67,14 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     existing_user = db.query(Users).filter_by(username=username).first()
     if existing_user:
         db.close()
+        logger.warning(f"Sign up failed for user {username}: Username already exists")
         return jsonify({"error": "Username already exists"}), 409
     
     # Cond 2: The public key already exists -> should be unique
     existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
     if existing_public_key:
         db.close()
+        logger.warning(f"Sign up failed for user {username}: Public key already exists")
         return jsonify({"error": "Public key already exists"}), 409
     
     # Create a new user
@@ -81,6 +90,7 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     db.add(new_user)
     db.commit()
     db.close()
+    logger.info(f"User {username} signed up successfully")
 
     access_token, refresh_token = generate_token(new_user.id)
     return jsonify({
@@ -223,6 +233,7 @@ def get_current_user(token: str) -> dict:
     db.close()
 
     if not user:
+        logger.warning(f"Current user retrieval failed: User not found for token {token}")
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
