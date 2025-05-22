@@ -2,7 +2,9 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from .routes import authenication_routes as auth_bp
+from routes.authentication_routes import authentication_routes as auth_bp
+from routes.permission_routes import permission_bp
+from routes.file_routes import files_bp
 
 # Load environment variables
 load_dotenv()
@@ -16,9 +18,13 @@ def create_app():
     # Basic configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
     
-    # Register blueprints
     app.register_blueprint(auth_bp)
-    # app.register_blueprint(files_bp)
+    app.register_blueprint(permission_bp)
+    app.register_blueprint(files_bp)
+
+    @app.route('/')
+    def index():
+        return "<h1>Welcome to the best file sharing platform ever</h1>"
     
     return app
 
