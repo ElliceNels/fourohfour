@@ -1,0 +1,22 @@
+{
+    "app_name": "app",
+
+    "server": {
+      "host": "0.0.0.0",
+      "port": 4004,
+      "debug": false,
+      "url": "https://fourohfour.gobbler.info"
+    },
+
+    "logging": {
+      "level": "INFO",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "file_path": "logs/app.log"
+    },
+
+    "database": {
+      "db_name": "fourohfour",
+      "db_host": "127.0.0.1",
+      "db_port": 4004
+    }
+  }

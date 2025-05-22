@@ -9,8 +9,9 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets)
+# Add Network to the required components
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
 
 set(PROJECT_SOURCES
     main.cpp
@@ -19,6 +20,9 @@ set(PROJECT_SOURCES
     mainwindow.ui
     password_utils.cpp
     password_utils.h
+    registerpage.cpp
+    registerpage.h
+    registerpage.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -28,21 +32,20 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         password_utils.h
         password_utils.h
         password_utils.cpp
-
         resource.qrc
+        registerpage.ui
+        registerpage.ui
+        key_utils.h
+        key_utils.cpp
+
+
 
     )
-# Define target properties for Android with Qt 6 as:
-#    set_property(TARGET client-404 APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
-#                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
-# For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
 else()
     if(ANDROID)
         add_library(client-404 SHARED
             ${PROJECT_SOURCES}
         )
-# Define properties for Android with Qt 5 after find_package() calls as:
-#    set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     else()
         add_executable(client-404
             ${PROJECT_SOURCES}
@@ -53,7 +56,9 @@ endif()
 target_include_directories(client-404 PRIVATE "../include")
 target_link_directories(client-404 PRIVATE "../lib")
 target_link_libraries(client-404 PRIVATE sodium)
-target_link_libraries(client-404 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+
+# Link both Widgets and Network modules
+target_link_libraries(client-404 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

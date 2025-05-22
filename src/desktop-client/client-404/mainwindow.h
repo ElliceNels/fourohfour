@@ -2,6 +2,9 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QStackedWidget>
+#include "registerpage.h"
+// #include "loginpage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -25,6 +28,9 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QStackedWidget *stackedWidget;
+    RegisterPage *registerPage;
+    // LoginPage *loginPage;
 };
 
 #endif // MAINWINDOW_H

@@ -14,3 +14,12 @@ libsodium-*
 # Ignore Qt Creator user files
 *.user
 *.user.*
+
+# Ignore virtual environments
+venv/
+env/
+ENV/
+*.env
+
+# Ignore Python cache files
+__pycache__/

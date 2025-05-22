@@ -3,6 +3,7 @@
 #include <sodium.h>
 #include <iostream>
 #include "password_utils.h"
+#include "registerpage.h"
 using namespace std;
 int main(int argc, char *argv[])
 {
@@ -16,7 +17,6 @@ int main(int argc, char *argv[])
     string secondPassword = "mysecretpassword";
 
     cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
-
 
     QApplication a(argc, argv);
     MainWindow w;
