@@ -110,7 +110,8 @@ def list_files():
 
         db.session.close()
         return jsonify({
-            'files': owned_files_data + shared_files_data
+            'owned_files': owned_files_data,
+            'shared_files': shared_files_data
         })
 
     except Exception as e:
