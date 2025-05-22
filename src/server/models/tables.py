@@ -59,7 +59,7 @@ class Files(Base):
     )
     file_metadata = relationship(
         "FileMetadata",
-        back_populates="file_metadata",
+        back_populates="file",
         uselist=False, # Explicity a one-to-one relationship
         cascade="all, delete-orphan"
     )
