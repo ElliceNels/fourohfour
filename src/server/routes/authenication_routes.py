@@ -1,18 +1,55 @@
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
+from src.server.routes import auth_utils
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
 @authentication_routes.route('/login', methods=['POST'])
 def login():
-    """Login route to authenticate users."""
-    # This route should handle user login and return a JWT token
-    ...
+    """Login route to authenticate users.
+    
+    Expected JSON payload:
+    {
+        "username": "<username>",
+        "hashed_password": "<hashed_password>",
+    }
+
+    Expected response:
+    {
+        "token": <JWT_token>
+    }
+    """
+
+    data = request.get_json()
+    username = data.get('username')
+    hash_password = data.get('hashed_password')
+
+    return auth_utils.login(username, hash_password)
 
 @authentication_routes.route('/sign_up', methods=['POST'])
 def sign_up():
-    """Sign up route to register new users."""
-    # This route should handle user registration and return a JWT token
-    ...
+    """Sign up route to register new users.
+    
+    Expected JSON payload:
+    {
+        "username": "<username>",
+        "hashed_password": "<hashed_password>",
+        "public_key": "<public_key>",
+        "salt": "<salt>"
+    }
+
+    Expected response:
+    {
+        "token": <JWT_token>
+    }
+    """
+    
+    data = request.get_json()
+    username = data.get('username')
+    hash_password = data.get('hashed_password')
+    public_key = data.get('public_key')
+    salt = data.get('salt')
+
+    return auth_utils.sign_up(username, hash_password, public_key, salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
@@ -38,8 +75,23 @@ def update_profile():
     # This route should handle profile updates and return a success message
     ...
 
-@authentication_routes.route('/get_user_info', methods=['GET'])
-def get_user_info():
-    """Get user info route to retrieve user information."""
-    # This route should return user information based on the JWT token
-    ...
+@authentication_routes.route('/get_current_user', methods=['GET'])
+def get_current_user():
+    """Get user info route to retrieve current user information.
+    
+    Expected response:
+    {
+        "username": "<username>",
+        "public_key": "<public_key>",
+        "created_at": "<created_at>",
+        "updated_at": "<updated_at>"
+    }
+    """
+
+    # Extract the JWT token from the request headers
+    auth_header = request.headers.get('Authorization')
+    if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
+        token = auth_header.split(' ')[1]
+        return auth_utils.current_user(token)
+    else:
+        return jsonify({"error": "Missing or malformed token"}), 401
