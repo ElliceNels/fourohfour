@@ -57,14 +57,10 @@ void RegisterPage::onCreateAccountClicked()
     }
 
 
-    //Hash password and convert to strings
-    string sAccountName = accountName.toStdString();
-    string sEmail = email.toStdString();
-    string sPassword = password.toStdString();
-
+    //Hash password
     string hashed;
 
-    hash_password(sPassword, hashed);
+    hash_password(password.toStdString(), hashed);
 
 
 
@@ -75,8 +71,15 @@ void RegisterPage::onCreateAccountClicked()
         return;
     }
 
-    saveKeyToFile(this, pubKeyBase64, "public_key.txt");
-    saveKeyToFile(this, privKeyBase64, "private_key.txt");
+    saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
+
+    QString salt = generateSalt(16);
+
+    string sAccountName = accountName.toStdString();
+    string sEmail = email.toStdString();
+    string sPassword = password.toStdString();
+    string pubKey = password.toStdString();
+    string sSalt = salt.toStdString();
 
 
     //Debug prints
@@ -85,9 +88,10 @@ void RegisterPage::onCreateAccountClicked()
     cout << hashed << endl;
     cout << pubKeyBase64.toStdString() << endl;
     cout << privKeyBase64.toStdString() << endl;
+    cout << "Salt: " << sSalt << endl;
 
     //Uncomment when server side is ready
-    //sendCredentials(sAccountName, sEmail, hashed, pubKeyBase64);
+    //sendCredentials(sAccountName, sEmail, hashed, pubKey, sSalt);
 
 
     QMessageBox::information(this, "Success", "Account created!");
@@ -106,13 +110,14 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
-void RegisterPage::sendCredentials(string name, string email, string password, string publicKey)
+void RegisterPage::sendCredentials(string name, string email, string password, string publicKey, string salt)
 {
     QJsonObject json;
     json["accountName"] = QString::fromStdString(name);
     json["email"] = QString::fromStdString(email);
     json["hashedPassword"] = QString::fromStdString(password);
     json["publicKey"] = QString::fromStdString(publicKey);
+    json["salt"] = QString::fromStdString(salt);
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
