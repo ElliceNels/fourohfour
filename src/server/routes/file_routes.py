@@ -74,8 +74,7 @@ def list_files():
     """
     List all files for the authenticated user, both in the file database and the filePermission database
     Returns:
-    - files: A list of encrypted files
-    - keys: A list of encrypted keys
+    - files: A list of file metadata (id, name, size, etc.)
     """
     try:
         current_user = get_current_user()
@@ -86,8 +85,9 @@ def list_files():
             'id': file.id,
             'filename': file.name,
             'file_size': file.metadata.size if file.metadata else None,
-            'is_owner': True,
-            'encrypted_file': file.path
+            'format': file.metadata.format if file.metadata else None,
+            'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None,
+            'is_owner': True
         } for file in owned_files]
 
         # Get files shared with the user
@@ -103,9 +103,9 @@ def list_files():
                     'id': file.id,
                     'filename': file.name,
                     'file_size': file.metadata.size if file.metadata else None,
-                    'is_owner': False,
-                    'encrypted_file': file.path,
-                    'encrypted_key': permission.encryption_key
+                    'format': file.metadata.format if file.metadata else None,
+                    'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None,
+                    'is_owner': False
                 })
 
         db.session.close()
