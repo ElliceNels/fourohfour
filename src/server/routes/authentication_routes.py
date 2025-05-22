@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from server.utils import auth_utils
+from server.utils import auth
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
@@ -23,7 +23,7 @@ def login():
     username = data.get('username')
     hash_password = data.get('hashed_password')
 
-    return auth_utils.login(username, hash_password)
+    return auth.login(username, hash_password)
 
 @authentication_routes.route('/sign_up', methods=['POST'])
 def sign_up():
@@ -49,7 +49,7 @@ def sign_up():
     public_key = data.get('public_key')
     salt = data.get('salt')
 
-    return auth_utils.sign_up(username, hash_password, public_key, salt)
+    return auth.sign_up(username, hash_password, public_key, salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
@@ -163,7 +163,7 @@ def get_current_user():
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
         token = auth_header.split(' ')[1]
-        return auth_utils.current_user(token)
+        return auth.current_user(token)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
 
