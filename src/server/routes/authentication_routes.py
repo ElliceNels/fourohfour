@@ -24,7 +24,7 @@ def login():
     """
 
     data = request.get_json()
-    logger.debug(f"Received login request with data: {data}")
+    logger.debug(f"Received login request for username: {data.get('username')}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
 
@@ -112,7 +112,7 @@ def logout():
         
     # Invalidate both tokens
     if jwt.invalidate_token(access_token) and jwt.invalidate_token(refresh_token):
-        logger.info(f"User logged out successfully with token: {token}")
+        logger.info(f"User logged out successfully with token")
         return jsonify({"message": "Logged out successfully"}), 200
     else:
         logger.warning("Logout failed: Failed to invalidate tokens")
