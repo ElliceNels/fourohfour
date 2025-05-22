@@ -7,6 +7,6 @@
 
 bool hash_password(const std::string& password, std::string& hashed);
 std::string verify_password(const std::string& hashed, const std::string& password);
-extern const QSet<QString> DICTIONARY_WORDS;
+QSet<QString> loadDictionaryWords(const QString& filePath);
 
 #endif // PASSWORD_UTILS_H

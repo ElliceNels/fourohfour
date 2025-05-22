@@ -34,7 +34,9 @@ void RegisterPage::onCreateAccountClicked()
     QString accountName = ui->accountNameLineEdit->text();
     QString password = ui->passwordLineEdit->text();
     QString confirmPassword = ui->confirmPasswordLineEdit->text();
+    QSet<QString> dictionaryWords;
 
+    dictionaryWords = loadDictionaryWords("../../common_passwords.txt"); //source: https://work2go.se/en/category/news/
 
     //Validation checks
     if (password != confirmPassword) {
@@ -65,10 +67,11 @@ void RegisterPage::onCreateAccountClicked()
     if (password != normalizedPassword) {
         QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
     }
-    if (DICTIONARY_WORDS.contains(password.toLower())) {
+    if (dictionaryWords.contains(password.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
     }
+
 
 
 
