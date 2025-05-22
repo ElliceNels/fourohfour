@@ -5,6 +5,10 @@
 #include <QStackedWidget>
 #include "registerpage.h"
 // #include "loginpage.h"
+#include <QFile>
+#include <QTextStream>
+#include <QFileDialog>
+#include <QMessageBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -17,6 +21,10 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+private slots:
+
+    void on_uploadButton_clicked();
 
 private:
     Ui::MainWindow *ui;

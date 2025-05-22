@@ -7,5 +7,6 @@
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64);
 bool saveKeyToFile(QWidget *parent, const QString &key, const QString &defaultName);
+QString generateSalt(size_t length);
 
 #endif // KEY_UTILS_H

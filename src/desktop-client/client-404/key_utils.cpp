@@ -3,6 +3,9 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QMessageBox>
+#include <sodium.h>
+#include <QByteArray>
+#include <QString>
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
     if (sodium_init() < 0) {
@@ -36,4 +39,14 @@ bool saveKeyToFile(QWidget *parent, const QString &key, const QString &defaultNa
         }
     }
     return false;
+}
+
+QString generateSalt(size_t length){
+    const size_t SALT_LENGTH = length;
+    unsigned char salt[SALT_LENGTH];
+    randombytes_buf(salt, SALT_LENGTH);
+
+    // Convert to QByteArray or QString (e.g., for storage or JSON)
+    QByteArray saltArray(reinterpret_cast<char*>(salt), SALT_LENGTH);
+    QString saltBase64 = saltArray.toBase64();
 }
