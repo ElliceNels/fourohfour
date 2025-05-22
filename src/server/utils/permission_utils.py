@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from flask import jsonify
 from src.server.models.tables import Users, Files, FilePermissions
-from src.server.utils.db_setup import Session
+from src.server.utils.db_setup import get_session
 
 def get_user_public_key(user_id: int) -> dict:
     """Get the public key of a user.
@@ -12,7 +12,7 @@ def get_user_public_key(user_id: int) -> dict:
     Returns:
         dict: Response containing the user's public key or error message
     """
-    db = Session()
+    db = get_session()
     try:
         user = db.query(Users).get(user_id)
         if not user:
@@ -39,7 +39,7 @@ def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, o
     Returns:
         dict: Response containing success message or error
     """
-    db = Session()
+    db = get_session()
     try:
         # Check if the file exists and belongs to the owner
         file = db.query(Files).get(file_id)
@@ -91,7 +91,7 @@ def remove_file_permission(file_id: int, user_id: int, owner_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
-    db = Session()
+    db = get_session()
     try:
         # Check if the file exists and belongs to the owner
         file = db.query(Files).get(file_id)

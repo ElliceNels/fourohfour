@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import jsonify
-from src.server.utils.db_setup import Session
+from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
 
 
@@ -19,7 +19,7 @@ def login(username: str, hash_password: bytes) -> dict:
         return jsonify({"error": "Missing required fields"}), 400
     
     # Check the username and password against the database
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(username=username).first()
     db.close()
 
@@ -50,7 +50,7 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     if not username or not password or not public_key or not salt:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = Session()
+    db = get_session()
 
     # Cond 1: The username already exists
     existing_user = db.query(Users).filter_by(username=username).first()
@@ -97,7 +97,7 @@ def change_password(token: str, new_password: str) -> dict:
     
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     
     if not user:
@@ -129,7 +129,7 @@ def delete_account(username: str) -> dict:
     if not username:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(username=username).first()
     
     if not user:
@@ -159,7 +159,7 @@ def change_username(token: str, new_username: str) -> dict:
     
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     if not user:
         db.close()
@@ -197,7 +197,7 @@ def get_current_user(token: str) -> dict:
 
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     db.close()
 
