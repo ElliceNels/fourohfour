@@ -6,6 +6,7 @@
 #include "loginpage.h"
 #include "registerpage.h"
 #include "titlepage.h"
+#include "verifypage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -33,6 +34,7 @@ private:
     TitlePage *titlePage;
     RegisterPage *registerPage;
     LoginPage *loginPage;
+    VerifyPage *verifyPage;
 };
 
 #endif // MAINWINDOW_H

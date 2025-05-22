@@ -5,5 +5,6 @@ namespace Pages {
 constexpr int TitlePageIndex = 0;
 constexpr int RegisterPageIndex = 1;
 constexpr int LoginPageIndex = 2;
+constexpr int VerifyPageIndex = 3;
 }
 #endif // PAGES_H

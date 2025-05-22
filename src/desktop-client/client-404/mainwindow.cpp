@@ -3,6 +3,7 @@
 #include "registerpage.h"
 #include "titlepage.h"
 #include "loginpage.h"
+#include "verifypage.h"
 #include "pages.h"
 
 
@@ -20,12 +21,14 @@ MainWindow::MainWindow(QWidget *parent)
 
    
     titlePage = new TitlePage(this);
-    loginPage = new LoginPage(this);
     registerPage = new RegisterPage(this);
+    loginPage = new LoginPage(this);
+    verifyPage = new VerifyPage(this);
 
     stackedWidget->addWidget(titlePage);
     stackedWidget->addWidget(registerPage);
     stackedWidget->addWidget(loginPage);
+    stackedWidget->addWidget(verifyPage);
       
     connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
         stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);

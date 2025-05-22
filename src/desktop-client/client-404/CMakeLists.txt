@@ -44,6 +44,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         key_utils.cpp
         titlepage.h titlepage.cpp titlepage.ui
         pages.h
+        verifypage.h verifypage.cpp verifypage.ui
+
     )
 else()
     if(ANDROID)
