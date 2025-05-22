@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from flask import jsonify
 from ..models.tables import Users, Files, FilePermissions
-from ..app import db
+from ..app import Session
 
 def get_user_public_key(user_id: int) -> dict:
     """Get the public key of a user.
@@ -12,8 +12,9 @@ def get_user_public_key(user_id: int) -> dict:
     Returns:
         dict: Response containing the user's public key or error message
     """
+    db = Session()
     try:
-        user = Users.query.get(user_id)
+        user = db.query(Users).get(user_id)
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
@@ -23,6 +24,8 @@ def get_user_public_key(user_id: int) -> dict:
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, owner_id: int) -> dict:
     """Create a new file permission for a user.
@@ -36,21 +39,22 @@ def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, o
     Returns:
         dict: Response containing success message or error
     """
+    db = Session()
     try:
         # Check if the file exists and belongs to the owner
-        file = Files.query.get(file_id)
+        file = db.query(Files).get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != owner_id:
             return jsonify({'error': 'Not authorized to share this file'}), 403
 
         # Check if the recipient user exists
-        recipient = Users.query.get(user_id)
+        recipient = db.query(Users).get(user_id)
         if not recipient:
             return jsonify({'error': 'Recipient user not found'}), 404
 
         # Check if permission already exists
-        existing_permission = FilePermissions.query.filter_by(
+        existing_permission = db.query(FilePermissions).filter_by(
             file_id=file_id,
             user_id=user_id
         ).first()
@@ -65,14 +69,16 @@ def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, o
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC)
         )
-        db.session.add(new_permission)
-        db.session.commit()
+        db.add(new_permission)
+        db.commit()
 
         return jsonify({'message': 'Permission created successfully'}), 201
 
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 def remove_file_permission(file_id: int, user_id: int, owner_id: int) -> dict:
     """Remove a file permission for a user.
@@ -85,16 +91,17 @@ def remove_file_permission(file_id: int, user_id: int, owner_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
+    db = Session()
     try:
         # Check if the file exists and belongs to the owner
-        file = Files.query.get(file_id)
+        file = db.query(Files).get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
         if file.owner_id != owner_id:
             return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
         # Find and delete the permission
-        permission = FilePermissions.query.filter_by(
+        permission = db.query(FilePermissions).filter_by(
             file_id=file_id,
             user_id=user_id
         ).first()
@@ -102,11 +109,13 @@ def remove_file_permission(file_id: int, user_id: int, owner_id: int) -> dict:
         if not permission:
             return jsonify({'error': 'Permission not found'}), 404
 
-        db.session.delete(permission)
-        db.session.commit()
+        db.delete(permission)
+        db.commit()
 
         return jsonify({'message': 'Permission removed successfully'}), 200
 
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()

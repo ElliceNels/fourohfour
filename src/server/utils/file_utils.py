@@ -2,9 +2,9 @@ from datetime import datetime, UTC
 from flask import jsonify
 from werkzeug.utils import secure_filename
 import os
-from ..models.tables import Files, FilePermissions, FileMetadata
-from ..app import db
 import base64
+from ..models.tables import Files, FilePermissions, FileMetadata
+from ..app import Session
 
 def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dict:
     """Upload a file to the database and disk storage.
@@ -18,6 +18,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
     Returns:
         dict: Response containing success message and file ID or error message
     """
+    db = Session()
     try:
         # Create database entry
         new_file = Files(
@@ -26,8 +27,8 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
             path=file_path,
             uploaded_at=datetime.now(UTC)
         )
-        db.session.add(new_file)
-        db.session.flush()
+        db.add(new_file)
+        db.flush()
         
         # Create metadata entry
         file_metadata = FileMetadata(
@@ -36,17 +37,19 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
             format=metadata['format'],
             last_updated_at=datetime.now(UTC)
         )
-        db.session.add(file_metadata)
+        db.add(file_metadata)
         
-        db.session.commit()
+        db.commit()
         return jsonify({
             'message': 'File uploaded successfully',
             'file_id': new_file.id
         }), 201
 
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 def get_user_files(user_id: int) -> dict:
     """Get all files accessible to a user (owned and shared).
@@ -57,9 +60,10 @@ def get_user_files(user_id: int) -> dict:
     Returns:
         dict: Response containing lists of owned and shared files
     """
+    db = Session()
     try:
         # Get files owned by the user
-        owned_files = Files.query.filter_by(owner_id=user_id).all()
+        owned_files = db.query(Files).filter_by(owner_id=user_id).all()
         owned_files_data = [{
             'id': file.id,
             'filename': file.name,
@@ -70,9 +74,9 @@ def get_user_files(user_id: int) -> dict:
         } for file in owned_files]
 
         # Get files shared with the user
-        shared_permissions = FilePermissions.query.filter_by(user_id=user_id).all()
+        shared_permissions = db.query(FilePermissions).filter_by(user_id=user_id).all()
         shared_file_ids = [permission.file_id for permission in shared_permissions]
-        shared_files = Files.query.filter(Files.id.in_(shared_file_ids)).all()
+        shared_files = db.query(Files).filter(Files.id.in_(shared_file_ids)).all()
         shared_files_map = {file.id: file for file in shared_files}
         shared_files_data = []
         for permission in shared_permissions:
@@ -94,6 +98,8 @@ def get_user_files(user_id: int) -> dict:
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 def get_file_by_id(file_id: int, user_id: int) -> dict:
     """Get a specific file by ID if user has access.
@@ -105,15 +111,16 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
     Returns:
         dict: Response containing file data and sharing keys if user is owner
     """
+    db = Session()
     try:
         # Find the file
-        file = Files.query.get(file_id)
+        file = db.query(Files).get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
 
         # Check if user has access
         if file.owner_id != user_id:
-            permission = FilePermissions.query.filter_by(
+            permission = db.query(FilePermissions).filter_by(
                 file_id=file_id,
                 user_id=user_id
             ).first()
@@ -133,7 +140,7 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
 
         # If user is owner, include all sharing keys
         if file.owner_id == user_id:
-            permissions = FilePermissions.query.filter_by(file_id=file_id).all()
+            permissions = db.query(FilePermissions).filter_by(file_id=file_id).all()
             response_data['encrypted_keys'] = {
                 perm.user_id: perm.encryption_key for perm in permissions
             }
@@ -142,6 +149,8 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
 
 def delete_file_by_id(file_id: int, user_id: int) -> dict:
     """Delete a file if user is the owner.
@@ -153,9 +162,10 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
+    db = Session()
     try:
         # Find the file
-        file = Files.query.get(file_id)
+        file = db.query(Files).get(file_id)
         if not file:
             return jsonify({'error': 'File not found'}), 404
 
@@ -170,11 +180,13 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
             return jsonify({'error': 'Error deleting file from disk'}), 500
 
         # Delete from database
-        db.session.delete(file)
-        db.session.commit()
+        db.delete(file)
+        db.commit()
 
         return jsonify({'message': 'File deleted successfully'})
 
     except Exception as e:
-        db.session.rollback()
+        db.rollback()
         return jsonify({'error': str(e)}), 500
+    finally:
+        db.close()
