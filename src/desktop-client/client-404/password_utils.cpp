@@ -27,35 +27,6 @@ string verify_password(const string& hashed, const string& password) {
 }
 
 
-const QSet<QString> DICTIONARY_WORDS = QSet<QString>({
-    "password",
-    "123456",
-    "12345678",
-    "abc123",
-    "qwerty",
-    "monkey",
-    "letmein",
-    "dragon",
-    "111111",
-    "baseball",
-    "iloveyou",
-    "trustno1",
-    "1234567",
-    "sunshine",
-    "master",
-    "123123",
-    "welcome",
-    "shadow",
-    "ashley",
-    "football",
-    "jesus",
-    "michael",
-    "ninja",
-    "mustang",
-    "password1"
-});
-
-
 QSet<QString> loadDictionaryWords(const QString& filePath) {
     QSet<QString> words;
     QFile file(filePath);
