@@ -1,5 +1,8 @@
 from flask import Blueprint, jsonify, request
 from server.utils import auth_utils
+import logging
+
+logger = logging.getLogger(__name__)
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
@@ -20,6 +23,7 @@ def login():
     """
 
     data = request.get_json()
+    logger.debug(f"Received login request for username: {data.get('username')}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
 
@@ -44,6 +48,7 @@ def sign_up():
     """
     
     data = request.get_json()
+    logger.debug(f"Received sign up request with data: {data}")
     username = data.get('username')
     hash_password = data.get('hashed_password')
     public_key = data.get('public_key')
@@ -67,8 +72,10 @@ def logout():
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
         # TODO: Invalidate the token
+        logger.info(f"User logged out successfully with token prefix: {token[:6]}...")
         return {"message": "Logged out successfully"}, 200
     else:
+        logger.warning("Logout failed: Missing or malformed token")
         return jsonify({"error": "Missing or malformed token"}), 401
 
 @authentication_routes.route('/change_password', methods=['POST'])
@@ -86,6 +93,7 @@ def change_password():
     """
     
     data = request.get_json()
+    logger.debug(f"Received change password request with data: {data}")
     new_password = data.get('new_password')
 
     # Extract the JWT token from the request headers
@@ -94,6 +102,7 @@ def change_password():
         token = auth_header.split(' ')[1]
         return auth_utils.change_password(token, new_password)
     else:
+        logger.warning("Change password failed: Missing or malformed token")
         return jsonify({"error": "Missing or malformed token"}), 401
 
 @authentication_routes.route('/delete_account', methods=['POST'])
@@ -111,6 +120,7 @@ def delete_account():
     """
 
     data = request.get_json()
+    logger.debug(f"Received delete account request with data: {data}")
     username = data.get('username')
 
     # Extract the JWT token from the request headers
@@ -118,6 +128,7 @@ def delete_account():
     if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
         return auth_utils.delete_account(username)
     else:
+        logger.warning("Delete account failed: Missing or malformed token")
         return jsonify({"error": "Missing or malformed token"}), 401
 
 @authentication_routes.route('/change_username', methods=['POST'])
@@ -134,6 +145,7 @@ def change_username():
     """
     
     data = request.get_json()
+    logger.debug(f"Received change username request with data: {data}")
     new_username = data.get('new_username')
 
     # Extract the JWT token from the request headers
@@ -142,6 +154,7 @@ def change_username():
         token = auth_header.split(' ')[1]
         return auth_utils.change_username(token, new_username)
     else:
+        logger.warning("Change username failed: Missing or malformed token")
         return jsonify({"error": "Missing or malformed token"}), 401
 
 @authentication_routes.route('/get_current_user', methods=['GET'])
@@ -158,6 +171,7 @@ def get_current_user():
         "updated_at": "<updated_at>"
     }
     """
+    logger.debug("Received request to get current user")
 
     # Extract the JWT token from the request headers
     auth_header = request.headers.get('Authorization')
@@ -165,5 +179,6 @@ def get_current_user():
         token = auth_header.split(' ')[1]
         return auth_utils.current_user(token)
     else:
+        logger.warning("Get current user failed: Missing or malformed token")
         return jsonify({"error": "Missing or malformed token"}), 401
 
