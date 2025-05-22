@@ -19,3 +19,7 @@ libsodium-*
 venv/
 env/
 ENV/
+*.env
+
+# Ignore Python cache files
+__pycache__/
