@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from src.server.utils.auth import login, sign_up, change_username
+from server.utils import auth, jwt
 
 authentication_routes = Blueprint('authentication_routes', __name__)
 
@@ -15,7 +15,8 @@ def login():
 
     Expected response:
     {
-        "token": <JWT_token>
+        "access_token": "<JWT_access_token>",
+        "refresh_token": "<JWT_refresh_token>"
     }
     """
 
@@ -24,6 +25,32 @@ def login():
     hash_password = data.get('hashed_password')
 
     return auth.login(username, hash_password)
+
+@authentication_routes.route('/refresh', methods=['POST'])
+def refresh():
+    """Refresh access token using refresh token.
+    
+    Expected JSON payload:
+    {
+        "refresh_token": "<JWT_refresh_token>"
+    }
+
+    Expected response:
+    {
+        "access_token": "<new_JWT_access_token>"
+    }
+    """
+    data = request.get_json()
+    refresh_token = data.get('refresh_token')
+    
+    if not refresh_token:
+        return jsonify({"error": "Missing refresh token"}), 400
+        
+    new_access_token, error = jwt.refresh_access_token(refresh_token)
+    if error:
+        return error
+        
+    return jsonify({"access_token": new_access_token}), 200
 
 @authentication_routes.route('/sign_up', methods=['POST'])
 def sign_up():
@@ -55,21 +82,32 @@ def sign_up():
 def logout():
     """Logout route to invalidate the user session.
     
+    Expected headers:
+    Authorization: Bearer <access_token>
+    X-Refresh-Token: <refresh_token>
+
     Expected response:
     {
         "message": "Logged out successfully"
     }
     """
 
-    data = request.get_json()
-    # Extract the JWT token from the request headers
+    # Get access token from Authorization header
     auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        token = auth_header.split(' ')[1]
-        # TODO: Invalidate the token
-        return {"message": "Logged out successfully"}, 200
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({"error": "Missing or malformed access token"}), 401
+    access_token = auth_header.split(' ')[1]
+
+    # Get refresh token from custom header
+    refresh_token = request.headers.get('X-Refresh-Token')
+    if not refresh_token:
+        return jsonify({"error": "Missing refresh token"}), 400
+        
+    # Invalidate both tokens
+    if jwt.invalidate_token(access_token) and jwt.invalidate_token(refresh_token):
+        return jsonify({"message": "Logged out successfully"}), 200
     else:
-        return jsonify({"error": "Missing or malformed token"}), 401
+        return jsonify({"error": "Failed to invalidate tokens"}), 500
 
 @authentication_routes.route('/change_password', methods=['POST'])
 def change_password():
@@ -92,7 +130,7 @@ def change_password():
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '):
         token = auth_header.split(' ')[1]
-        return auth_utils.change_password(token, new_password)
+        return auth.change_password(token, new_password)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
 
@@ -116,7 +154,7 @@ def delete_account():
     # Extract the JWT token from the request headers
     auth_header = request.headers.get('Authorization')
     if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
-        return auth_utils.delete_account(username)
+        return auth.delete_account(username)
     else:
         return jsonify({"error": "Missing or malformed token"}), 401
 
@@ -158,12 +196,8 @@ def get_current_user():
         "updated_at": "<updated_at>"
     }
     """
-
-    # Extract the JWT token from the request headers
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
-        token = auth_header.split(' ')[1]
-        return auth.get_current_user(token)
-    else:
-        return jsonify({"error": "Missing or malformed token"}), 401
+    user_info, status_code = auth.get_current_user()
+    if status_code != 200:
+        return user_info, status_code
+    return jsonify(user_info), 200
 

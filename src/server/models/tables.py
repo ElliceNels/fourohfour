@@ -79,3 +79,12 @@ class FileMetadata(Base):
     last_updated_at = Column(DateTime, nullable=False)
 
     file = relationship("Files", back_populates="file_metadata")
+
+class TokenBlacklist(Base):
+    """Table for storing invalidated JWT tokens."""
+    __tablename__ = 'token_blacklist'
+
+    id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, nullable=False)
+    blacklisted_at = Column(DateTime(timezone=True), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)

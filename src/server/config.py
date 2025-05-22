@@ -4,6 +4,8 @@ from pathlib import Path
 import json
 from typing import ClassVar, Optional
 from pydantic import BaseModel
+import os
+from datetime import timedelta
 
 
 class ServerConfig(BaseModel):
@@ -25,6 +27,20 @@ class LoggingConfig(BaseModel):
     format: str
     file_path: str
 
+class JWTConfig(BaseModel):
+    """JWT configuration class."""
+    secret_key: str
+    access_token_expires_hours: int
+    refresh_token_expires_days: int
+
+    @property
+    def access_token_expires(self) -> timedelta:
+        return timedelta(hours=self.access_token_expires_hours)
+
+    @property
+    def refresh_token_expires(self) -> timedelta:
+        return timedelta(days=self.refresh_token_expires_days)
+
 class Config(BaseModel):
     """Singleton configuration class."""
 
@@ -34,6 +50,7 @@ class Config(BaseModel):
     server: ServerConfig
     logging: LoggingConfig
     database: DatabaseConfig
+    jwt: JWTConfig
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern enforcing on Config class creation."""
