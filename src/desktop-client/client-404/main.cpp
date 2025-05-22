@@ -18,15 +18,6 @@ int main(int argc, char *argv[])
 
     cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
 
-
-    // QApplication a(argc, argv);
-    // RegisterPage w;
-    // w.show();
-    // return a.exec();
-
-
-
-
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
