@@ -4,6 +4,10 @@ from server.utils.auth import get_current_user
 from server.utils.file import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
 from werkzeug.utils import secure_filename
 import os
+from datetime import datetime, UTC
+import logging
+
+logger = logging.getLogger(__name__)
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -23,7 +27,10 @@ def upload_file():
         "file_id": <file_id>
     }
     """
+    logger.debug(f"Received file upload request with data: {request.form}")
+
     if 'encrypted_file' not in request.files:
+        logger.warning("Upload failed: No file provided")
         return jsonify({'error': 'No file provided'}), 400
 
     try:
@@ -45,6 +52,7 @@ def upload_file():
                 os.remove(file_path)
             except:
                 pass
+        logger.error(f"Error uploading file: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/', methods=['GET'])
@@ -75,10 +83,13 @@ def list_files():
         ]
     }
     """
+    logger.debug("Received request to list files")
+
     try:
         current_user = get_current_user()
         return get_user_files(current_user.user_id)
     except Exception as e:
+        logger.error(f"Error listing files: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/<file_id>', methods=['GET'])
@@ -96,10 +107,13 @@ def get_file(file_id):
         }
     }
     """
+    logger.debug(f"Received request to get file with ID: {file_id}")
+
     try:
         current_user = get_current_user()
         return get_file_by_id(file_id, current_user.user_id)
     except Exception as e:
+        logger.error(f"Error retrieving file {file_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @files_bp.route('/<file_id>', methods=['DELETE'])
@@ -114,8 +128,11 @@ def delete_file(file_id):
         "message": "File deleted successfully"
     }
     """
+    logger.debug(f"Received request to delete file with ID: {file_id}")
+
     try:
         current_user = get_current_user()
         return delete_file_by_id(file_id, current_user.user_id)
     except Exception as e:
+        logger.error(f"Error deleting file {file_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500

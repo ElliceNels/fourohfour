@@ -19,9 +19,11 @@ setup_logger()
 
 def create_app():
     app = Flask(__name__)
+    logger.info('Flask app initialized')
     
     # Enable CORS
     CORS(app)
+    logger.info('CORS enabled for Flask app')
 
     # DB configuration
     # setup_db()
@@ -34,7 +36,7 @@ def create_app():
     app.register_blueprint(permission_bp)
     app.register_blueprint(files_bp)
 
-    logger.info('Flask app created and blueprints registered')
+    logger.info('Blueprints registered')
 
     @app.route('/')
     def index():
