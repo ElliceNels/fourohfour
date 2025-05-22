@@ -24,6 +24,9 @@ private slots:
 
 private:
     Ui::RegisterPage *ui;
+
+signals:
+    void goToLoginRequested();
 };
 
 #endif // REGISTERPAGE_H

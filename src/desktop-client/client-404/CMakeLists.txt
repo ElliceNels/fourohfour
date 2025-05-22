@@ -23,6 +23,11 @@ set(PROJECT_SOURCES
     registerpage.cpp
     registerpage.h
     registerpage.ui
+    key_utils.cpp
+    key_utils.h
+    loginpage.cpp
+    loginpage.h
+    loginpage.ui
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
@@ -38,10 +43,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         key_utils.h
         key_utils.cpp
         titlepage.h titlepage.cpp titlepage.ui
-
-
-
-
     )
 else()
     if(ANDROID)

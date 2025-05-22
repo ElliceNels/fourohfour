@@ -2,7 +2,8 @@
 #include "ui_mainwindow.h"
 #include "registerpage.h"
 #include "titlepage.h"
-// #include "loginpage.h"
+#include "loginpage.h"
+
 
 constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
 
@@ -15,19 +16,26 @@ MainWindow::MainWindow(QWidget *parent)
     stackedWidget = new QStackedWidget(this);
     stackedWidget->setStyleSheet("background-color: rgb(231, 236, 239);");
 
-    registerPage = new RegisterPage(this);
+   
     titlePage = new TitlePage(this);
+    loginPage = new LoginPage(this);
+    registerPage = new RegisterPage(this);
 
     stackedWidget->addWidget(titlePage); // index 0
     stackedWidget->addWidget(registerPage); // index 1
+    stackedWidget->addWidget(loginPage); // index 2
+      
+    connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
+        stackedWidget->setCurrentIndex(0);
+    });
 
-
-    // loginPage = new LoginPage(this);
-    // stackedWidget->addWidget(loginPage); // index 1
+    connect(registerPage, &RegisterPage::goToLoginRequested, this, [this]() {
+        stackedWidget->setCurrentIndex(1);
+    });
 
     setCentralWidget(stackedWidget);
 
-    // stackedWidget->setCurrentIndex(1); // Show login page
+    stackedWidget->setCurrentIndex(1); // Show login page
 
 }
 

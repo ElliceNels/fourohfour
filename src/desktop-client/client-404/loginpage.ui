@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>RegisterPage</class>
- <widget class="QWidget" name="RegisterPage">
+ <class>LoginPage</class>
+ <widget class="QWidget" name="LoginPage">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -15,26 +15,21 @@
   </property>
   <property name="styleSheet">
    <string notr="true">  QWidget {
-      background-color: rgb(231, 236, 239);;
+      background-color: #66a3ff;
   }</string>
   </property>
-  <widget class="QLineEdit" name="accountNameLineEdit">
+  <widget class="QLineEdit" name="usernameLineEdit">
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>350</y>
-     <width>161</width>
+     <y>320</y>
+     <width>141</width>
      <height>31</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>9</pointsize>
-    </font>
-   </property>
    <property name="styleSheet">
     <string notr="true">  QWidget {
-      background-color: #ffffff;
+      background-color:#ffffff;
   }</string>
    </property>
   </widget>
@@ -42,55 +37,22 @@
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>410</y>
-     <width>161</width>
+     <y>390</y>
+     <width>141</width>
      <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">
     <string notr="true">  QWidget {
-      background-color: #ffffff;
+      background-color:#ffffff;
   }</string>
    </property>
   </widget>
-  <widget class="QLineEdit" name="confirmPasswordLineEdit">
+  <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>470</y>
-     <width>161</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">  QWidget {
-      background-color: #ffffff;
-  }</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="createAccountButton">
-   <property name="geometry">
-    <rect>
-     <x>440</x>
-     <y>540</y>
-     <width>131</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">  QWidget {
-      background-color: #00ffff;
-  }</string>
-   </property>
-   <property name="text">
-    <string>Create Account</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>390</x>
-     <y>70</y>
+     <x>410</x>
+     <y>100</y>
      <width>311</width>
      <height>61</height>
     </rect>
@@ -108,27 +70,27 @@
   }</string>
    </property>
    <property name="text">
-    <string>Account Registration</string>
+    <string>Account Login</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_2">
+  <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>330</y>
-     <width>91</width>
+     <y>300</y>
+     <width>61</width>
      <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Account Name</string>
+    <string>Username</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_4">
+  <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>390</y>
+     <y>370</y>
      <width>49</width>
      <height>16</height>
     </rect>
@@ -137,44 +99,29 @@
     <string>Password</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_5">
+  <widget class="QPushButton" name="loginButton">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>450</y>
-     <width>101</width>
-     <height>16</height>
+     <x>440</x>
+     <y>460</y>
+     <width>121</width>
+     <height>41</height>
     </rect>
    </property>
-   <property name="text">
-    <string>Confirm Password</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_6">
-   <property name="geometry">
-    <rect>
-     <x>410</x>
-     <y>150</y>
-     <width>261</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>10</pointsize>
-    </font>
+   <property name="styleSheet">
+    <string notr="true">  QWidget {
+      background-color: #00ffff;
+  }</string>
    </property>
    <property name="text">
-    <string>We recommend for your password to be 
-atleast 15 characters. Your password should 
-also be unique and difficult to guess. </string>
+    <string>Login</string>
    </property>
   </widget>
   <widget class="QPushButton" name="showPasswordButton">
    <property name="geometry">
     <rect>
-     <x>600</x>
-     <y>440</y>
+     <x>580</x>
+     <y>400</y>
      <width>41</width>
      <height>20</height>
     </rect>
@@ -186,12 +133,12 @@ also be unique and difficult to guess. </string>
     <string>Show</string>
    </property>
   </widget>
-  <widget class="QPushButton" name="goToLoginButton">
+  <widget class="QPushButton" name="goToRegisterButton">
    <property name="geometry">
     <rect>
      <x>430</x>
-     <y>620</y>
-     <width>161</width>
+     <y>570</y>
+     <width>141</width>
      <height>21</height>
     </rect>
    </property>
@@ -199,20 +146,20 @@ also be unique and difficult to guess. </string>
     <string notr="true"> background-color: #6ea8fe;</string>
    </property>
    <property name="text">
-    <string>Log in to account</string>
+    <string>Create New Account</string>
    </property>
   </widget>
-  <widget class="QLabel" name="label_7">
+  <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>600</y>
+     <x>430</x>
+     <y>550</y>
      <width>151</width>
-     <height>20</height>
+     <height>16</height>
     </rect>
    </property>
    <property name="text">
-    <string>Already have an account?</string>
+    <string>Don't have an account yet?</string>
    </property>
   </widget>
  </widget>

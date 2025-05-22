@@ -22,6 +22,7 @@ RegisterPage::RegisterPage(QWidget *parent) :
 
     connect(ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
+    connect(ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
 }
 
 RegisterPage::~RegisterPage()
