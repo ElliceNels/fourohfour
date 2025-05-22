@@ -29,10 +29,15 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        password_utils.h
+        password_utils.h
+        password_utils.cpp
+        resource.qrc
         registerpage.ui
         registerpage.ui
         key_utils.h
         key_utils.cpp
+
 
 
     )
