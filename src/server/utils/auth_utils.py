@@ -81,6 +81,107 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     token = -1 # TODO: Replace with actual JWT token generation logic
     return jsonify({"token": token}), 201
 
+def change_password(token: str, new_password: str) -> dict:
+    """Change password route to update user password.
+
+    Args:
+        token (str): valid, active JWT token.
+        new_password (str): new password for the user.
+
+    Returns:
+        dict: response containing success message or error message.
+    """
+    
+    if not token or not new_password:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    user_id = -1 # TODO: Replace with actual JWT token decoding logic
+
+    db = Session()
+    user: Users = db.query(Users).filter_by(id=user_id).first()
+    
+    if not user:
+        db.close()
+        return jsonify({"error": "User not found"}), 404
+    
+    # Cond 1: The new password is the same as the current one
+    if user.password == new_password:
+        db.close()
+        return jsonify({"error": "New password is the same as the current one"}), 400
+    
+    # Update the password
+    user.password = new_password
+    user.updated_at = datetime.now()
+    db.commit()
+    db.close()
+    return jsonify({"message": "Password updated successfully"}), 200
+
+def delete_account(username: str) -> dict:
+    """Delete account route to remove a user from the database.
+
+    Args:
+        username (str): Username of the user to be deleted.
+
+    Returns:
+        dict: response containing success message or error message.
+    """
+    
+    if not username:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    db = Session()
+    user: Users = db.query(Users).filter_by(username=username).first()
+    
+    if not user:
+        db.close()
+        return jsonify({"error": "User not found"}), 404
+    
+    # Delete the user
+    db.delete(user)
+    db.commit()
+    db.close()
+    return jsonify({"message": "Account deleted successfully"}), 200
+
+
+def change_username(token: str, new_username: str) -> dict:
+    """Change username route to update user information.
+
+    Args:
+        token (str): valid, active JWT token.
+        new_username (str): new username for the user.
+
+    Returns:
+        dict: response containing success message or error message.
+    """
+    
+    if not token or not new_username:
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    user_id = -1 # TODO: Replace with actual JWT token decoding logic
+
+    db = Session()
+    user: Users = db.query(Users).filter_by(id=user_id).first()
+    if not user:
+        db.close()
+        return jsonify({"error": "User not found"}), 404
+    
+    # Cond 1: The new username already exists
+    existing_user = db.query(Users).filter_by(username=new_username).first()
+    if existing_user:
+        db.close()
+        return jsonify({"error": "Username already exists"}), 409
+    
+    # Cond 2: Username is the same as the current one
+    if user.username == new_username:
+        db.close()
+        return jsonify({"error": "New username is the same as the current one"}), 400
+    
+    # Update the username
+    user.username = new_username
+    user.updated_at = datetime.now()
+    db.commit()
+    db.close()
+    return jsonify({"message": "Username updated successfully"}), 200
 
 def current_user(token: str) -> dict:
     """Get the current user from the JWT token.
@@ -91,7 +192,9 @@ def current_user(token: str) -> dict:
     Returns:
         dict: response containing user information or error message.
     """
-    
+    if not token:
+        return jsonify({"error": "Missing required fields"}), 400
+
     user_id = -1 # TODO: Replace with actual JWT token decoding logic
 
     db = Session()
@@ -103,7 +206,9 @@ def current_user(token: str) -> dict:
     
     user_info = {
         "username": user.username,
+        "password": user.password,
         "public_key": user.public_key,
+        "salt": user.salt,
         "created_at": user.created_at,
         "updated_at": user.updated_at
     }
