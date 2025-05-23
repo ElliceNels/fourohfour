@@ -1,10 +1,11 @@
 from datetime import datetime, UTC
 from flask import jsonify
-from werkzeug.utils import secure_filename
 import os
 import base64
-from ..models.tables import Files, FilePermissions, FileMetadata
-from ..app import Session
+from src.server.models.tables import Files, FilePermissions, FileMetadata
+from src.server.utils.db_setup import get_session
+
+
 
 def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dict:
     """Upload a file to the database and disk storage.
@@ -18,7 +19,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
     Returns:
         dict: Response containing success message and file ID or error message
     """
-    db = Session()
+    db = get_session()
     try:
         # Create database entry
         new_file = Files(
@@ -60,7 +61,7 @@ def get_user_files(user_id: int) -> dict:
     Returns:
         dict: Response containing lists of owned and shared files
     """
-    db = Session()
+    db = get_session()
     try:
         # Get files owned by the user
         owned_files = db.query(Files).filter_by(owner_id=user_id).all()
@@ -111,7 +112,7 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
     Returns:
         dict: Response containing file data and sharing keys if user is owner
     """
-    db = Session()
+    db = get_session()
     try:
         # Find the file
         file = db.query(Files).get(file_id)
@@ -162,7 +163,7 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
-    db = Session()
+    db = get_session()
     try:
         # Find the file
         file = db.query(Files).get(file_id)

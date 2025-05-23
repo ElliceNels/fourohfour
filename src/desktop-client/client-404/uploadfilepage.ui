@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>UploadFilePage</class>
+ <widget class="QWidget" name="UploadFilePage">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>700</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1100</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1100</width>
+    <height>700</height>
+   </size>
+  </property>
+  <property name="font">
+   <font>
+    <pointsize>14</pointsize>
+    <bold>true</bold>
+   </font>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(231, 236, 239);</string>
+  </property>
+  <widget class="QLabel" name="titleLabel">
+   <property name="geometry">
+    <rect>
+     <x>310</x>
+     <y>90</y>
+     <width>511</width>
+     <height>101</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>50</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(0, 0, 0);</string>
+   </property>
+   <property name="text">
+    <string>Upload a File</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="uploadButton">
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>560</y>
+     <width>181</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>23</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">   QPushButton {
+        background-color: rgb(39, 76, 119);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: rgb(30, 60, 100); 
+    }
+
+    QPushButton:pressed {
+        background-color: rgb(20, 45, 80); 
+    }
+
+</string>
+   </property>
+   <property name="text">
+    <string>Upload</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QFrame" name="frame">
+   <property name="geometry">
+    <rect>
+     <x>370</x>
+     <y>220</y>
+     <width>391</width>
+     <height>211</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::Shape::StyledPanel</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Shadow::Raised</enum>
+   </property>
+   <property name="lineWidth">
+    <number>17</number>
+   </property>
+   <widget class="QLabel" name="fileNameLabel">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>30</y>
+      <width>111</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>File Name:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="FileSizeLabel">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>File Size:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="fileTypeLabel">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>70</y>
+      <width>111</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="text">
+     <string>File Type:</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="fileSizeOutput">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>122</y>
+      <width>201</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>- </string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="fileTypeOutput">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>79</y>
+      <width>201</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>-</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="fileNameOutput">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>31</y>
+      <width>191</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>11</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>-</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="confirmButton">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="geometry">
+    <rect>
+     <x>460</x>
+     <y>490</y>
+     <width>181</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>23</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"> QPushButton {
+        background-color: rgb(96, 150, 186);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+
+    QPushButton:pressed {
+        background-color: #1c5980;
+    }</string>
+   </property>
+   <property name="text">
+    <string>Confirm</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="confirmLabel">
+   <property name="geometry">
+    <rect>
+     <x>220</x>
+     <y>440</y>
+     <width>641</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="text">
+    <string>Confirm these details are correct and upload this file or try upload another file</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignCenter</set>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

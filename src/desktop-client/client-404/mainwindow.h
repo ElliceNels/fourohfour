@@ -7,6 +7,7 @@
 #include "registerpage.h"
 #include "titlepage.h"
 #include "verifypage.h"
+#include "uploadfilepage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -26,8 +27,6 @@ public:
 
 private slots:
 
-    void on_uploadButton_clicked();
-
 private:
     Ui::MainWindow *ui;
     QStackedWidget *stackedWidget;
@@ -35,6 +34,7 @@ private:
     RegisterPage *registerPage;
     LoginPage *loginPage;
     VerifyPage *verifyPage;
+    UploadFilePage *uploadFilePage;
 };
 
 #endif // MAINWINDOW_H

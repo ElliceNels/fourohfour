@@ -1,7 +1,8 @@
 from datetime import datetime
-from flask import jsonify
-from src.server.app import Session
+from flask import jsonify, request
+from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
+from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
 
 
 def login(username: str, hash_password: bytes) -> dict:
@@ -12,14 +13,14 @@ def login(username: str, hash_password: bytes) -> dict:
         hash_password (bytes): Hashed password of the user.
 
     Returns:
-        dict: response containing JWT token or error message.
+        dict: response containing access and refresh tokens or error message.
     """
 
     if not username or not hash_password:
         return jsonify({"error": "Missing required fields"}), 400
     
     # Check the username and password against the database
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(username=username).first()
     db.close()
 
@@ -31,8 +32,11 @@ def login(username: str, hash_password: bytes) -> dict:
     if user.password != hash_password:
         return jsonify({"error": "Invalid password"}), 401
 
-    token = -1 # TODO: Replace with actual JWT token generation logic
-    return jsonify({"token": token}), 200
+    access_token, refresh_token = generate_token(user.id)
+    return jsonify({
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }), 200
 
 def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dict:
     """Sign up route to register new users.
@@ -44,13 +48,13 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
         salt (bytes): salt used for hashing the password.
 
     Returns:
-        dict: validated response containing JWT token or error message.
+        dict: validated response containing access and refresh tokens or error message.
     """
     
     if not username or not password or not public_key or not salt:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = Session()
+    db = get_session()
 
     # Cond 1: The username already exists
     existing_user = db.query(Users).filter_by(username=username).first()
@@ -78,8 +82,11 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     db.commit()
     db.close()
 
-    token = -1 # TODO: Replace with actual JWT token generation logic
-    return jsonify({"token": token}), 201
+    access_token, refresh_token = generate_token(new_user.id)
+    return jsonify({
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }), 201
 
 def change_password(token: str, new_password: str) -> dict:
     """Change password route to update user password.
@@ -95,9 +102,11 @@ def change_password(token: str, new_password: str) -> dict:
     if not token or not new_password:
         return jsonify({"error": "Missing required fields"}), 400
     
-    user_id = -1 # TODO: Replace with actual JWT token decoding logic
+    user_id, error = get_user_id_from_token(token)
+    if error:
+        return error
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     
     if not user:
@@ -129,7 +138,7 @@ def delete_account(username: str) -> dict:
     if not username:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(username=username).first()
     
     if not user:
@@ -157,9 +166,11 @@ def change_username(token: str, new_username: str) -> dict:
     if not token or not new_username:
         return jsonify({"error": "Missing required fields"}), 400
     
-    user_id = -1 # TODO: Replace with actual JWT token decoding logic
+    user_id, error = get_user_id_from_token(token)
+    if error:
+        return error
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     if not user:
         db.close()
@@ -183,28 +194,39 @@ def change_username(token: str, new_username: str) -> dict:
     db.close()
     return jsonify({"message": "Username updated successfully"}), 200
 
-def current_user(token: str) -> dict:
+def get_current_user(token: str) -> dict:
     """Get the current user from the JWT token.
 
     Args:
         token (str): valid, active JWT token.
 
     Returns:
-        dict: response containing user information or error message.
+        tuple: (user_info, status_code) where user_info is a dictionary containing:
+            - user_id: The user's ID
+            - username: The user's username
+            - password: The user's hashed password
+            - public_key: The user's public key
+            - salt: The user's salt
+            - created_at: Account creation timestamp
+            - updated_at: Last update timestamp
     """
-    if not token:
-        return jsonify({"error": "Missing required fields"}), 400
+    token, error = get_current_token()
+    if error:
+        return error['response'], error['status']
 
-    user_id = -1 # TODO: Replace with actual JWT token decoding logic
+    user_id, error = get_user_id_from_token(token)
+    if error:
+        return error['response'], error['status']
 
-    db = Session()
+    db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()
     db.close()
 
     if not user:
         return jsonify({"error": "User not found"}), 404
-    
+
     user_info = {
+        "user_id": user.user_id,
         "username": user.username,
         "password": user.password,
         "public_key": user.public_key,
@@ -212,4 +234,4 @@ def current_user(token: str) -> dict:
         "created_at": user.created_at,
         "updated_at": user.updated_at
     }
-    return jsonify(user_info), 200
+    return user_info, 200

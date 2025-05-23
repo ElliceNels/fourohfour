@@ -1,11 +1,9 @@
-import base64
 from flask import Blueprint, jsonify, request
-from ..models.tables import Files, FilePermissions, Users, FileMetadata  
-from ..utils.auth import get_current_user
-from ..utils.file_utils import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
+from server.models.tables import Files, FilePermissions, Users, FileMetadata  
+from server.utils.auth import get_current_user
+from server.utils.file import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime, UTC
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
@@ -34,11 +32,11 @@ def upload_file():
         # Save the file to disk
         file = request.files['encrypted_file']
         sanitized_filename = secure_filename(file.filename)
-        filename = f"{current_user.id}_{sanitized_filename}"
+        filename = f"{current_user.user_id}_{sanitized_filename}"
         file_path = os.path.join('uploads', filename)
         file.save(file_path)
 
-        return upload_file_to_db(current_user.id, file, file_path, request.metadata)
+        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata)
 
     except Exception as e:
         # Clean up file if database operation fails
@@ -79,7 +77,7 @@ def list_files():
     """
     try:
         current_user = get_current_user()
-        return get_user_files(current_user.id)
+        return get_user_files(current_user.user_id)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -100,7 +98,7 @@ def get_file(file_id):
     """
     try:
         current_user = get_current_user()
-        return get_file_by_id(file_id, current_user.id)
+        return get_file_by_id(file_id, current_user.user_id)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -118,6 +116,6 @@ def delete_file(file_id):
     """
     try:
         current_user = get_current_user()
-        return delete_file_by_id(file_id, current_user.id)
+        return delete_file_by_id(file_id, current_user.user_id)
     except Exception as e:
         return jsonify({'error': str(e)}), 500

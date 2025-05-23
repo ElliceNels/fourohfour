@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
-from ..utils.auth import get_current_user
-from ..utils.permission_utils import get_user_public_key, create_file_permission, remove_file_permission
+from src.server.utils.auth import get_current_user
+from server.utils.permission import get_user_public_key, create_file_permission, remove_file_permission
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
 
@@ -58,7 +58,7 @@ def create_permission():
             data['file_id'],
             data['user_id'],
             data['key_for_recipient'],
-            current_user.id
+            current_user.user_id
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -92,7 +92,7 @@ def remove_permission():
         return remove_file_permission(
             data['file_id'],
             data['user_id'],
-            current_user.id
+            current_user.user_id
         )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
