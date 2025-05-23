@@ -90,17 +90,21 @@ void RegisterPage::onCreateAccountClicked()
         return;
     }
 
-    saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
-    encryptAndSaveKey(this, privKeyBase64);
-
 
 
     QString salt = generateSalt(16);
+    QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8()); // decode to raw bytes
+    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
     string pubKey = password.toStdString();
     string sSalt = salt.toStdString();
+
+    deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
+
+    saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
+    encryptAndSaveKey(this, privKeyBase64, key);
 
 
     //Debug prints
