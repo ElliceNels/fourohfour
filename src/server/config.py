@@ -30,16 +30,16 @@ class LoggingConfig(BaseModel):
 class JWTConfig(BaseModel):
     """JWT configuration class."""
     secret_key: str
-    access_token_expires_hours: int
-    refresh_token_expires_days: int
+    access_token_expires: timedelta
+    refresh_token_expires: timedelta
 
-    @property
-    def access_token_expires(self) -> timedelta:
-        return timedelta(hours=self.access_token_expires_hours)
-
-    @property
-    def refresh_token_expires(self) -> timedelta:
-        return timedelta(days=self.refresh_token_expires_days)
+    def __init__(self, **data):
+        """Initialize JWT config with datetime conversions."""
+        # Convert hours and days to timedelta before initialization
+        data['access_token_expires'] = timedelta(hours=data['access_token_expires_hours'])
+        data['refresh_token_expires'] = timedelta(days=data['refresh_token_expires_days'])
+        
+        super().__init__(**data)
 
 class Config(BaseModel):
     """Singleton configuration class."""
