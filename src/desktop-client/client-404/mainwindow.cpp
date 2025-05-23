@@ -37,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     setCentralWidget(stackedWidget);
 
-    stackedWidget->setCurrentIndex(Pages::UploadFilePageIndex); // Show title page
+    stackedWidget->setCurrentIndex(Pages::TitlePageIndex); // Show title page
 
 }
 
