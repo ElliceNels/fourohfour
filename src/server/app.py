@@ -5,10 +5,7 @@ import os
 from src.server.routes.authentication_routes import authentication_routes as auth_bp
 from src.server.routes.permission_routes import permission_bp
 from src.server.routes.file_routes import files_bp
-from src.server.config import config 
-from src.server.models.tables import Base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from src.server.utils.db_setup import setup_db
 
 # Load environment variables
 load_dotenv()
@@ -20,15 +17,8 @@ def create_app():
     CORS(app)
 
     # DB configuration
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
-    
-    # TEMPORARLY COMMENTED OUT TO AVOID DB CONNECTION ERROR
-    # db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{config.database.db_name}"    
-    # engine = create_engine(db_engine)
-    # Base.metadata.create_all(engine)
-    # Session = sessionmaker(bind=engine)
-    
+    # setup_db()
+
     # Basic configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
     
