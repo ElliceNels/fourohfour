@@ -6,6 +6,7 @@
 #include "loginpage.h"
 #include "registerpage.h"
 #include "titlepage.h"
+#include "verifypage.h"
 #include "uploadfilepage.h"
 #include <QFile>
 #include <QTextStream>
@@ -32,6 +33,7 @@ private:
     TitlePage *titlePage;
     RegisterPage *registerPage;
     LoginPage *loginPage;
+    VerifyPage *verifyPage;
     UploadFilePage *uploadFilePage;
 };
 

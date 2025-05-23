@@ -3,6 +3,7 @@
 #include "registerpage.h"
 #include "titlepage.h"
 #include "loginpage.h"
+#include "verifypage.h"
 #include "pages.h"
 #include "constants.h"
 
@@ -18,13 +19,15 @@ MainWindow::MainWindow(QWidget *parent)
 
    
     titlePage = new TitlePage(this);
-    loginPage = new LoginPage(this);
     registerPage = new RegisterPage(this);
+    loginPage = new LoginPage(this);
+    verifyPage = new VerifyPage(this);
     uploadFilePage = new UploadFilePage(this);
 
     stackedWidget->addWidget(titlePage);
     stackedWidget->addWidget(registerPage);
     stackedWidget->addWidget(loginPage);
+    stackedWidget->addWidget(verifyPage);
     stackedWidget->addWidget(uploadFilePage);
       
     connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
