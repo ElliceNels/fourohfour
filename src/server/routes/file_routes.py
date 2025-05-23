@@ -1,11 +1,8 @@
-import base64
 from flask import Blueprint, jsonify, request
-from ..models.tables import Files, FilePermissions, Users, FileMetadata  
-from ..utils.auth import get_current_user
-from ..utils.file_utils import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
+from src.server.utils.auth import get_current_user
+from src.server.utils.file_utils import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
 from werkzeug.utils import secure_filename
 import os
-from datetime import datetime, UTC
 
 files_bp = Blueprint('files', __name__, url_prefix='/api/files')
 
