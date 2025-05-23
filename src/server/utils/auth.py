@@ -212,11 +212,11 @@ def get_current_user(token: str) -> dict:
     """
     token, error = get_current_token()
     if error:
-        return error
+        return error['response'], error['status']
 
     user_id, error = get_user_id_from_token(token)
     if error:
-        return error
+        return error['response'], error['status']
 
     db = get_session()
     user: Users = db.query(Users).filter_by(id=user_id).first()

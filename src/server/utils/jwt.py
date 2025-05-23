@@ -9,22 +9,26 @@ def get_current_token() -> tuple[str | None, dict | None]:
     """Extract and validate the JWT token from the Authorization header.
     
     Returns:
-        tuple: (token, error_message) where either token or error_message will be None
+        tuple: (token, error_info) where:
+            - token is the JWT token string or None if error
+            - error_info is None if successful, or a dict containing:
+                - response: The error response
+                - status: The HTTP status code
     """
     try:
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
-            return None, jsonify({"error": "Missing or malformed token"}), 401
+            return None, {"response": jsonify({"error": "Missing or malformed token"}), "status": 401}
         
         token = auth_header.split(' ')[1]
         payload = decode_token(token)
         if 'error' in payload:
-            return None, payload['error'], payload['status']
+            return None, {"response": payload['error'], "status": payload['status']}
             
         return token, None
     except RuntimeError:
         # This happens when we're not in a request context
-        return None, jsonify({"error": "No request context available"}), 500
+        return None, {"response": jsonify({"error": "No request context available"}), "status": 500}
 
 def get_user_id_from_token(token: str) -> tuple[int | None, dict | None]:
     """Extract user ID from a JWT token.
@@ -33,11 +37,15 @@ def get_user_id_from_token(token: str) -> tuple[int | None, dict | None]:
         token (str): The JWT token to extract user ID from
         
     Returns:
-        tuple: (user_id, error_message) where either user_id or error_message will be None
+        tuple: (user_id, error_info) where:
+            - user_id is the user ID or None if error
+            - error_info is None if successful, or a dict containing:
+                - response: The error response
+                - status: The HTTP status code
     """
     payload = decode_token(token)
     if 'error' in payload:
-        return None, payload['error'], payload['status']
+        return None, {"response": payload['error'], "status": payload['status']}
     return payload['user_id'], None
 
 def decode_token(token: str) -> dict:
@@ -111,13 +119,17 @@ def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
         refresh_token (str): The refresh token to use
         
     Returns:
-        tuple: (new_access_token, error_message) where either token or error will be None
+        tuple: (new_access_token, error_info) where:
+            - new_access_token is the new access token or None if error
+            - error_info is None if successful, or a dict containing:
+                - response: The error response
+                - status: The HTTP status code
     """
     try:
         # Verify it's a refresh token
         payload = jwt.decode(refresh_token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         if payload.get('type') != 'refresh':
-            return None, jsonify({'error': 'Invalid token type'}), 401
+            return None, {"response": jsonify({'error': 'Invalid token type'}), "status": 401}
 
         # Check if refresh token is blacklisted
         db = Session()
@@ -125,16 +137,16 @@ def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
         db.close()
         
         if blacklisted:
-            return None, jsonify({'error': 'Refresh token has been invalidated'}), 401
+            return None, {"response": jsonify({'error': 'Refresh token has been invalidated'}), "status": 401}
 
         # Generate new access token
         new_access_token, _ = generate_token(payload['user_id'])
         return new_access_token, None
 
     except jwt.ExpiredSignatureError:
-        return None, jsonify({'error': 'Refresh token has expired'}), 401
+        return None, {"response": jsonify({'error': 'Refresh token has expired'}), "status": 401}
     except jwt.InvalidTokenError:
-        return None, jsonify({'error': 'Invalid refresh token'}), 401
+        return None, {"response": jsonify({'error': 'Invalid refresh token'}), "status": 401}
 
 def invalidate_token(token: str) -> bool:
     """Invalidate a JWT token by adding it to the blacklist.

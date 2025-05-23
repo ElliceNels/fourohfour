@@ -48,7 +48,7 @@ def refresh():
         
     new_access_token, error = jwt.refresh_access_token(refresh_token)
     if error:
-        return error
+        return error['response'], error['status']
         
     return jsonify({"access_token": new_access_token}), 200
 
