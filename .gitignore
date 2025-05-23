@@ -1,0 +1,25 @@
+# Ignore build and external dependencies
+/build/
+**/build/
+include/
+lib/
+bin/
+*.dll
+*.a
+*.lib
+libsodium-*
+*.tar.gz
+*.zip
+
+# Ignore Qt Creator user files
+*.user
+*.user.*
+
+# Ignore virtual environments
+venv/
+env/
+ENV/
+*.env
+
+# Ignore Python cache files
+__pycache__/

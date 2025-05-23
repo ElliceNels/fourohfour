@@ -1,6 +1,13 @@
-#include <QLabel>
 #include "mainwindow.h"
-#include "./ui_mainwindow.h"
+#include "ui_mainwindow.h"
+#include "registerpage.h"
+#include "titlepage.h"
+#include "loginpage.h"
+#include "pages.h"
+
+
+constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+const QString CENTRAL_WIDGET_BACKGROUND = "background-color: rgb(231, 236, 239);";
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -8,12 +15,77 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    QLabel *label = new QLabel("Hello, World!", this);
-    label->setAlignment(Qt::AlignCenter);
-    setCentralWidget(label);
+    stackedWidget = new QStackedWidget(this);
+    stackedWidget->setStyleSheet(CENTRAL_WIDGET_BACKGROUND);
+
+   
+    titlePage = new TitlePage(this);
+    loginPage = new LoginPage(this);
+    registerPage = new RegisterPage(this);
+
+    stackedWidget->addWidget(titlePage);
+    stackedWidget->addWidget(registerPage);
+    stackedWidget->addWidget(loginPage);
+      
+    connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
+        stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);
+    });
+
+    connect(registerPage, &RegisterPage::goToLoginRequested, this, [this]() {
+        stackedWidget->setCurrentIndex(Pages::LoginPageIndex);
+    });
+
+    setCentralWidget(stackedWidget);
+
+    stackedWidget->setCurrentIndex(Pages::TitlePageIndex); // Show title page
+
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+void MainWindow::on_uploadButton_clicked()
+{
+    QString filePath = QFileDialog::getOpenFileName(this, "Open File", "", "All Files (*.*)");
+
+    if (!filePath.isEmpty()) {
+        QFileInfo fileInfo(filePath);
+
+        // Gets the metadata that won't be encrypted but will be authentication
+        QString fileName = fileInfo.completeBaseName();
+        qint64 fileSize = fileInfo.size();  // originally in bytes
+        QString fileType = fileInfo.suffix();
+        QDateTime lastModified = fileInfo.lastModified();
+        QDateTime uploadTime = QDateTime::currentDateTime();
+
+        if (fileSize > MAX_FILE_SIZE_BYTES) {
+            ui->textEdit->setText("File exceeds 100MB limit");
+            return;
+        }
+
+        // Gets the actual file data to be encrypted
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly)) {
+            ui->textEdit->setText("Failed to open file.");
+            return;
+        }
+        QByteArray fileData = file.readAll();
+        file.close();
+
+        QString info = QString(
+                           "File Name: %1\n"
+                           "File Size: %2 bytes\n"
+                           "File Type: %3\n"
+                           "Last Modified: %4\n"
+                           "Upload Time: %5")
+                           .arg(fileName)
+                           .arg(fileSize)
+                           .arg(fileType)
+                           .arg(lastModified.toString("yyyy-MM-dd hh:mm:ss"))
+                           .arg(uploadTime.toString("yyyy-MM-dd hh:mm:ss"));
+
+        ui->textEdit->setText(info);
+    }
 }
