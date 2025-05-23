@@ -46,6 +46,13 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         titlepage.cpp
         titlepage.ui
         pages.h
+        verifypage.h 
+        verifypage.cpp 
+        verifypage.ui
+        uploadfilepage.h 
+        uploadfilepage.cpp 
+        uploadfilepage.ui
+        constants.h
         encryptionhelper.h
         encryptionhelper.cpp
 
