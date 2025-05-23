@@ -2,6 +2,7 @@
 #include "ui_uploadfilepage.h"
 #include <qfileinfo.h>
 #include <QFileDialog>
+#include "encryptionhelper.h"
 #include <QMessageBox>
 #include <QJsonObject>
 #include <qjsondocument.h>
@@ -81,22 +82,38 @@ QByteArray UploadFilePage::formatFileMetadata(){
 }
 
 void UploadFilePage::encryptUploadedFile(){
+    EncryptionHelper crypto;
 
-    // Format the file data for the encryption function and get the length
-    const unsigned char* plaintext_ptr = reinterpret_cast<const unsigned char*>(this->fileData.constData());
-    unsigned long long plaintext_len = static_cast<unsigned long long>(this->fileData.size());
+    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
+    try {
 
-    // Format the metadata for the encryption and get the length
-    QByteArray metadataBytes = formatFileMetadata();
-    const unsigned char* metadata_ptr = reinterpret_cast<const unsigned char*>(metadataBytes.constData());
-    unsigned long long metadata_len = static_cast<unsigned long long>(metadataBytes.size());
+        crypto.generateKey(key, sizeof(key));
+        crypto.generateNonce(nonce, sizeof(nonce));
 
-    // Here there will be code to generate a nonce, key and encrypt
+        const unsigned char* plaintext_ptr = reinterpret_cast<const unsigned char*>(this->fileData.constData());
+        unsigned long long plaintext_len = static_cast<unsigned long long>(this->fileData.size());
 
-    // if (there was an error){
-    // return a QMessageBox saying encryption failed
-    //}
+        QByteArray metadataBytes = formatFileMetadata();
+        const unsigned char* metadata_ptr = reinterpret_cast<const unsigned char*>(metadataBytes.constData());
+        unsigned long long metadata_len = static_cast<unsigned long long>(metadataBytes.size());
+
+        vector<unsigned char> ciphertext = crypto.encrypt(
+            plaintext_ptr,
+            plaintext_len,
+            key,
+            nonce,
+            metadata_ptr,
+            metadata_len
+            );
+
+    } catch (const std::exception &e) {
+        QMessageBox::critical(this, "Encryption Error", e.what());
+    }
+    sodium_memzero(key, sizeof(key));
+    sodium_memzero(nonce, sizeof(nonce));
 }
+
 
 void UploadFilePage::on_confirmButton_clicked(){
 
