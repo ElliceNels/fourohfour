@@ -8,6 +8,9 @@
 #include <sodium.h>
 #include <QByteArray>
 #include <QString>
+#include <QCoreApplication>
+#include <iostream>
+using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
     if (sodium_init() < 0) {
@@ -30,11 +33,13 @@ bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) 
 
 bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString &privateKey, const QString &defaultName) {
     QJsonObject json;
+
     json["publicKey"] = publicKey;
     json["privateKey"] = privateKey;
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
+
 
     QString fileName = QFileDialog::getSaveFileName(parent, "Save Keys", defaultName, "JSON Files (*.json);;All Files (*)");
     if (!fileName.isEmpty()) {
@@ -46,6 +51,29 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
         } else {
             QMessageBox::warning(parent, "Error", "Failed to open file for writing.");
         }
+    }
+    return false;
+}
+
+
+bool encryptAndSaveKey(QWidget *parent, const QString &privateKey) {
+    QJsonObject json;
+    json["privateKey"] = privateKey;
+
+    QJsonDocument doc(json);
+    QByteArray jsonData = doc.toJson();
+
+
+    QString fileName = QCoreApplication::applicationDirPath() + "/encryptedKeys.json";
+
+
+    QFile file(fileName);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        file.write(jsonData);
+        file.close();
+        return true;
+    } else {
+        cout << "Error saving file" << endl;
     }
     return false;
 }

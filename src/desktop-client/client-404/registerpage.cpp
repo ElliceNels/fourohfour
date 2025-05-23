@@ -91,6 +91,9 @@ void RegisterPage::onCreateAccountClicked()
     }
 
     saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
+    encryptAndSaveKey(this, privKeyBase64);
+
+
 
     QString salt = generateSalt(16);
 
