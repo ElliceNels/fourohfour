@@ -42,8 +42,13 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         registerpage.ui
         key_utils.h
         key_utils.cpp
-        titlepage.h titlepage.cpp titlepage.ui
+        titlepage.h
+        titlepage.cpp
+        titlepage.ui
         pages.h
+        encryptionhelper.h
+        encryptionhelper.cpp
+
     )
 else()
     if(ANDROID)
