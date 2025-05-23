@@ -10,11 +10,23 @@ EncryptionHelper::EncryptionHelper() {
     }
 }
 
-void EncryptionHelper::generateKey(unsigned char* key) {
+void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
+    if (key == nullptr) {
+        throw invalid_argument("Key buffer cannot be null");
+    }
+    if (key_buffer_size < crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
+        throw invalid_argument("Key buffer too small");
+    }
     crypto_aead_xchacha20poly1305_ietf_keygen(key);
 }
 
-void EncryptionHelper::generateNonce(unsigned char* nonce) {
+void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size) {
+    if (nonce == nullptr) {
+        throw invalid_argument("Nonce buffer cannot be null");
+    }
+    if (nonce_buffer_size < crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
+        throw invalid_argument("Nonce buffer too small");
+    }
     randombytes_buf(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 }
 

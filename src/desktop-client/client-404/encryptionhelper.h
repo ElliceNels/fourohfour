@@ -3,7 +3,6 @@
 
 #include <sodium.h>
 #include <vector>
-#include <stdexcept>
 
 using namespace std;
 
@@ -11,8 +10,8 @@ class EncryptionHelper
 {
 public:
     EncryptionHelper();
-    void generateKey(unsigned char* key);
-    void generateNonce(unsigned char* nonce);
+    void generateKey(unsigned char* key, size_t key_buffer_size);
+    void generateNonce(unsigned char* nonce, size_t nonce_buffer_size);
     vector<unsigned char> encrypt(
         const unsigned char* plaintext, unsigned long long plaintext_len,
         const unsigned char* key,
