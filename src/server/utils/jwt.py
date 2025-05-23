@@ -2,7 +2,7 @@ from datetime import datetime, UTC
 import jwt
 from flask import jsonify, current_app, request
 from server.app import Session
-from server.models.tables import TokenBlacklist
+from server.models.tables import TokenBlacklist, TokenInvalidation
 from server.config import config
 
 def get_current_token() -> tuple[str | None, dict | None]:
@@ -58,16 +58,16 @@ def decode_token(token: str) -> dict:
         dict: The decoded token payload or error message
     """
     try:
-        # First check if token is blacklisted
+        # Decode the token first to get user_id and iat
+        payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
+        
+        # Check if token is invalidated by checking if its iat is before the earliest valid iat
         db = Session()
-        blacklisted = db.query(TokenBlacklist).filter_by(token=token).first()
+        invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         db.close()
         
-        if blacklisted:
+        if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
             return {'error': jsonify({'error': 'Token has been invalidated'}), 'status': 401}
-
-        # Decode and validate the token
-        payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         
         # Ensure it's an access token
         if payload.get('type') != 'access':
@@ -131,25 +131,25 @@ def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
         if payload.get('type') != 'refresh':
             return None, {"response": jsonify({'error': 'Invalid token type'}), "status": 401}
 
-        # Check if refresh token is blacklisted
+        # Check if token is invalidated by checking if its iat is before the earliest valid iat
         db = Session()
-        blacklisted = db.query(TokenBlacklist).filter_by(token=refresh_token).first()
+        invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         db.close()
         
-        if blacklisted:
-            return None, {"response": jsonify({'error': 'Refresh token has been invalidated'}), "status": 401}
+        if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
+            return None, {"response": jsonify({'error': 'Token has been invalidated'}), "status": 401}
 
         # Generate new access token
         new_access_token, _ = generate_token(payload['user_id'])
         return new_access_token, None
 
     except jwt.ExpiredSignatureError:
-        return None, {"response": jsonify({'error': 'Refresh token has expired'}), "status": 401}
+        return None, {"response": jsonify({'error': 'Token has expired'}), "status": 401}
     except jwt.InvalidTokenError:
-        return None, {"response": jsonify({'error': 'Invalid refresh token'}), "status": 401}
+        return None, {"response": jsonify({'error': 'Invalid token'}), "status": 401}
 
 def invalidate_token(token: str) -> bool:
-    """Invalidate a JWT token by adding it to the blacklist.
+    """Invalidate a JWT token by updating the earliest valid token issue date for the user.
     
     Args:
         token (str): The JWT token to invalidate
@@ -158,49 +158,50 @@ def invalidate_token(token: str) -> bool:
         bool: True if token was successfully invalidated, False otherwise
     """
     try:
-        # Decode token to get expiration
+        # Decode token to get user_id
         payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
-        expires_at = datetime.fromtimestamp(payload['exp'], UTC)
+        user_id = payload['user_id']
         
-        # Add to blacklist
+        # Set earliest_valid_iat to current time to invalidate all existing tokens
+        earliest_valid_iat = datetime.now(UTC)
+        
+        # Update or create token invalidation record
         db = Session()
-        blacklisted_token = TokenBlacklist(
-            token=token,
-            blacklisted_at=datetime.now(UTC),
-            expires_at=expires_at
-        )
-        db.add(blacklisted_token)
+        invalidation = db.query(TokenInvalidation).filter_by(user_id=user_id).first()
+        
+        if invalidation:
+            invalidation.earliest_valid_iat = earliest_valid_iat
+            invalidation.updated_at = datetime.now(UTC)
+        else:
+            # Create new record
+            invalidation = TokenInvalidation(
+                user_id=user_id,
+                earliest_valid_iat=earliest_valid_iat
+            )
+            db.add(invalidation)
+            
         db.commit()
         db.close()
         return True
     except Exception:
         return False
 
-#TODO this has to be called periodically!!!
-def cleanup_expired_tokens(batch_size: int = 1000) -> None:
-    """Remove expired tokens from the blacklist.
-    
-    Args:
-        batch_size (int): Maximum number of tokens to delete in a single transaction. Defaults to 1000.
+def cleanup_expired_invalidations() -> None:
+    """Remove token invalidation records that are no longer needed.
+    A record can be removed if all tokens issued before its earliest_valid_iat have expired.
     """
     db = Session()
     try:
-        while True:
-            # Get a batch of expired tokens
-            expired_tokens = db.query(TokenBlacklist).filter(
-                TokenBlacklist.expires_at < datetime.now(UTC)
-            ).limit(batch_size).all()
-            
-            if not expired_tokens:
-                break
-                
-            # Delete the batch
-            for token in expired_tokens:
-                db.delete(token)
-            db.commit()
-            
-            # If we got less than batch_size, we're done
-            if len(expired_tokens) < batch_size:
-                break
+        # Get all invalidation records
+        invalidations = db.query(TokenInvalidation).all()
+        now = datetime.now(UTC)
+        
+        for invalidation in invalidations:
+            # If the earliest_valid_iat + max_token_ttl is in the past, we can remove this record
+            max_token_ttl = max(config.jwt.access_token_expires, config.jwt.refresh_token_expires)
+            if invalidation.earliest_valid_iat + max_token_ttl < now:
+                db.delete(invalidation)
+        
+        db.commit()
     finally:
         db.close() 

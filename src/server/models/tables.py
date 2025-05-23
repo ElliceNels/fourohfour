@@ -1,5 +1,6 @@
 from sqlalchemy import CheckConstraint, Column, Integer, String, BLOB, ForeignKey, DateTime, DECIMAL
 from sqlalchemy.orm import relationship, declarative_base
+from datetime import datetime, UTC
 
 Base = declarative_base()
 
@@ -25,7 +26,13 @@ class Users(Base):
         back_populates="user",
         cascade="all, delete-orphan"
     )
-    # Cascades: When a user is deleted, all their files and permissions are also deleted !!
+    token_invalidation = relationship(
+        "TokenInvalidation",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+    # Cascades: When a user is deleted, all their files, permissions, and token invalidation records are also deleted !!
 
 class FilePermissions(Base):
     """File permissions table to store user-specific file access permissions."""
@@ -80,11 +87,15 @@ class FileMetadata(Base):
 
     file = relationship("Files", back_populates="file_metadata")
 
-class TokenBlacklist(Base):
-    """Table for storing invalidated JWT tokens."""
-    __tablename__ = 'token_blacklist'
+class TokenInvalidation(Base):
+    """Table for tracking token invalidation by user ID and earliest valid token issue date."""
+    __tablename__ = 'token_invalidation'
 
     id = Column(Integer, primary_key=True)
-    token = Column(String, unique=True, nullable=False)
-    blacklisted_at = Column(DateTime(timezone=True), nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)
+    earliest_valid_iat = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now(UTC))
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=datetime.now(UTC), onupdate=datetime.now(UTC))
+
+    # Relationship with Users table
+    user = relationship('Users', back_populates='token_invalidation')
