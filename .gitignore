@@ -27,3 +27,7 @@ __pycache__/
 # Ignore log files and logs directory
 logs/
 *.log
+
+# Ignore vstudio files
+.vs/
+.vscode/
