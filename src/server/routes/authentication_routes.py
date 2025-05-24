@@ -75,7 +75,7 @@ def sign_up():
     """
     
     data = request.get_json()
-    logger.debug(f"Received sign up request with data: {data}")
+    logger.debug(f"Received sign up request")
     username = data.get('username')
     hash_password = data.get('hashed_password')
     public_key = data.get('public_key')
@@ -133,7 +133,7 @@ def change_password():
     """
     
     data = request.get_json()
-    logger.debug(f"Received change password request with data: {data}")
+    logger.debug(f"Received change password request")
     new_password = data.get('new_password')
 
     # Extract the JWT token from the request headers
@@ -185,7 +185,7 @@ def change_username():
     """
     
     data = request.get_json()
-    logger.debug(f"Received change username request with data: {data}")
+    logger.debug(f"Received change username request")
     new_username = data.get('new_username')
 
     # Extract the JWT token from the request headers

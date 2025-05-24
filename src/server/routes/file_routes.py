@@ -27,7 +27,7 @@ def upload_file():
         "file_id": <file_id>
     }
     """
-    logger.debug(f"Received file upload request with data: {request.form}")
+    logger.debug(f"Received file upload request")
 
     if 'encrypted_file' not in request.files:
         logger.warning("Upload failed: No file provided")

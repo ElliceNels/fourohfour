@@ -249,7 +249,7 @@ def get_current_user(token: str) -> dict:
     db.close()
 
     if not user:
-        logger.warning(f"Current user retrieval failed: User not found for token {token}")
+        logger.warning(f"Current user retrieval failed: User not found for token")
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
