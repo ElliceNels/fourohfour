@@ -17,10 +17,11 @@
     "database": {
       "db_name": "fourohfour",
       "db_host": "127.0.0.1",
-      "db_port": 4004
+      "db_port": 3306	
     },
 
     "jwt": {
+      "secret_key": "test-secret-key-123",
       "access_token_expires_hours": 1,
       "refresh_token_expires_days": 7
     }
