@@ -4,7 +4,6 @@ from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
 
-
 def login(username: str, hash_password: bytes) -> dict:
     """Login route to authenticate users.
 
@@ -20,9 +19,8 @@ def login(username: str, hash_password: bytes) -> dict:
         return jsonify({"error": "Missing required fields"}), 400
     
     # Check the username and password against the database
-    db = get_session()
-    user: Users = db.query(Users).filter_by(username=username).first()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
 
     # Cond 1: Username doesnt exist
     if not user:
@@ -54,33 +52,31 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     if not username or not password or not public_key or not salt:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = get_session()
-
-    # Cond 1: The username already exists
-    existing_user = db.query(Users).filter_by(username=username).first()
-    if existing_user:
-        db.close()
-        return jsonify({"error": "Username already exists"}), 409
     
-    # Cond 2: The public key already exists -> should be unique
-    existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
-    if existing_public_key:
-        db.close()
-        return jsonify({"error": "Public key already exists"}), 409
-    
-    # Create a new user
-    new_user = Users(
-        username=username,
-        password=password,
-        public_key=public_key,
-        salt=salt,
-        created_at=datetime.now(),
-        updated_at=datetime.now()
-    )
+    with get_session() as db:
 
-    db.add(new_user)
-    db.commit()
-    db.close()
+        # Cond 1: The username already exists
+        existing_user = db.query(Users).filter_by(username=username).first()
+        if existing_user:
+            return jsonify({"error": "Username already exists"}), 409
+        
+        # Cond 2: The public key already exists -> should be unique
+        existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
+        if existing_public_key:
+            return jsonify({"error": "Public key already exists"}), 409
+        
+        # Create a new user
+        new_user = Users(
+            username=username,
+            password=password,
+            public_key=public_key,
+            salt=salt,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
+
+        db.add(new_user)
+        db.commit()
 
     access_token, refresh_token = generate_token(new_user.id)
     return jsonify({
@@ -106,23 +102,20 @@ def change_password(token: str, new_password: str) -> dict:
     if error:
         return error
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Cond 1: The new password is the same as the current one
-    if user.password == new_password:
-        db.close()
-        return jsonify({"error": "New password is the same as the current one"}), 400
-    
-    # Update the password
-    user.password = new_password
-    user.updated_at = datetime.now()
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Cond 1: The new password is the same as the current one
+        if user.password == new_password:
+            return jsonify({"error": "New password is the same as the current one"}), 400
+        
+        # Update the password
+        user.password = new_password
+        user.updated_at = datetime.now()
+        db.commit()
     return jsonify({"message": "Password updated successfully"}), 200
 
 def delete_account(username: str) -> dict:
@@ -138,17 +131,15 @@ def delete_account(username: str) -> dict:
     if not username:
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = get_session()
-    user: Users = db.query(Users).filter_by(username=username).first()
-    
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Delete the user
-    db.delete(user)
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
+        
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Delete the user
+        db.delete(user)
+        db.commit()
     return jsonify({"message": "Account deleted successfully"}), 200
 
 
@@ -170,28 +161,24 @@ def change_username(token: str, new_username: str) -> dict:
     if error:
         return error
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Cond 1: The new username already exists
-    existing_user = db.query(Users).filter_by(username=new_username).first()
-    if existing_user:
-        db.close()
-        return jsonify({"error": "Username already exists"}), 409
-    
-    # Cond 2: Username is the same as the current one
-    if user.username == new_username:
-        db.close()
-        return jsonify({"error": "New username is the same as the current one"}), 400
-    
-    # Update the username
-    user.username = new_username
-    user.updated_at = datetime.now()
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+        
+        # Cond 1: The new username already exists
+        existing_user = db.query(Users).filter_by(username=new_username).first()
+        if existing_user:
+            return jsonify({"error": "Username already exists"}), 409
+        
+        # Cond 2: Username is the same as the current one
+        if user.username == new_username:
+            return jsonify({"error": "New username is the same as the current one"}), 400
+        
+        # Update the username
+        user.username = new_username
+        user.updated_at = datetime.now()
+        db.commit()
     return jsonify({"message": "Username updated successfully"}), 200
 
 def get_current_user(token: str) -> dict:
@@ -218,9 +205,8 @@ def get_current_user(token: str) -> dict:
     if error:
         return error['response'], error['status']
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
 
     if not user:
         return jsonify({"error": "User not found"}), 404
