@@ -107,7 +107,7 @@ tail -f flask.log
   ```
   This will show what's using the port.
 
-# Database Setup Guide
+# Database Setup Guide (THIS PART IS AI GENERATED ngl)
 
 ## Development vs Production
 
