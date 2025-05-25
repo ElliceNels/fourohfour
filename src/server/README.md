@@ -31,19 +31,16 @@ python app.py
 ## Copying Files to Server
 1. From your local machine, use scp to copy the server files. You may have to ssh in and create the directories you want to move the files to (probably on wsl):
    ```bash
-    scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
+   scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
    ```
-
    ```bash
    ssh jean@gobbler.info
-   ls ~/db_test/src/server/
    ```
 
-3. On the server, ensure your config.json has production settings:
+2. On the server, ensure your config.json has production settings:
    ```json
    {
      "database": {
-       "environment": "production",
        "db_name": "fourohfour",
        "db_host": "fourohfour.gobbler.info",
        "db_port": 3306
@@ -51,7 +48,7 @@ python app.py
    }
    ```
 
-4. Set production environment variables on the server:
+3. Set production environment variables on the server:
    ```bash
    export DB_ENVIRONMENT=production
    export DB_USER=your_prod_user
