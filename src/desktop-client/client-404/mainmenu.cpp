@@ -34,3 +34,15 @@ void MainMenu::on_verifyButton_clicked()
     }
 }
 
+
+void MainMenu::on_logOutButton_clicked()
+{
+    // Switch to back to login page
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::LoginPageIndex);
+    }
+
+    // will need to implement logic to clear user  memory once a user logs out
+}
+

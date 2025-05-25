@@ -20,6 +20,8 @@ private slots:
 
     void on_verifyButton_clicked();
 
+    void on_logOutButton_clicked();
+
 private:
     Ui::MainMenu *ui;
 };

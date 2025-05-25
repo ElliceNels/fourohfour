@@ -133,6 +133,44 @@
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QPushButton" name="logOutButton">
+   <property name="geometry">
+    <rect>
+     <x>990</x>
+     <y>10</y>
+     <width>91</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"> QPushButton {
+        background-color: rgb(96, 150, 186);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+
+    QPushButton:pressed {
+        background-color: #1c5980;
+    }</string>
+   </property>
+   <property name="text">
+    <string>Log Out</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
  </widget>
  <resources/>
  <connections/>
