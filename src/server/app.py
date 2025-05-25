@@ -21,7 +21,7 @@ def create_app():
 
     # Basic configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
-    app.config['JWT_SECRET_KEY'] = JWT_SECRET_KEY
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(permission_bp)
