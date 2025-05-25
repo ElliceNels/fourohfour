@@ -21,7 +21,6 @@
     },
 
     "jwt": {
-      "secret_key": "test-secret-key-123",
       "access_token_expires_hours": 1,
       "refresh_token_expires_days": 7
     }
