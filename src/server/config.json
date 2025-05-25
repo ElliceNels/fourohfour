@@ -21,7 +21,6 @@
     },
 
     "jwt": {
-      "secret_key": "TODO change-this-to-a-generated-key",
       "access_token_expires_hours": 1,
       "refresh_token_expires_days": 7
     }
