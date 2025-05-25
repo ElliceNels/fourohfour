@@ -27,7 +27,6 @@ def setup_db():
     _Session = sessionmaker(bind=engine)
 
 
-from sqlalchemy import create_engine
 from .models.tables import Base
 from .config import config
 
