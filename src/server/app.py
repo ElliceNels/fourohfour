@@ -54,6 +54,8 @@ def create_app():
     
     return app
 
+# Create the app instance
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True) 
