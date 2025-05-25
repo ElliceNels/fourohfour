@@ -16,8 +16,8 @@ def get_session():
 
 def setup_db():
     """Setup the database connection and create tables."""
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
+    DB_USER = os.getenv('DB_USER', 'db_user')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'db_password')
 
     db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{config.database.db_name}"    
     engine = create_engine(db_engine)

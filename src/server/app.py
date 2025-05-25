@@ -26,7 +26,7 @@ def create_app():
     logger.info('CORS enabled for Flask app')
 
     # DB configuration
-    # setup_db()
+    setup_db()
 
     # Basic configuration
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')

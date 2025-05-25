@@ -18,12 +18,14 @@ pip install -r requirements.txt
 3. Create a `.env` file in the server directory with the following variables:
 ```
 SECRET_KEY=your-secret-key-here
-DATABASE_URL=your-database-url-here
+JWT_SECRET_KEY=to-be-generated
+DB_USERNAME=your-db-username
+DB_PASSWORD=your-db-password
 ```
 
 4. Run the server:
 ```bash
-python app.py
+python -m src.server.app
 ```
 
 # Deploying to Gobbler Server
@@ -33,26 +35,12 @@ python app.py
    ```bash
    scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
    ```
-   ```bash
-   ssh jean@gobbler.info
-   ```
 
-2. On the server, ensure your config.json has production settings:
-   ```json
-   {
-     "database": {
-       "db_name": "fourohfour",
-       "db_host": "fourohfour.gobbler.info",
-       "db_port": 3306
-     }
-   }
-   ```
-
-3. Set production environment variables on the server:
+2. Set production environment variables on the server:
    ```bash
    export DB_ENVIRONMENT=production
-   export DB_USER=your_prod_user
-   export DB_PASSWORD=your_prod_password
+   export DB_USER=fourohfour
+   export DB_PASSWORD=fourohfour
    ```
 
 # Running Flask App on Gobbler Server
@@ -119,7 +107,7 @@ tail -f flask.log
   ```
   This will show what's using the port.
 
-# Database Setup Guide
+# Database Setup Guide (THIS PART IS AI GENERATED ngl)
 
 ## Development vs Production
 
