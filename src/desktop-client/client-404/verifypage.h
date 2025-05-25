@@ -17,7 +17,9 @@ public:
     ~VerifyPage();
 
 private slots:
-    void on_uploadButton_clicked();
+    void on_verifyButton_clicked();
+
+    void on_backButton_clicked();
 
 private:
     Ui::VerifyPage *ui;

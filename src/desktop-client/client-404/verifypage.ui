@@ -121,7 +121,7 @@
     <bool>true</bool>
    </property>
   </widget>
-  <widget class="QPushButton" name="uploadButton">
+  <widget class="QPushButton" name="verifyButton">
    <property name="geometry">
     <rect>
      <x>450</x>
@@ -153,7 +153,47 @@
     }</string>
    </property>
    <property name="text">
-    <string>Upload File</string>
+    <string>verifyButton</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="backButton">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>10</y>
+     <width>91</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">   QPushButton {
+        background-color: rgb(39, 76, 119);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: rgb(30, 60, 100); 
+    }
+
+    QPushButton:pressed {
+        background-color: rgb(20, 45, 80); 
+    }
+
+</string>
+   </property>
+   <property name="text">
+    <string>Back</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>
