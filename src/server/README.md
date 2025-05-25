@@ -90,3 +90,139 @@ tail -f flask.log
   sudo lsof -i :4004
   ```
   This will show what's using the port.
+
+# Database Setup Guide
+
+## Development vs Production
+
+### Development Mode
+- Uses local MySQL database
+- Default credentials: `db_user`/`db_password`
+- Database created automatically when running `init_db.py`
+- Environment variable `DB_ENVIRONMENT` set to "development"
+
+### Production Mode
+- Connects to cloud MySQL database
+- Requires environment variables:
+  - `DB_USER`
+  - `DB_PASSWORD`
+  - `DB_ENVIRONMENT` set to "production"
+- No local database creation
+
+## Local Development Setup
+
+### 1. Install MySQL
+1. Download MySQL Installer from: https://dev.mysql.com/downloads/installer/
+2. Run installer, choose "Developer Default" or "Server only"
+3. During installation:
+   - Set root password (remember this!)
+   - Keep default port (3306)
+
+### 2. Add MySQL to PATH
+1. Find MySQL installation (typically `C:\Program Files\MySQL\MySQL Server 8.0\bin`)
+2. Add to PATH:
+   - Press Windows + R
+   - Type "sysdm.cpl" and press Enter
+   - Go to "Advanced" tab
+   - Click "Environment Variables"
+   - Under "System Variables", find "Path"
+   - Click "Edit" → "New"
+   - Add MySQL bin directory path
+   - Click "OK" on all windows
+3. Restart your terminal
+
+### 3. Create Development User
+1. Open Command Prompt as Administrator
+2. Connect to MySQL:
+   ```bash
+   mysql -u root -p
+   ```
+3. Enter your root password
+4. Create development user:
+   ```sql
+   CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'db_password';
+   GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+
+### 4. Initialize Local Database
+```bash
+python src/server/init_db.py
+```
+
+### 5. Verify Database Creation
+```bash
+python src/server/test_db_connection.py
+```
+
+## Production Deployment
+
+### 1. Set Environment Variables
+```bash
+export DB_USER=your_prod_user
+export DB_PASSWORD=your_prod_password
+export DB_ENVIRONMENT=production
+```
+
+### 2. Start Flask Application
+```bash
+python src/server/app.py
+```
+
+## Database Visualization with DBeaver
+
+### 1. Install DBeaver
+1. Download from: https://dbeaver.io/download/
+2. Run installer
+3. Launch DBeaver
+
+### 2. Connect to Database
+1. Click "New Database Connection" (plug icon with plus)
+2. Select "MySQL"
+3. Fill in connection details:
+   - Server Host: `127.0.0.1`
+   - Port: `3306`
+   - Database: `fourohfour`
+   - Username: `db_user`
+   - Password: `db_password`
+4. Click "Test Connection"
+5. If successful, click "Finish"
+
+### 3. View Tables
+1. In left panel, expand:
+   - Your connection
+   - "fourohfour" database
+   - "Tables"
+2. You'll see all tables:
+   - `users`
+   - `files`
+   - `file_permissions`
+   - `file_metadata`
+   - `token_invalidation`
+
+### 4. View Table Contents
+- Right-click any table
+- Select "View Data"
+
+### 5. View Table Structure
+- Right-click any table
+- Select "View Table"
+
+## Important Notes
+- Local database files are in `.gitignore`
+- Each developer needs their own local MySQL installation
+- Production database credentials should never be committed to git
+- Always use environment variables for production credentials
+- The `init_db.py` script only runs in development mode
+
+## Troubleshooting
+1. If MySQL command not found:
+   - Verify PATH setup
+   - Restart terminal
+2. If connection fails:
+   - Check MySQL service is running
+   - Verify credentials
+   - Check port availability
+3. If tables not visible:
+   - Run `init_db.py` again
+   - Check connection settings in DBeaver
