@@ -29,12 +29,11 @@ python app.py
 # Deploying to Gobbler Server
 
 ## Copying Files to Server
-1. From your local machine, use scp to copy the server files (probably on wsl):
+1. From your local machine, use scp to copy the server files. You may have to ssh in and create the directories you want to move the files to (probably on wsl):
    ```bash
     scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
    ```
 
-2. SSH into the server to verify files:
    ```bash
    ssh jean@gobbler.info
    ls ~/db_test/src/server/
