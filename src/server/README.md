@@ -26,13 +26,45 @@ DATABASE_URL=your-database-url-here
 python app.py
 ```
 
+# Deploying to Gobbler Server
+
+## Copying Files to Server
+1. From your local machine, use scp to copy the server files (probably on wsl):
+   ```bash
+    scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
+   ```
+
+2. SSH into the server to verify files:
+   ```bash
+   ssh jean@gobbler.info
+   ls ~/db_test/src/server/
+   ```
+
+3. On the server, ensure your config.json has production settings:
+   ```json
+   {
+     "database": {
+       "environment": "production",
+       "db_name": "fourohfour",
+       "db_host": "fourohfour.gobbler.info",
+       "db_port": 3306
+     }
+   }
+   ```
+
+4. Set production environment variables on the server:
+   ```bash
+   export DB_ENVIRONMENT=production
+   export DB_USER=your_prod_user
+   export DB_PASSWORD=your_prod_password
+   ```
 
 # Running Flask App on Gobbler Server
 
 ## Starting the App
 1. SSH into the server:
    ```bash
-   ssh jean@gobbler.info
+   ssh -vvv -i ~/.ssh/id_rsa  jean@gobbler.info
    ```
 
 2. Navigate to your app directory:
@@ -40,7 +72,7 @@ python app.py
    cd ~/db_test/src/server
    ```
 
-3. Start Flask with nohup:
+3. Start Flask with nohup (so it will continue after you kill your terminal):
    ```bash
    nohup flask run --host=0.0.0.0 --port=4004 > flask.log 2>&1 &
    ```
