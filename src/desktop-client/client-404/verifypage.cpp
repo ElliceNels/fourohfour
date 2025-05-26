@@ -1,9 +1,11 @@
 #include "verifypage.h"
+#include "pages.h"
 #include "ui_verifypage.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <qstackedwidget.h>
 #include <sodium.h>
 
 VerifyPage::VerifyPage(QWidget *parent)
@@ -94,7 +96,7 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
     return hexHash;
 }
 
-void VerifyPage::on_uploadButton_clicked(){
+void VerifyPage::on_verifyButton_clicked(){
     // This is placeholder until we fetch the public key from the database
     QByteArray placeholder_other_pk = QString("mZ3bW1x8F9j0XQeP7CqyLkA6wE9vFt9hRYKdJPngq+Q=").toUtf8();
     set_other_public_key(placeholder_other_pk);
@@ -115,3 +117,13 @@ void VerifyPage::on_uploadButton_clicked(){
 
     this->ui->displayLineEdit->setText(hash);
 }
+
+void VerifyPage::on_backButton_clicked()
+{
+    // Switch to main menu after login
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::MainMenuIndex);
+    }
+}
+

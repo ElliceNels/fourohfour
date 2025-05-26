@@ -1,7 +1,9 @@
 #include "loginpage.h"
+#include "pages.h"
 #include "qwidget.h"
 #include "ui_loginpage.h"
 #include <iostream>
+#include <qstackedwidget.h>
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -34,6 +36,12 @@ void LoginPage::onLoginButtonClicked()
 
     //Uncomment when we can query password from the server
     //cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
+
+    // Switch to main menu after login
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::MainMenuIndex);
+    }
 }
 
 void LoginPage::onShowPasswordClicked()

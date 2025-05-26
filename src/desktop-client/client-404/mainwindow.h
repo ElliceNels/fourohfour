@@ -8,6 +8,7 @@
 #include "titlepage.h"
 #include "verifypage.h"
 #include "uploadfilepage.h"
+#include "mainmenu.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -35,6 +36,7 @@ private:
     LoginPage *loginPage;
     VerifyPage *verifyPage;
     UploadFilePage *uploadFilePage;
+    MainMenu *mainMenu;
 };
 
 #endif // MAINWINDOW_H

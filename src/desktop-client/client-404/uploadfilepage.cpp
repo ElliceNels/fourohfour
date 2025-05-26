@@ -1,4 +1,5 @@
 #include "uploadfilepage.h"
+#include "pages.h"
 #include "ui_uploadfilepage.h"
 #include <qfileinfo.h>
 #include <QFileDialog>
@@ -6,6 +7,7 @@
 #include <QMessageBox>
 #include <QJsonObject>
 #include <qjsondocument.h>
+#include <qstackedwidget.h>
 #include "constants.h"
 
 
@@ -134,4 +136,14 @@ void UploadFilePage::on_confirmButton_clicked(){
     ui->confirmLabel->hide();
 }
 
+
+
+void UploadFilePage::on_backButton_clicked()
+{
+    // Switch to main menu after login
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::MainMenuIndex);
+    }
+}
 
