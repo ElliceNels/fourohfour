@@ -1,10 +1,10 @@
-import mysql.connector
+import pymysql
 
 def test_connection():
     try:
         # Attempt to connect to the database
         print("Attempting to connect to the database...")
-        cnx = mysql.connector.connect(
+        cnx = pymysql.connect(
             user='fourohfour',
             password='fourohfour',
             host='127.0.0.1',
