@@ -1,16 +1,16 @@
-// FileItemWidget.cpp
 #include "FileItemWidget.h"
 #include <qlabel.h>
 #include <qpushbutton.h>
+#include "constants.h"
 
 FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, const QString &fileSize, const QString &owner, QWidget *parent)
     : QWidget(parent)
 {
 
     this->fileExtension = fileFormat;
-    fileNameLabel = createElidedLabel(fileName + "." + fileFormat, 200);
-    fileSizeLabel = createElidedLabel(fileSize, 60);
-    ownerLabel = createElidedLabel(owner, 100);
+    fileNameLabel = createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth);
+    fileSizeLabel = createElidedLabel(fileSize, fileSizeLabelWidth);
+    ownerLabel = createElidedLabel(owner, fileOwnerLabelWidth);
 
     // Buttons
     downloadButton = new QPushButton("Download");
@@ -30,29 +30,7 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
 
     setLayout(layout);
 
-    this->setStyleSheet(R"(
-        QWidget {
-            background-color: #E7ECEF;
-            border-bottom: 1px solid #8B8C89;
-            padding: 8px;
-        }
-
-        QLabel {
-            color: #274C77;
-            font-weight: bold;
-        }
-
-        QPushButton {
-            background-color: #6096BA;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-        }
-
-        QPushButton:hover {
-            background-color: #A3CEF1;
-        }
-    )");
+    this->setStyleSheet(Styles::FileItem);
 }
 
 QLabel* FileItemWidget::createElidedLabel(const QString &text, int width) {
@@ -66,7 +44,7 @@ QLabel* FileItemWidget::createElidedLabel(const QString &text, int width) {
     label->setToolTip(text);
 
     QFontMetrics metrics(label->font());
-    QString elided = metrics.elidedText(text, Qt::ElideRight, width * 0.75);
+    QString elided = metrics.elidedText(text, Qt::ElideRight, width * truncationFactor);
     label->setText(elided);
 
     return label;

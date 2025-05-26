@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     stackedWidget = new QStackedWidget(this);
-    stackedWidget->setStyleSheet(CENTRAL_WIDGET_BACKGROUND);
+    stackedWidget->setStyleSheet(Styles::CentralWidget);
 
    
     titlePage = new TitlePage(this);
