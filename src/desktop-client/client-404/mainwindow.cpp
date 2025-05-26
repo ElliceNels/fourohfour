@@ -23,12 +23,14 @@ MainWindow::MainWindow(QWidget *parent)
     loginPage = new LoginPage(this);
     verifyPage = new VerifyPage(this);
     uploadFilePage = new UploadFilePage(this);
+    mainMenu = new MainMenu(this);
 
     stackedWidget->addWidget(titlePage);
     stackedWidget->addWidget(registerPage);
     stackedWidget->addWidget(loginPage);
     stackedWidget->addWidget(verifyPage);
     stackedWidget->addWidget(uploadFilePage);
+    stackedWidget->addWidget(mainMenu);
       
     connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
         stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);

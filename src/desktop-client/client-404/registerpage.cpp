@@ -1,4 +1,5 @@
 #include "registerpage.h"
+#include "pages.h"
 #include "ui_registerpage.h"
 #include <QMessageBox>
 #include "password_utils.h"
@@ -8,6 +9,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
 #include <QNetworkReply>
+#include <qstackedwidget.h>
 #include "key_utils.h"
 using namespace std;
 
@@ -112,6 +114,13 @@ void RegisterPage::onCreateAccountClicked()
 
 
     QMessageBox::information(this, "Success", "Account created!");
+
+
+    // Switch to main menu after registration
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::MainMenuIndex);
+    }
 }
 
 void RegisterPage::onShowPasswordClicked()

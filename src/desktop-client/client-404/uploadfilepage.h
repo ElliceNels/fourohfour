@@ -19,6 +19,8 @@ private slots:
     void on_uploadButton_clicked();
     void on_confirmButton_clicked();
 
+    void on_backButton_clicked();
+
 private:
     Ui::UploadFilePage *ui;
 
