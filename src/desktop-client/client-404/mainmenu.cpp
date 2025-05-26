@@ -2,6 +2,7 @@
 #include "pages.h"
 #include "ui_mainmenu.h"
 #include <qstackedwidget.h>
+#include "loginsessionmanager.h"
 
 MainMenu::MainMenu(QWidget *parent)
     : QWidget(parent)
@@ -43,7 +44,20 @@ void MainMenu::on_logOutButton_clicked()
         stack->setCurrentIndex(Pages::LoginPageIndex);
     }
 
-    // will need to implement logic to clear user  memory once a user logs out
+    LoginSessionManager::getInstance().clearSession();
+
+}
+
+
+void MainMenu::on_viewFilesButton_clicked()
+{
+
+
+    // Switch to view files page
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::ViewFilesPageIndex);
+    }
 }
 
 void MainMenu::on_resetPasswordButton_clicked()
@@ -54,6 +68,5 @@ void MainMenu::on_resetPasswordButton_clicked()
         stack->setCurrentIndex(Pages::ResetPasswordPage);
     }
 
-    // will need to implement logic to clear user  memory once a user logs out
 }
 

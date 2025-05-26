@@ -10,6 +10,7 @@
 #include "uploadfilepage.h"
 #include "mainmenu.h"
 #include "resetpasswordpage.h"
+#include "viewfilespage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -39,6 +40,7 @@ private:
     UploadFilePage *uploadFilePage;
     MainMenu *mainMenu;
     ResetPasswordPage *resetPasswordPage;
+    ViewFilesPage *viewFilesPage;
 };
 
 #endif // MAINWINDOW_H

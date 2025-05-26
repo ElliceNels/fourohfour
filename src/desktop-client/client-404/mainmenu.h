@@ -22,7 +22,11 @@ private slots:
 
     void on_logOutButton_clicked();
 
+<<<<<<< HEAD
     void on_resetPasswordButton_clicked();
+=======
+    void on_viewFilesButton_clicked();
+>>>>>>> origin/main
 
 private:
     Ui::MainMenu *ui;
