@@ -46,3 +46,14 @@ void MainMenu::on_logOutButton_clicked()
     // will need to implement logic to clear user  memory once a user logs out
 }
 
+void MainMenu::on_resetPasswordButton_clicked()
+{
+    // Switch to back to login page
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::ResetPasswordPage);
+    }
+
+    // will need to implement logic to clear user  memory once a user logs out
+}
+

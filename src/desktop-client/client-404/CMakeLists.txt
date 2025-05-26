@@ -56,6 +56,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         encryptionhelper.h
         encryptionhelper.cpp
         mainmenu.h mainmenu.cpp mainmenu.ui
+        resetpasswordpage.ui
+        resetpasswordpage.h
+        resetpasswordpage.cpp
+        resetpasswordpage.cpp
 
     )
 else()

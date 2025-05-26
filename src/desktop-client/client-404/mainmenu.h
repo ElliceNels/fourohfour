@@ -22,6 +22,8 @@ private slots:
 
     void on_logOutButton_clicked();
 
+    void on_resetPasswordButton_clicked();
+
 private:
     Ui::MainMenu *ui;
 };

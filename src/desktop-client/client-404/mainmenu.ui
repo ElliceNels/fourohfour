@@ -49,9 +49,6 @@
    <property name="text">
     <string>Main Menu</string>
    </property>
-   <property name="alignment">
-    <set>Qt::AlignmentFlag::AlignCenter</set>
-   </property>
   </widget>
   <widget class="QPushButton" name="uploadButton">
    <property name="geometry">
@@ -166,6 +163,44 @@
    </property>
    <property name="text">
     <string>Log Out</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="resetPasswordButton">
+   <property name="geometry">
+    <rect>
+     <x>830</x>
+     <y>10</y>
+     <width>151</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"> QPushButton {
+        background-color: rgb(96, 150, 186);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+
+    QPushButton:pressed {
+        background-color: #1c5980;
+    }</string>
+   </property>
+   <property name="text">
+    <string>Reset Password</string>
    </property>
    <property name="flat">
     <bool>true</bool>

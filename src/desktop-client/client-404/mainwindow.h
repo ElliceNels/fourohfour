@@ -9,6 +9,7 @@
 #include "verifypage.h"
 #include "uploadfilepage.h"
 #include "mainmenu.h"
+#include "resetpasswordpage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
@@ -37,6 +38,7 @@ private:
     VerifyPage *verifyPage;
     UploadFilePage *uploadFilePage;
     MainMenu *mainMenu;
+    ResetPasswordPage *resetPasswordPage;
 };
 
 #endif // MAINWINDOW_H
