@@ -48,3 +48,15 @@ void MainMenu::on_logOutButton_clicked()
 
 }
 
+
+void MainMenu::on_viewFilesButton_clicked()
+{
+
+
+    // Switch to view files page
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::ViewFilesPageIndex);
+    }
+}
+

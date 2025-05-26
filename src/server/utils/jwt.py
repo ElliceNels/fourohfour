@@ -1,9 +1,9 @@
 from datetime import datetime, UTC
 import jwt
 from flask import jsonify, current_app, request
+from src.server.config import config 
 from src.server.utils.db_setup import get_session
 from src.server.models.tables import TokenInvalidation
-from src.server.config import config
 
 def get_current_token() -> tuple[str | None, dict | None]:
     """Extract and validate the JWT token from the Authorization header.
@@ -62,9 +62,8 @@ def decode_token(token: str) -> dict:
         payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
-        db = get_session()
-        invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
-        db.close()
+        with get_session() as db:
+            invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         
         if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
             return {'error': jsonify({'error': 'Token has been invalidated'}), 'status': 401}
@@ -132,9 +131,8 @@ def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
             return None, {"response": jsonify({'error': 'Invalid token type'}), "status": 401}
 
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
-        db = get_session()
-        invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
-        db.close()
+        with get_session() as db:
+            invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         
         if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
             return None, {"response": jsonify({'error': 'Token has been invalidated'}), "status": 401}
@@ -166,22 +164,21 @@ def invalidate_token(token: str) -> bool:
         earliest_valid_iat = datetime.now(UTC)
         
         # Update or create token invalidation record
-        db = get_session()
-        invalidation = db.query(TokenInvalidation).filter_by(user_id=user_id).first()
-        
-        if invalidation:
-            invalidation.earliest_valid_iat = earliest_valid_iat
-            invalidation.updated_at = datetime.now(UTC)
-        else:
-            # Create new record
-            invalidation = TokenInvalidation(
-                user_id=user_id,
-                earliest_valid_iat=earliest_valid_iat
-            )
-            db.add(invalidation)
+        with get_session() as db:
+            invalidation = db.query(TokenInvalidation).filter_by(user_id=user_id).first()
             
-        db.commit()
-        db.close()
+            if invalidation:
+                invalidation.earliest_valid_iat = earliest_valid_iat
+                invalidation.updated_at = datetime.now(UTC)
+            else:
+                # Create new record
+                invalidation = TokenInvalidation(
+                    user_id=user_id,
+                    earliest_valid_iat=earliest_valid_iat
+                )
+                db.add(invalidation)
+                
+            db.commit()
         return True
     except Exception:
         return False
@@ -190,8 +187,7 @@ def cleanup_expired_invalidations() -> None:
     """Remove token invalidation records that are no longer needed.
     A record can be removed if all tokens issued before its earliest_valid_iat have expired.
     """
-    db = get_session()
-    try:
+    with get_session() as db:
         # Get all invalidation records
         invalidations = db.query(TokenInvalidation).all()
         now = datetime.now(UTC)
@@ -203,5 +199,3 @@ def cleanup_expired_invalidations() -> None:
                 db.delete(invalidation)
         
         db.commit()
-    finally:
-        db.close() 

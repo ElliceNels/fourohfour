@@ -60,8 +60,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         mainmenu.ui
         loginsessionmanager.h
         loginsessionmanager.cpp
-
-
+        fileitemwidget.h
+        fileitemwidget.cpp
+        viewfilespage.h
+        viewfilespage.cpp
+        viewfilespage.ui
 
     )
 else()
