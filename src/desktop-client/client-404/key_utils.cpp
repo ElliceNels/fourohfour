@@ -5,13 +5,11 @@
 #include <QFileDialog>
 #include <QFile>
 #include <QMessageBox>
-#include <sodium.h>
 #include <QByteArray>
 #include <QString>
 #include <QCoreApplication>
 #include <iostream>
 #include <vector>
-#include <QByteArray>
 
 using namespace std;
 
@@ -79,27 +77,40 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     bool success = false;
     try {
         ciphertext = encryptData(jsonData, key, nonce, crypto);
-    } catch (const std::exception &e) {
+    } catch (const exception &e) {
         QMessageBox::critical(parent, "Encryption Error", e.what());
         sodium_memzero(key, sizeof(key));
     }
 
+    ciphertext.insert(ciphertext.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + "/encryptedKeys.bin";
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly)) {
-        file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size()));
+        file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size())); //convert to raw bytes
         file.close();
     } else {
-        std::cout << "Error saving file" << std::endl;
+        cout << "Error saving file" << endl;
+        jsonData.fill(0);
+        jsonData.clear();
+
+        fill(ciphertext.begin(), ciphertext.end(), 0);
+        ciphertext.clear();
         return false;
     }
+
+    //clear data
+    jsonData.fill(0);
+    jsonData.clear();
+
+    fill(ciphertext.begin(), ciphertext.end(), 0);
+    ciphertext.clear();
 
 
     //Encrypt and save master key
     if(!encryptAndSaveMasterKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES, derivedKey, crypto)){
-        std::cout << "Error saving encrypted key file" << std::endl;
+        cout << "Error saving encrypted key file" << endl;
         sodium_memzero(key, sizeof(key));
         return false;
     }
@@ -134,8 +145,12 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
     if (file.open(QIODevice::WriteOnly)) {
         file.write(outData);
         file.close();
+        fill(encryptedKey.begin(), encryptedKey.end(), 0);
+        encryptedKey.clear();
         return true;
     } else {
+        fill(encryptedKey.begin(), encryptedKey.end(), 0);
+        encryptedKey.clear();
         return false;
     }
 }
@@ -143,8 +158,14 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
 vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, EncryptionHelper &crypto){
 
-    const unsigned char* plaintext_ptr = reinterpret_cast<const unsigned char*>(plaintext.constData());
-    unsigned long long plaintext_len = static_cast<unsigned long long>(plaintext.size());
+    const unsigned char* plaintext_ptr;
+    unsigned long long plaintext_len;
+    try {
+        plaintext_ptr = reinterpret_cast<const unsigned char*>(plaintext.constData());
+        plaintext_len = static_cast<unsigned long long>(plaintext.size());
+    } catch (const exception& e) {
+        qWarning() << "Exception:" << e.what();
+    }
 
     // Encrypt with no metadata
     return crypto.encrypt(

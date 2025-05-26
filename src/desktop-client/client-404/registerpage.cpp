@@ -92,7 +92,7 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
-    QString salt = generateSalt(16);
+    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
     QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8()); // decode to raw bytes
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
