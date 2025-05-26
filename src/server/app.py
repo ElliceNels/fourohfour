@@ -3,13 +3,12 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-import logging
 from src.server.routes.authentication_routes import authentication_routes as auth_bp
 from src.server.routes.permission_routes import permission_bp
 from src.server.routes.file_routes import files_bp
 from src.server.utils.db_setup import setup_db
 
-from logger import setup_logger
+from src.server.logger import setup_logger
 
 logger = logging.getLogger(__name__)
 
