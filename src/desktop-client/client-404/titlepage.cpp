@@ -7,8 +7,6 @@ TitlePage::TitlePage(QWidget *parent)
     , ui(new Ui::TitlePage)
 {
     qDebug() << "Constructing and setting up Title Page";
-    // initialisePageUi();
-    // setupConnections();
 
 }
 void TitlePage::preparePage(){
@@ -18,7 +16,6 @@ void TitlePage::preparePage(){
 }
 
 void TitlePage::initialisePageUi(){
-    qDebug() << "Title Page initialisePageUi";
     ui->setupUi(this);
 }
 

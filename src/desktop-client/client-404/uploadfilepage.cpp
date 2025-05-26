@@ -15,8 +15,6 @@ UploadFilePage::UploadFilePage(QWidget *parent)
     , ui(new Ui::UploadFilePage)
 {
     qDebug() << "Constructing and setting up Upload File Page";
-    // initialisePageUi();
-    // setupConnections();
 }
 
 void UploadFilePage::preparePage(){
@@ -26,7 +24,6 @@ void UploadFilePage::preparePage(){
 }
 
 void UploadFilePage::initialisePageUi(){
-    qDebug() << "Upload File Page initialisePageUi";
     ui->setupUi(this);
     ui->confirmButton->hide();
     ui->confirmLabel->hide();

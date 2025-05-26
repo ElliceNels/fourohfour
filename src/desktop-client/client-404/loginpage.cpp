@@ -1,5 +1,4 @@
 #include "loginpage.h"
-#include "pages.h"
 #include "qwidget.h"
 #include "ui_loginpage.h"
 #include <iostream>
@@ -11,8 +10,6 @@ LoginPage::LoginPage(QWidget *parent) :
     ui(new Ui::LoginPage)
 {
     qDebug() << "Constructing and setting up Login Page";
-    // initialisePageUi();
-    // setupConnections();
 }
 
 void LoginPage::preparePage(){
@@ -22,7 +19,6 @@ void LoginPage::preparePage(){
 }
 
 void LoginPage::initialisePageUi(){
-    qDebug() << "Login Page initialisePageUi";
     ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
 }

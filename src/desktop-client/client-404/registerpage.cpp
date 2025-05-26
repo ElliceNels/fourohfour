@@ -1,5 +1,4 @@
 #include "registerpage.h"
-#include "pages.h"
 #include "ui_registerpage.h"
 #include <QMessageBox>
 #include "password_utils.h"
@@ -18,8 +17,6 @@ RegisterPage::RegisterPage(QWidget *parent) :
     ui(new Ui::RegisterPage)
 {
     qDebug() << "Constructing and setting up Register Page";
-    // initialisePageUi();
-    // setupConnections();
 }
 
 void RegisterPage::preparePage(){
@@ -29,7 +26,6 @@ void RegisterPage::preparePage(){
 }
 
 void RegisterPage::initialisePageUi(){
-    qDebug() << "Register Page initialisePageUi";
     ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);

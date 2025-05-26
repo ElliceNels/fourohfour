@@ -17,7 +17,17 @@ MainWindow::MainWindow(QWidget *parent)
     stackedWidget = new QStackedWidget(this);
     stackedWidget->setStyleSheet(Styles::CentralWidget);
 
+    // BasePage is an abstract class (has at least one pure virtual function) so cannot be instantiated
+    // Uncomment the line below to see the warning and error that appear
+    //BasePage* bpPtr = new BasePage();
 
+    /*
+     * mainwindow.cpp:22:27: Allocating an object of abstract class type 'BasePage'
+     * basepage.h:19:18: unimplemented pure virtual method 'initialisePageUi' in 'BasePage'
+     * basepage.h:22:18: unimplemented pure virtual method 'setupConnections' in 'BasePage'
+    */
+
+    // Demonstrate Runtime polymorphism by creating pages as BasePages first
     titlePage = createAndAddPage<TitlePage>(this, stackedWidget);
     registerPage = createAndAddPage<RegisterPage>(this, stackedWidget);
     loginPage = createAndAddPage<LoginPage>(this, stackedWidget);

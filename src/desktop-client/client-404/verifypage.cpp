@@ -13,8 +13,6 @@ VerifyPage::VerifyPage(QWidget *parent)
     ,otherPublicKey(nullptr)
 {
     qDebug() << "Constructing and setting up Verify Page";
-    // initialisePageUi();
-    // setupConnections();
 
     if (sodium_init() < 0) {
         QMessageBox::critical(this, "Error", "Failed to initialize libsodium");
@@ -27,7 +25,6 @@ void VerifyPage::preparePage(){
 }
 
 void VerifyPage::initialisePageUi(){
-    qDebug() << "Verify Page initialisePageUi";
     ui->setupUi(this);
 }
 

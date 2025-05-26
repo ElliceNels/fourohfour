@@ -9,8 +9,6 @@ MainMenu::MainMenu(QWidget *parent)
 {
 
     qDebug() << "Constructing and setting up MainMenu ";
-    // initialisePageUi();
-    // setupConnections();
 }
 
 void MainMenu::preparePage(){
@@ -21,7 +19,6 @@ void MainMenu::preparePage(){
 
 
 void MainMenu::initialisePageUi(){
-    qDebug() << "MainMenu initialisePageUi";
     ui->setupUi(this);
 }
 

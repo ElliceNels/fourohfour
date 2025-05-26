@@ -16,7 +16,7 @@ protected:
     // These are the pure virtual functions that all derived classes must implement
 
     // pure as only the derived classes can call the ui->setupUi(this) for their own pages
-    virtual void initialisePageUi();
+    virtual void initialisePageUi() = 0;
 
     // pure as the derived classes have their individual connections each
     virtual void setupConnections() = 0;

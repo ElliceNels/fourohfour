@@ -8,8 +8,6 @@ ViewFilesPage::ViewFilesPage(QWidget *parent)
     , ui(new Ui::ViewFilesPage)
 {
     qDebug() << "Constructing and setting up View Files Page";
-    // initialisePageUi();
-    // setupConnections();
 }
 void ViewFilesPage::preparePage(){
     qDebug() << "Preparing View Files Page";
@@ -18,7 +16,6 @@ void ViewFilesPage::preparePage(){
 }
 
 void ViewFilesPage::initialisePageUi(){
-    qDebug() << "View Files Page initialisePageUi";
     ui->setupUi(this);
 }
 
