@@ -46,3 +46,15 @@ void MainMenu::on_logOutButton_clicked()
     // will need to implement logic to clear user  memory once a user logs out
 }
 
+
+void MainMenu::on_viewFilesButton_clicked()
+{
+
+
+    // Switch to view files page
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::ViewFilesPageIndex);
+    }
+}
+

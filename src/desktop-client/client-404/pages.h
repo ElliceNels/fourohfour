@@ -8,5 +8,6 @@ constexpr int LoginPageIndex = 2;
 constexpr int VerifyPageIndex = 3;
 constexpr int UploadFilePageIndex = 4;
 constexpr int MainMenuIndex = 5;
+constexpr int ViewFilesPageIndex = 6;
 }
 #endif // PAGES_H

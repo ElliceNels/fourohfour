@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainMenu</class>
- <widget class="QWidget" name="MainMenu">
+ <class>ViewFilesPage</class>
+ <widget class="QWidget" name="ViewFilesPage">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -31,8 +31,8 @@
   <widget class="QLabel" name="titleLabel">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>180</y>
+     <x>290</x>
+     <y>90</y>
      <width>511</width>
      <height>101</height>
     </rect>
@@ -47,96 +47,37 @@
     <string notr="true">color: rgb(0, 0, 0);</string>
    </property>
    <property name="text">
-    <string>Main Menu</string>
+    <string>View Files</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignmentFlag::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QPushButton" name="uploadButton">
+  <widget class="QListWidget" name="listWidget">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>370</y>
-     <width>141</width>
-     <height>51</height>
+     <x>270</x>
+     <y>230</y>
+     <width>551</width>
+     <height>391</height>
     </rect>
    </property>
-   <property name="font">
-    <font>
-     <pointsize>15</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
    <property name="styleSheet">
-    <string notr="true">   QPushButton {
-        background-color: rgb(39, 76, 119);
-        border: 0px solid black;
-		  border-radius: 15px;
-        color: rgb(255, 255, 255);
-    }
+    <string notr="true">QListWidget {
+  		background-color: rgb(255, 255, 255);
+		border: 1px solid black;
+   }
 
-    QPushButton:hover {
-        background-color: rgb(30, 60, 100); 
-    }
 
-    QPushButton:pressed {
-        background-color: rgb(20, 45, 80); 
-    }
+    
 
 </string>
    </property>
-   <property name="text">
-    <string>Upload File</string>
-   </property>
-   <property name="flat">
-    <bool>true</bool>
-   </property>
   </widget>
-  <widget class="QPushButton" name="verifyButton">
+  <widget class="QPushButton" name="backButton">
    <property name="geometry">
     <rect>
-     <x>580</x>
-     <y>370</y>
-     <width>141</width>
-     <height>51</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>15</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">   QPushButton {
-        background-color: rgb(39, 76, 119);
-        border: 0px solid black;
-		  border-radius: 15px;
-        color: rgb(255, 255, 255);
-    }
-
-    QPushButton:hover {
-        background-color: rgb(30, 60, 100); 
-    }
-
-    QPushButton:pressed {
-        background-color: rgb(20, 45, 80); 
-    }
-
-</string>
-   </property>
-   <property name="text">
-    <string>Verify User</string>
-   </property>
-   <property name="flat">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="logOutButton">
-   <property name="geometry">
-    <rect>
-     <x>990</x>
+     <x>10</x>
      <y>10</y>
      <width>91</width>
      <height>31</height>
@@ -149,44 +90,6 @@
     </font>
    </property>
    <property name="styleSheet">
-    <string notr="true"> QPushButton {
-        background-color: rgb(96, 150, 186);
-        border: 0px solid black;
-		  border-radius: 15px;
-        color: rgb(255, 255, 255);
-    }
-
-    QPushButton:hover {
-        background-color: #2980b9;
-    }
-
-    QPushButton:pressed {
-        background-color: #1c5980;
-    }</string>
-   </property>
-   <property name="text">
-    <string>Log Out</string>
-   </property>
-   <property name="flat">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="viewFilesButton">
-   <property name="geometry">
-    <rect>
-     <x>490</x>
-     <y>450</y>
-     <width>141</width>
-     <height>51</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>15</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
     <string notr="true">   QPushButton {
         background-color: rgb(39, 76, 119);
         border: 0px solid black;
@@ -205,10 +108,76 @@
 </string>
    </property>
    <property name="text">
-    <string>View Files</string>
+    <string>Back</string>
    </property>
    <property name="flat">
     <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>200</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Name</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>470</x>
+     <y>200</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Size</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignCenter</set>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>550</x>
+     <y>200</y>
+     <width>81</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Owner</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignmentFlag::AlignCenter</set>
    </property>
   </widget>
  </widget>

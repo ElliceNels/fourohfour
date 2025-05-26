@@ -120,7 +120,7 @@ void VerifyPage::on_verifyButton_clicked(){
 
 void VerifyPage::on_backButton_clicked()
 {
-    // Switch to main menu after login
+    // Switch back to main menu
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
     if (stack) {
         stack->setCurrentIndex(Pages::MainMenuIndex);
