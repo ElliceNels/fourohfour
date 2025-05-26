@@ -10,6 +10,7 @@
 #include <QCoreApplication>
 #include <iostream>
 #include <vector>
+#include "constants.h"
 
 using namespace std;
 
@@ -57,7 +58,7 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
 }
 
 
-bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey) {
+bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username) {
     QJsonObject json;
     json["privateKey"] = privateKey;
 
@@ -85,7 +86,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     ciphertext.insert(ciphertext.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Save encrypted private key file
-    QString fileName = QCoreApplication::applicationDirPath() + "/encryptedKeys.bin";
+    QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
     QFile file(fileName);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size())); //convert to raw bytes
@@ -109,7 +110,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
 
     //Encrypt and save master key
-    if(!encryptAndSaveMasterKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES, derivedKey, crypto)){
+    if(!encryptAndSaveMasterKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES, derivedKey, crypto, username)){
         cout << "Error saving encrypted key file" << endl;
         sodium_memzero(key, sizeof(key));
         return false;
@@ -119,7 +120,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     return true;
 }
 
-bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, EncryptionHelper &crypto)
+bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, EncryptionHelper &crypto, QString username)
 {
     // Generate nonce
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
@@ -140,7 +141,7 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
     outData.append(reinterpret_cast<const char*>(encryptedKey.data()), static_cast<int>(encryptedKey.size()));
 
     // Save to file
-    QString filePath = QCoreApplication::applicationDirPath() + "/masterKey.bin";
+    QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(outData);

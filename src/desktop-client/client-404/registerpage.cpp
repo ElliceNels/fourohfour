@@ -104,7 +104,7 @@ void RegisterPage::onCreateAccountClicked()
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
     saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
-    encryptAndSaveKey(this, privKeyBase64, key);
+    encryptAndSaveKey(this, privKeyBase64, key, accountName);
 
 
     //Debug prints
