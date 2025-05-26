@@ -19,7 +19,7 @@ pip install -r requirements.txt
 ```
 SECRET_KEY=your-secret-key-here
 JWT_SECRET_KEY=to-be-generated
-DB_USERNAME=your-db-username
+DB_USER=your-db-username
 DB_PASSWORD=your-db-password
 ```
 
@@ -107,14 +107,14 @@ tail -f flask.log
   ```
   This will show what's using the port.
 
-# Database Setup Guide (THIS PART IS AI GENERATED ngl)
+# Database Setup Guide
 
 ## Development vs Production
 
 ### Development Mode
 - Uses local MySQL database
 - Default credentials: `db_user`/`db_password`
-- Database created automatically when running `init_db.py`
+- Database and tables are created automatically on first run
 - Environment variable `DB_ENVIRONMENT` set to "development"
 
 ### Production Mode
@@ -123,7 +123,7 @@ tail -f flask.log
   - `DB_USER`
   - `DB_PASSWORD`
   - `DB_ENVIRONMENT` set to "production"
-- No local database creation
+- Database and tables are created automatically if they don't exist
 
 ## Local Development Setup
 
@@ -147,28 +147,28 @@ tail -f flask.log
    - Click "OK" on all windows
 3. Restart your terminal
 
-### 3. Create Development User
+### 3. Create MySQL User (Required)
+This step is necessary to create a MySQL user that the application will use. The username and password MUST match either:
+- The default values in the code (`db_user`/`db_password`)
+- Or the values you set in your `.env` file
+
 1. Open Command Prompt as Administrator
 2. Connect to MySQL:
    ```bash
    mysql -u root -p
    ```
 3. Enter your root password
-4. Create development user:
+4. Create the application user (use the same username/password that your application will use):
    ```sql
    CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'db_password';
    GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'localhost';
    FLUSH PRIVILEGES;
    ```
 
-### 4. Initialize Local Database
+### 4. Start the Application
+The database and tables will be created automatically on first run:
 ```bash
-python src/server/init_db.py
-```
-
-### 5. Verify Database Creation
-```bash
-python src/server/test_db_connection.py
+python src/server/app.py
 ```
 
 ## Production Deployment
@@ -229,7 +229,7 @@ python src/server/app.py
 - Each developer needs their own local MySQL installation
 - Production database credentials should never be committed to git
 - Always use environment variables for production credentials
-- The `init_db.py` script only runs in development mode
+- The database and tables are created automatically on first run
 
 ## Troubleshooting
 1. If MySQL command not found:
@@ -240,5 +240,5 @@ python src/server/app.py
    - Verify credentials
    - Check port availability
 3. If tables not visible:
-   - Run `init_db.py` again
    - Check connection settings in DBeaver
+   - Verify the application has run at least once
