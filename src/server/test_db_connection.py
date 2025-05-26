@@ -1,31 +1,53 @@
 import pymysql
+import os
+import logging
+from config import config
+
+logger = logging.getLogger(__name__)
 
 def test_connection():
     try:
+        # Get database credentials from environment variables
+        db_user = os.getenv('DB_USER')
+        db_password = os.getenv('DB_PASSWORD')
+        
+        # Log if sensitive credentials are not set
+        if db_user is None:
+            logger.warning("DB_USER not set in environment, using default value: 'fourohfour'")
+            db_user = 'fourohfour'
+        if db_password is None:
+            logger.warning("DB_PASSWORD not set in environment, using default value: 'fourohfour'")
+            db_password = 'fourohfour'
+
+        # Use config values for non-sensitive database settings
+        db_host = config.database.db_host
+        db_port = config.database.db_port
+        db_name = config.database.db_name
+
         # Attempt to connect to the database
-        print("Attempting to connect to the database...")
+        logger.info("Attempting to connect to the database...")
         cnx = pymysql.connect(
-            user='fourohfour',
-            password='fourohfour',
-            host='127.0.0.1',
-            port=3306,
-            database='fourohfour'
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port,
+            database=db_name
         )
         
         with cnx.cursor() as cursor:
             cursor.execute("SELECT VERSION()")
             version = cursor.fetchone()
-            print(f"Connected to MySQL Server version {version[0]}")
+            logger.info(f"Connected to MySQL Server version {version[0]}")
             
             cursor.execute("SELECT DATABASE()")
             db = cursor.fetchone()
-            print(f"Connected to database: {db[0]}")
+            logger.info(f"Connected to database: {db[0]}")
             
         cnx.close()
-        print("MySQL connection is closed")
+        logger.info("MySQL connection is closed")
             
     except Exception as e:
-        print(f"Error while connecting to MySQL: {e}")
+        logger.error(f"Error while connecting to MySQL: {e}")
 
 if __name__ == "__main__":
     test_connection() 

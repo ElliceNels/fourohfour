@@ -3,6 +3,7 @@ from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+import logging
 from src.server.routes.authentication_routes import authentication_routes as auth_bp
 from src.server.routes.permission_routes import permission_bp
 from src.server.routes.file_routes import files_bp
@@ -29,8 +30,18 @@ def create_app():
     setup_db()
 
     # Basic configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
+    secret_key = os.getenv('SECRET_KEY')
+    jwt_secret_key = os.getenv('JWT_SECRET_KEY')
+    
+    if secret_key is None:
+        logger.warning("SECRET_KEY not set in environment, using default value: 'dev'")
+        secret_key = 'dev'
+    if jwt_secret_key is None:
+        logger.warning("JWT_SECRET_KEY not set in environment, using default value: 'dev-jwt-secret'")
+        jwt_secret_key = 'dev-jwt-secret'
+    
+    app.config['SECRET_KEY'] = secret_key
+    app.config['JWT_SECRET_KEY'] = jwt_secret_key
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(permission_bp)
