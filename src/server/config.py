@@ -20,6 +20,9 @@ class DatabaseConfig(BaseModel):
     db_name: str
     db_host: str
     db_port: int
+    environment: str = os.getenv("DB_ENVIRONMENT", "development")  # Default to development if not set
+    db_user: str = os.getenv("DB_USER", "db_user")
+    db_password: str = os.getenv("DB_PASSWORD", "db_password")
 
 class LoggingConfig(BaseModel):
     """Logging configuration class."""
