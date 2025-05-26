@@ -21,27 +21,27 @@ RegisterPage::RegisterPage(QWidget *parent) :
 
 void RegisterPage::preparePage(){
     qDebug() << "Preparing Register Page";
-    initialisePageUi();    // Will call the derived class implementation
-    setupConnections();    // Will call the derived class implementation
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
 }
 
 void RegisterPage::initialisePageUi(){
-    ui->setupUi(this);
-    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-    ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+    this->ui->setupUi(this);
+    this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+    this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
 }
 
 void RegisterPage::setupConnections(){
-    connect(ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
-    connect(ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
-    connect(ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
+    connect(this->ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
+    connect(this->ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
+    connect(this->ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
 }
 
 void RegisterPage::onCreateAccountClicked()
 {
-    QString accountName = ui->accountNameLineEdit->text();
-    QString password = ui->passwordLineEdit->text();
-    QString confirmPassword = ui->confirmPasswordLineEdit->text();
+    QString accountName = this->ui->accountNameLineEdit->text();
+    QString password = this->ui->passwordLineEdit->text();
+    QString confirmPassword = this->ui->confirmPasswordLineEdit->text();
     QSet<QString> dictionaryWords;
 
     dictionaryWords = loadDictionaryWords("../../common_passwords.txt"); //source: https://work2go.se/en/category/news/
@@ -134,14 +134,14 @@ void RegisterPage::onCreateAccountClicked()
 
 void RegisterPage::onShowPasswordClicked()
 {
-    if (ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->showPasswordButton->setText("Hide");
+    if (this->ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->showPasswordButton->setText("Hide");
     } else {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->showPasswordButton->setText("Show");
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->showPasswordButton->setText("Show");
     }
 }
 
@@ -167,5 +167,5 @@ void RegisterPage::sendCredentials(string name, string email, string password, s
 RegisterPage::~RegisterPage()
 {
     qDebug() << "Destroying Register Page";
-    delete ui;
+    delete this->ui;
 }
