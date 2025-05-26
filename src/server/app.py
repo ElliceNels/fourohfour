@@ -11,6 +11,7 @@ from src.server.utils.db_setup import setup_db
 from src.server.logger import setup_logger
 
 logger = logging.getLogger(__name__)
+EXIT_ERROR = 1
 
 # Load environment variables
 load_dotenv()
@@ -24,9 +25,6 @@ def create_app():
     # Enable CORS
     CORS(app)
     logger.info('CORS enabled for Flask app')
-
-    # DB configuration
-    setup_db()
 
     # Basic configuration
     secret_key = os.getenv('SECRET_KEY')
@@ -55,6 +53,12 @@ def create_app():
     return app
 
 # Create the app instance
+try:
+    setup_db()
+except Exception as e:
+    logger.critical(f"Failed to setup database: {e}")
+    exit(EXIT_ERROR)
+
 app = create_app()
 
 if __name__ == '__main__':
