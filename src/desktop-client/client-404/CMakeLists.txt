@@ -55,9 +55,14 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         constants.h
         encryptionhelper.h
         encryptionhelper.cpp
-        mainmenu.h mainmenu.cpp mainmenu.ui
-        fileitemwidget.h fileitemwidget.cpp
-        viewfilespage.h viewfilespage.cpp viewfilespage.ui
+        mainmenu.h
+        mainmenu.cpp
+        mainmenu.ui
+        fileitemwidget.h
+        fileitemwidget.cpp
+        viewfilespage.h
+        viewfilespage.cpp
+        viewfilespage.ui
 
 
     )
