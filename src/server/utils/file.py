@@ -4,8 +4,9 @@ import os
 import base64
 from src.server.models.tables import Files, FilePermissions, FileMetadata
 from src.server.utils.db_setup import get_session
+import logging
 
-
+logger = logging.getLogger(__name__)
 
 def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dict:
     """Upload a file to the database and disk storage.
@@ -41,6 +42,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
         db.add(file_metadata)
         
         db.commit()
+        logger.info(f"File {file.filename} uploaded successfully by user {user_id}")
         return jsonify({
             'message': 'File uploaded successfully',
             'file_id': new_file.id
@@ -48,6 +50,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
 
     except Exception as e:
         db.rollback()
+        logger.error(f"Error uploading file {file.filename}: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         db.close()
@@ -92,12 +95,14 @@ def get_user_files(user_id: int) -> dict:
                     'is_owner': False
                 })
 
+        logger.info(f"User {user_id} retrieved their files successfully")
         return jsonify({
             'owned_files': owned_files_data,
             'shared_files': shared_files_data
         })
 
     except Exception as e:
+        logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         db.close()
@@ -117,6 +122,7 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
         # Find the file
         file = db.query(Files).get(file_id)
         if not file:
+            logger.warning(f"File {file_id} not found for user {user_id}")
             return jsonify({'error': 'File not found'}), 404
 
         # Check if user has access
@@ -126,6 +132,7 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
                 user_id=user_id
             ).first()
             if not permission:
+                logger.warning(f"User {user_id} not authorized to access file {file_id}")
                 return jsonify({'error': 'Not authorized to access this file'}), 403
 
         # Read the encrypted file
@@ -133,6 +140,7 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
             with open(file.path, 'rb') as f:
                 encrypted_file = f.read()
         except Exception as e:
+            logger.error(f"Error reading file {file.path}: {str(e)}")
             return jsonify({'error': 'Error reading file'}), 500
 
         response_data = {
@@ -146,9 +154,11 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
                 perm.user_id: perm.encryption_key for perm in permissions
             }
 
+        logger.info(f"User {user_id} retrieved file {file_id} successfully")
         return jsonify(response_data)
 
     except Exception as e:
+        logger.error(f"Error retrieving file {file_id} for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         db.close()
@@ -168,26 +178,30 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
         # Find the file
         file = db.query(Files).get(file_id)
         if not file:
+            logger.warning(f"File {file_id} not found for user {user_id}")
             return jsonify({'error': 'File not found'}), 404
 
         # Verify ownership
         if file.owner_id != user_id:
+            logger.warning(f"User {user_id} not authorized to delete file {file_id}")
             return jsonify({'error': 'Not authorized to delete this file'}), 403
 
         # Delete the file from disk
         try:
             os.remove(file.path)
         except Exception as e:
+            logger.error(f"Error deleting file {file.path}: {str(e)}")
             return jsonify({'error': 'Error deleting file from disk'}), 500
 
         # Delete from database
         db.delete(file)
         db.commit()
-
+        logger.info(f"User {user_id} deleted file {file_id} successfully")
         return jsonify({'message': 'File deleted successfully'})
 
     except Exception as e:
         db.rollback()
+        logger.error(f"Error deleting file {file_id} for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
         db.close()
