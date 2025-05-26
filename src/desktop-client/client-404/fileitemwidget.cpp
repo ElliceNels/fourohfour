@@ -3,11 +3,12 @@
 #include <qpushbutton.h>
 #include "constants.h"
 
-FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, const QString &fileSize, const QString &owner, QWidget *parent)
+FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, const QString &fileSize, const QString &owner, const int id,  QWidget *parent)
     : QWidget(parent)
 {
 
     this->fileExtension = fileFormat;
+    this->fileId = id;
     fileNameLabel = createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth);
     fileSizeLabel = createElidedLabel(fileSize, fileSizeLabelWidth);
     ownerLabel = createElidedLabel(owner, fileOwnerLabelWidth);

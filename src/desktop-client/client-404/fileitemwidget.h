@@ -8,7 +8,7 @@ class FileItemWidget : public QWidget {
     Q_OBJECT
 
 public:
-    FileItemWidget(const QString &fileName, const QString &fileFormat, const QString &fileSize, const QString &owner, QWidget *parent = nullptr);
+    FileItemWidget(const QString &fileName, const QString &fileFormat, const QString &fileSize, const QString &owner,const int id, QWidget *parent = nullptr);
 
 private slots:
     void handleDownload();
@@ -19,6 +19,7 @@ private:
     QLabel *fileSizeLabel;
     QLabel *ownerLabel;
     QString fileExtension;
+    int fileId;
     QPushButton *downloadButton;
     QPushButton *shareButton;
 
