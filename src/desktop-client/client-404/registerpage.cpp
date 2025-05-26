@@ -14,22 +14,31 @@
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::RegisterPage)
 {
-    ui->setupUi(this);
+    qDebug() << "Constructing and setting up Register Page";
+    // initialisePageUi();
+    // setupConnections();
+}
 
+void RegisterPage::preparePage(){
+    qDebug() << "Preparing Register Page";
+    initialisePageUi();    // Will call the derived class implementation
+    setupConnections();    // Will call the derived class implementation
+}
+
+void RegisterPage::initialisePageUi(){
+    qDebug() << "Register Page initialisePageUi";
+    ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+}
 
+void RegisterPage::setupConnections(){
     connect(ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
     connect(ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
-}
-
-RegisterPage::~RegisterPage()
-{
-    delete ui;
 }
 
 void RegisterPage::onCreateAccountClicked()
@@ -124,10 +133,7 @@ void RegisterPage::onCreateAccountClicked()
 
 
     // Switch to main menu after registration
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    emit goToMainMenuRequested();
 }
 
 void RegisterPage::onShowPasswordClicked()
@@ -159,4 +165,11 @@ void RegisterPage::sendCredentials(string name, string email, string password, s
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     QNetworkReply *reply = manager->post(request, jsonData);
+}
+
+
+RegisterPage::~RegisterPage()
+{
+    qDebug() << "Destroying Register Page";
+    delete ui;
 }

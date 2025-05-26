@@ -1,5 +1,4 @@
 #include "uploadfilepage.h"
-#include "pages.h"
 #include "ui_uploadfilepage.h"
 #include <qfileinfo.h>
 #include <QFileDialog>
@@ -12,17 +11,29 @@
 
 
 UploadFilePage::UploadFilePage(QWidget *parent)
-    : QWidget(parent)
+    : BasePage(parent)
     , ui(new Ui::UploadFilePage)
 {
+    qDebug() << "Constructing and setting up Upload File Page";
+    // initialisePageUi();
+    // setupConnections();
+}
+
+void UploadFilePage::preparePage(){
+    qDebug() << "Preparing Upload File Page";
+    initialisePageUi();    // Will call the derived class implementation
+    setupConnections();    // Will call the derived class implementation
+}
+
+void UploadFilePage::initialisePageUi(){
+    qDebug() << "Upload File Page initialisePageUi";
     ui->setupUi(this);
     ui->confirmButton->hide();
     ui->confirmLabel->hide();
 }
 
-UploadFilePage::~UploadFilePage()
-{
-    delete ui;
+void UploadFilePage::setupConnections(){
+    connect(ui->backButton, &QPushButton::clicked, this, &UploadFilePage::goToMainMenuRequested);
 }
 
 void UploadFilePage::on_uploadButton_clicked()
@@ -136,14 +147,9 @@ void UploadFilePage::on_confirmButton_clicked(){
     ui->confirmLabel->hide();
 }
 
-
-
-void UploadFilePage::on_backButton_clicked()
+UploadFilePage::~UploadFilePage()
 {
-    // Switch to main menu after login
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    qDebug() << "Destroying Upload File Page";
+    delete ui;
 }
 
