@@ -4,6 +4,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import os
 import logging
+# Add sqlalchemy-utils for database existence check and creation
+from sqlalchemy_utils import database_exists, create_database
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,13 @@ def setup_db():
 
     db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{config.database.db_name}"    
     engine = create_engine(db_engine)
+
+    # Ensure the database exists (will create if not)
+    if not database_exists(engine.url):
+        logger.info(f"Database {config.database.db_name} does not exist. Creating it...")
+        create_database(engine.url)
+        logger.info(f"Database {config.database.db_name} created.")
+
     Base.metadata.create_all(engine)
 
     global _Session
