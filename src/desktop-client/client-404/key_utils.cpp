@@ -83,6 +83,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
         sodium_memzero(key, sizeof(key));
     }
 
+    // Prepare data: [ciphertext][nonce]
     ciphertext.insert(ciphertext.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Save encrypted private key file
@@ -136,15 +137,14 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
         0
         );
 
-    // Prepare data: [nonce][encryptedKey]
-    QByteArray outData(reinterpret_cast<const char*>(nonce), sizeof(nonce));
-    outData.append(reinterpret_cast<const char*>(encryptedKey.data()), static_cast<int>(encryptedKey.size()));
+    // Prepare data: [encryptedKey][nonce]
+    encryptedKey.insert(encryptedKey.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
-        file.write(outData);
+        file.write(reinterpret_cast<const char*>(encryptedKey.data()), static_cast<qint64>(encryptedKey.size()));
         file.close();
         fill(encryptedKey.begin(), encryptedKey.end(), 0);
         encryptedKey.clear();
