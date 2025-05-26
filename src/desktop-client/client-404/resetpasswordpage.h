@@ -20,13 +20,13 @@ public:
 private slots:
     void onUpdatePasswordClicked();
     void onShowPasswordClicked();
-    void sendCredentials(string password);
+    void sendCredentials(string password, string salt);
+    void fetchAndStoreSalt();
 
 private:
     Ui::ResetPasswordPage *ui;
+    QString oldSalt;
 
-signals:
-    void goToLoginRequested();
 };
 
 #endif // RESETPASSWORDPAGE_H

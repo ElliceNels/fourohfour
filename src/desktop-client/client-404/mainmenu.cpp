@@ -62,7 +62,6 @@ void MainMenu::on_viewFilesButton_clicked()
 
 void MainMenu::on_resetPasswordButton_clicked()
 {
-    // Switch to back to login page
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
     if (stack) {
         stack->setCurrentIndex(Pages::ResetPasswordPage);

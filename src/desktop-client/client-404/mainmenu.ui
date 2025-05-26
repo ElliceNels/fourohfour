@@ -168,7 +168,6 @@
     <bool>true</bool>
    </property>
   </widget>
-<<<<<<< HEAD
   <widget class="QPushButton" name="resetPasswordButton">
    <property name="geometry">
     <rect>
@@ -176,15 +175,6 @@
      <y>10</y>
      <width>151</width>
      <height>31</height>
-=======
-  <widget class="QPushButton" name="viewFilesButton">
-   <property name="geometry">
-    <rect>
-     <x>490</x>
-     <y>450</y>
-     <width>141</width>
-     <height>51</height>
->>>>>>> origin/main
     </rect>
    </property>
    <property name="font">
@@ -194,20 +184,14 @@
     </font>
    </property>
    <property name="styleSheet">
-<<<<<<< HEAD
     <string notr="true"> QPushButton {
         background-color: rgb(96, 150, 186);
-=======
-    <string notr="true">   QPushButton {
-        background-color: rgb(39, 76, 119);
->>>>>>> origin/main
         border: 0px solid black;
 		  border-radius: 15px;
         color: rgb(255, 255, 255);
     }
 
     QPushButton:hover {
-<<<<<<< HEAD
         background-color: #2980b9;
     }
 
@@ -217,19 +201,6 @@
    </property>
    <property name="text">
     <string>Reset Password</string>
-=======
-        background-color: rgb(30, 60, 100); 
-    }
-
-    QPushButton:pressed {
-        background-color: rgb(20, 45, 80); 
-    }
-
-</string>
-   </property>
-   <property name="text">
-    <string>View Files</string>
->>>>>>> origin/main
    </property>
    <property name="flat">
     <bool>true</bool>

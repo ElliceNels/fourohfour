@@ -11,6 +11,9 @@
 #include <QNetworkReply>
 #include <qstackedwidget.h>
 #include "key_utils.h"
+#include "loginsessionmanager.h"
+#include <QUrl>
+#include <QDebug>
 using namespace std;
 
 ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
@@ -21,6 +24,7 @@ ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
 
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+    ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Password);
 
     connect(ui->updatePasswordButton, &QPushButton::clicked, this, &::ResetPasswordPage::onUpdatePasswordClicked);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &ResetPasswordPage::onShowPasswordClicked);
@@ -33,26 +37,29 @@ ResetPasswordPage::~ResetPasswordPage()
 
 void ResetPasswordPage::onUpdatePasswordClicked()
 {
-    QString password = ui->passwordLineEdit->text();
+    QString oldPassword = ui->oldPasswordLineEdit->text();
+    QString newPassword = ui->passwordLineEdit->text();
     QString confirmPassword = ui->confirmPasswordLineEdit->text();
     QSet<QString> dictionaryWords;
 
     dictionaryWords = loadDictionaryWords("../../common_passwords.txt"); //source: https://work2go.se/en/category/news/
+    //QString username = LoginSessionManager::getInstance().getUsername();
+
 
     //Validation checks
-    if (password != confirmPassword) {
-        QMessageBox::warning(this, "Error", "Passwords do not match!");
+    if (newPassword != confirmPassword) {
+        QMessageBox::warning(this, "Error", "New passwords do not match!");
         return;
     }
-    if (password.length() < 8) {
+    if (newPassword.length() < 8) {
         QMessageBox::warning(this, "Error", "Password must be at least 8 characters long.");
         return;
     }
-    if (password.length() > 64) {
+    if (newPassword.length() > 64) {
         QMessageBox::warning(this, "Error", "Password must be no more than 64 characters long.");
         return;
     }
-    if (password.trimmed().isEmpty()) {
+    if (newPassword.trimmed().isEmpty()) {
         QMessageBox::warning(this, "Error", "Password cannot be empty or only spaces.");
         return;
     }
@@ -60,47 +67,36 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     //     QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
     //     return;
     // }
-    QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);     // Unicode normalization
-    if (password != normalizedPassword) {
+    QString normalizedPassword = newPassword.normalized(QString::NormalizationForm_KC);     // Unicode normalization
+    if (newPassword != normalizedPassword) {
         QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
     }
-    if (dictionaryWords.contains(password.toLower())) {
+    if (dictionaryWords.contains(newPassword.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
     }
 
-
-
-
     //Hash password
     string hashed;
-
-    hash_password(password.toStdString(), hashed);
-
+    hash_password(newPassword.toStdString(), hashed);
 
 
+    //fetchAndStoreSalt();
+    oldSalt =  generateSalt(crypto_pwhash_SALTBYTES);
+    QString newSalt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
+    QByteArray newSaltRaw = QByteArray::fromBase64(newSalt.toUtf8()); // decode to raw bytes
 
-
-
-    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8()); // decode to raw bytes
-    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
-
-    string sPassword = password.toStdString();
-
-
-    deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
+    //decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
 
 
     //Debug prints
     cout << hashed << endl;
 
 
-    //Uncomment when server side is ready
-    //sendCredentials(sAccountName, sEmail, hashed, pubKey, sSalt);
+    //sendCredentials(hashed, newSalt.toStdString(););
 
 
-    QMessageBox::information(this, "Success", "Account created!");
+    QMessageBox::information(this, "Success", "Password updated!");
 
 
     // Switch to main menu after registration
@@ -115,25 +111,55 @@ void ResetPasswordPage::onShowPasswordClicked()
     if (ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
         ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
+        ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Normal);
         ui->showPasswordButton->setText("Hide");
     } else {
         ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+        ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Normal);
         ui->showPasswordButton->setText("Show");
     }
 }
 
-void ResetPasswordPage::sendCredentials(string password)
+void ResetPasswordPage::sendCredentials(string password, string salt)
 {
     QJsonObject json;
     json["hashedPassword"] = QString::fromStdString(password);
+    json["salt"] = QString::fromStdString(salt);
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("https://gobbler.info"));
+    QNetworkRequest request(QUrl("http://gobbler.info:4004/change_password"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     QNetworkReply *reply = manager->post(request, jsonData);
+}
+
+
+void ResetPasswordPage::fetchAndStoreSalt()
+{
+    QNetworkAccessManager* manager = new QNetworkAccessManager();
+
+    QNetworkRequest request(QUrl("http://gobbler.info:4004/get_current_user"));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QNetworkReply* reply = manager->get(request);
+
+    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply]() { //wait for response from server
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray response = reply->readAll();
+            QJsonDocument doc = QJsonDocument::fromJson(response);
+            if (doc.isObject()) {
+                QJsonObject obj = doc.object();
+                oldSalt = obj["salt"].toString();
+                qDebug() << "Salt stored:" << oldSalt;
+            }
+        } else {
+            qDebug() << "Error fetching salt:" << reply->errorString();
+        }
+        reply->deleteLater();
+        reply->manager()->deleteLater();
+    });
 }

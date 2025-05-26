@@ -24,11 +24,8 @@ MainWindow::MainWindow(QWidget *parent)
     verifyPage = new VerifyPage(this);
     uploadFilePage = new UploadFilePage(this);
     mainMenu = new MainMenu(this);
-<<<<<<< HEAD
     resetPasswordPage = new ResetPasswordPage(this);
-=======
     viewFilesPage = new ViewFilesPage(this);
->>>>>>> origin/main
 
     stackedWidget->addWidget(titlePage);
     stackedWidget->addWidget(registerPage);
@@ -36,11 +33,8 @@ MainWindow::MainWindow(QWidget *parent)
     stackedWidget->addWidget(verifyPage);
     stackedWidget->addWidget(uploadFilePage);
     stackedWidget->addWidget(mainMenu);
-<<<<<<< HEAD
-    stackedWidget->addWidget(resetPasswordPage);
-=======
     stackedWidget->addWidget(viewFilesPage);
->>>>>>> origin/main
+    stackedWidget->addWidget(resetPasswordPage);
       
     connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
         stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);
