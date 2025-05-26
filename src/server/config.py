@@ -29,7 +29,6 @@ class LoggingConfig(BaseModel):
 
 class JWTConfig(BaseModel):
     """JWT configuration class."""
-    secret_key: str
     access_token_expires: timedelta
     refresh_token_expires: timedelta
 

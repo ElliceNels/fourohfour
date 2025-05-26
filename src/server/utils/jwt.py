@@ -1,9 +1,9 @@
 from datetime import datetime, UTC
 import jwt
 from flask import jsonify, current_app, request
-from server.app import Session
-from server.models.tables import TokenBlacklist, TokenInvalidation
-from server.config import config
+from src.server.utils.db_setup import get_session
+from src.server.models.tables import TokenInvalidation
+from src.server.config import config
 
 def get_current_token() -> tuple[str | None, dict | None]:
     """Extract and validate the JWT token from the Authorization header.
@@ -62,7 +62,7 @@ def decode_token(token: str) -> dict:
         payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
-        db = Session()
+        db = get_session()
         invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         db.close()
         
@@ -132,7 +132,7 @@ def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
             return None, {"response": jsonify({'error': 'Invalid token type'}), "status": 401}
 
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
-        db = Session()
+        db = get_session()
         invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         db.close()
         
@@ -166,7 +166,7 @@ def invalidate_token(token: str) -> bool:
         earliest_valid_iat = datetime.now(UTC)
         
         # Update or create token invalidation record
-        db = Session()
+        db = get_session()
         invalidation = db.query(TokenInvalidation).filter_by(user_id=user_id).first()
         
         if invalidation:
@@ -190,7 +190,7 @@ def cleanup_expired_invalidations() -> None:
     """Remove token invalidation records that are no longer needed.
     A record can be removed if all tokens issued before its earliest_valid_iat have expired.
     """
-    db = Session()
+    db = get_session()
     try:
         # Get all invalidation records
         invalidations = db.query(TokenInvalidation).all()

@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from server.utils import auth, jwt
+from src.server.utils import auth, jwt
 import logging
 
 logger = logging.getLogger(__name__)

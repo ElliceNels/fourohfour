@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from src.server.utils.auth import get_current_user
-from server.utils.permission import get_user_public_key, create_file_permission, remove_file_permission
+from src.server.utils.permission import get_user_public_key, create_file_permission, remove_file_permission
 import logging
 
 logger = logging.getLogger(__name__)

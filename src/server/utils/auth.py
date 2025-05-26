@@ -2,8 +2,9 @@ from datetime import datetime
 from flask import jsonify, request
 from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
-from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+from src.server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
 import logging
+
 
 logger = logging.getLogger(__name__)
 
