@@ -4,11 +4,7 @@
 
 using namespace std;
 
-EncryptionHelper::EncryptionHelper() {
-    if (sodium_init() < 0) {
-        throw runtime_error("Failed to initialize libsodium");
-    }
-}
+EncryptionHelper::EncryptionHelper() {}
 
 void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     if (key == nullptr) {

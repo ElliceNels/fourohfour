@@ -16,10 +16,6 @@
 using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
-    if (sodium_init() < 0) {
-        // libsodium couldn't be initialized
-        return false;
-    }
 
     unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
     unsigned char privateKey[crypto_box_SECRETKEYBYTES];
