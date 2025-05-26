@@ -2,6 +2,7 @@
 #include "pages.h"
 #include "ui_mainmenu.h"
 #include <qstackedwidget.h>
+#include "loginsessionmanager.h"
 
 MainMenu::MainMenu(QWidget *parent)
     : QWidget(parent)
@@ -43,6 +44,7 @@ void MainMenu::on_logOutButton_clicked()
         stack->setCurrentIndex(Pages::LoginPageIndex);
     }
 
-    // will need to implement logic to clear user  memory once a user logs out
+    LoginSessionManager::getInstance().clearSession();
+
 }
 

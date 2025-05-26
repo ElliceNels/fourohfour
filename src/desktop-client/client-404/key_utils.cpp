@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include "constants.h"
+#include "loginsessionmanager.h"
 
 using namespace std;
 
@@ -116,6 +117,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
         sodium_memzero(key, sizeof(key));
         return false;
     }
+
+    LoginSessionManager::getInstance().setSession(username, key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
 
     sodium_memzero(key, sizeof(key));
     return true;
