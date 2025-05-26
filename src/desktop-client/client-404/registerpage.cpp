@@ -117,7 +117,7 @@ void RegisterPage::onCreateAccountClicked()
     cout << "Salt: " << sSalt << endl;
 
     //Uncomment when server side is ready
-    //sendCredentials(sAccountName, sEmail, hashed, pubKey, sSalt);
+    sendCredentials(sAccountName, hashed, pubKey, sSalt);
 
 
     QMessageBox::information(this, "Success", "Account created!");
@@ -143,20 +143,31 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
-void RegisterPage::sendCredentials(string name, string email, string password, string publicKey, string salt)
+void RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
 {
     QJsonObject json;
-    json["accountName"] = QString::fromStdString(name);
-    json["hashedPassword"] = QString::fromStdString(password);
-    json["publicKey"] = QString::fromStdString(publicKey);
+    json["username"] = QString::fromStdString(name);
+    json["hashed_password"] = QString::fromStdString(password);
+    json["public_key"] = QString::fromStdString(publicKey);
     json["salt"] = QString::fromStdString(salt);
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
 
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("https://gobbler.info"));
+    QNetworkRequest request(QUrl("http://gobbler.info:4004/sign_up"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     QNetworkReply *reply = manager->post(request, jsonData);
+
+    connect(reply, &QNetworkReply::finished, this, [reply]() {
+        if (reply->error() == QNetworkReply::NoError) {
+            QByteArray response = reply->readAll();
+            cout << response.toStdString() << endl;
+        } else {
+           cout << "error: " << reply->errorString().toStdString() << endl;
+        }
+        reply->deleteLater();
+    });
+
 }
