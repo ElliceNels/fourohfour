@@ -2,19 +2,18 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
+# Load environment variables
+load_dotenv()
 import os
-from src.server.routes.authentication_routes import authentication_routes as auth_bp
-from src.server.routes.permission_routes import permission_bp
-from src.server.routes.file_routes import files_bp
-from src.server.utils.db_setup import setup_db
-
-from src.server.logger import setup_logger
+from server.routes.authentication_routes import authentication_routes as auth_bp
+from server.routes.permission_routes import permission_bp
+from server.routes.file_routes import files_bp
+from server.utils.db_setup import setup_db
+from server.logger import setup_logger
 
 logger = logging.getLogger(__name__)
 EXIT_ERROR = 1
 
-# Load environment variables
-load_dotenv()
 # Initialize the logger
 setup_logger()
 

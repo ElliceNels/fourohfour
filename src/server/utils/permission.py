@@ -1,7 +1,7 @@
 from datetime import datetime, UTC
 from flask import jsonify
-from src.server.models.tables import Users, Files, FilePermissions
-from src.server.utils.db_setup import get_session
+from server.models.tables import Users, Files, FilePermissions
+from server.utils.db_setup import get_session
 import logging
 
 logger = logging.getLogger(__name__)
