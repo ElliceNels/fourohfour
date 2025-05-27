@@ -78,7 +78,13 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     vector<unsigned char> ciphertext;
     bool success = false;
     try {
-        ciphertext = encryptData(jsonData, key, nonce, crypto);
+        ciphertext = encryptData(
+            reinterpret_cast<const unsigned char*>(jsonData.constData()),
+            static_cast<size_t>(jsonData.size()),
+            key,
+            nonce,
+            crypto
+            );
     } catch (const exception &e) {
         QMessageBox::critical(parent, "Encryption Error", e.what());
         sodium_memzero(key, sizeof(key));
@@ -160,21 +166,33 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 }
 
 
-vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, EncryptionHelper &crypto){
+// vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, EncryptionHelper &crypto){
 
-    const unsigned char* plaintext_ptr;
-    unsigned long long plaintext_len;
-    try {
-        plaintext_ptr = reinterpret_cast<const unsigned char*>(plaintext.constData());
-        plaintext_len = static_cast<unsigned long long>(plaintext.size());
-    } catch (const exception& e) {
-        qWarning() << "Exception:" << e.what();
-    }
+//     const unsigned char* plaintext_ptr;
+//     unsigned long long plaintext_len;
+//     try {
+//         plaintext_ptr = reinterpret_cast<const unsigned char*>(plaintext.constData());
+//         plaintext_len = static_cast<unsigned long long>(plaintext.size());
+//     } catch (const exception& e) {
+//         qWarning() << "Exception:" << e.what();
+//     }
 
-    // Encrypt with no metadata
+//     // Encrypt with no metadata
+//     return crypto.encrypt(
+//         plaintext_ptr,
+//         plaintext_len,
+//         key,
+//         nonce,
+//         nullptr,
+//         0
+//         );
+// }
+
+vector<unsigned char> encryptData(const unsigned char* data, size_t dataLen, unsigned char* key, unsigned char* nonce, EncryptionHelper& crypto)
+{
     return crypto.encrypt(
-        plaintext_ptr,
-        plaintext_len,
+        data,
+        dataLen,
         key,
         nonce,
         nullptr,
@@ -182,26 +200,4 @@ vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *ke
         );
 }
 
-QString generateSalt(size_t length){
-    const size_t SALT_LENGTH = length;
-    unsigned char salt[SALT_LENGTH];
-    randombytes_buf(salt, SALT_LENGTH);
 
-    // Convert to QString
-    QByteArray saltArray(reinterpret_cast<char*>(salt), SALT_LENGTH);
-    QString saltBase64 = saltArray.toBase64();
-    return saltBase64;
-}
-
-bool deriveKeyFromPassword(const string &password, const unsigned char *salt, unsigned char *key, size_t key_len) {
-    unsigned long long opslimit = crypto_pwhash_OPSLIMIT_INTERACTIVE;
-    size_t memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
-
-    return crypto_pwhash(
-               key, key_len,
-               password.c_str(), password.size(),
-               salt,
-               opslimit, memlimit,
-               crypto_pwhash_ALG_DEFAULT
-               ) == 0;
-}
