@@ -13,7 +13,6 @@ SecureVector::SecureVector(const  vector<unsigned char>& v) : data_(v) {}
 
 SecureVector::~SecureVector() {
     if (!data_.empty()) {
-        qDebug() << "Destroyed automatically" ;
         sodium_memzero(data_.data(), data_.size());
     }
 }

@@ -70,7 +70,6 @@ SecureVector EncryptionHelper::decrypt(
     SecureVector plaintext(ciphertext_len - crypto_aead_xchacha20poly1305_ietf_ABYTES);
 
     unsigned long long plaintext_len;
-    plaintext.resize(plaintext_len);
 
     int ret = crypto_aead_xchacha20poly1305_ietf_decrypt(
         plaintext.data(),
