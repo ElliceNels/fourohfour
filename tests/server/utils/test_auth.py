@@ -8,12 +8,10 @@ Some test explainations:
 
 
 import pytest
+from flask import Flask
 from unittest.mock import MagicMock
 from server.utils.auth import login, sign_up, change_password, delete_account, change_username
 from server.models.tables import Users
-from server.app import create_app
-
-app = create_app()
 
 CODE_BAD_REQUEST = 400
 CODE_UNAUTHORIZED = 401
@@ -22,18 +20,22 @@ CODE_CONFLICT = 409
 CODE_SUCCESS = 200
 CODE_CREATED = 201
 
+@pytest.fixture(scope="module")
+def app_fixture():
+    app = Flask(__name__)
+    app.config.update(TESTING=True, JWT_SECRET_KEY="testsecret")
+    return app
+
+@pytest.fixture
+def app_ctx(app_fixture):
+    with app_fixture.app_context():
+        yield
+        # Test code then runs in this context
 
 # Mock database fixture - simulates a database session
 @pytest.fixture
 def mock_db():
     return MagicMock()
-
-# Gives access to Flask app context for testing
-@pytest.fixture
-def app_ctx():
-    with app.app_context():
-        yield
-        # Test code then runs in this context
 
 # Helper for context manager mock
 def mock_session_ctx(mock_db):
