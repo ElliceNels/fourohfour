@@ -73,13 +73,15 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
         QMessageBox::critical(parent, "Encryption Error", e.what());
     }
 
-    // Prepare data: [ciphertext][nonce]
-    ciphertext.insert(ciphertext.end(), nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    // Prepare data: [nonce][ciphertext]
+    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copy nonce to beginning
+    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);     // Move ciphertext data to avoid copying
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
     bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
-    if (!saveFuncPtr(fileName, ciphertext)) {
+    if (!saveFuncPtr(fileName, combinedData)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
         jsonData.clear();
@@ -118,14 +120,15 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
         0
         );
 
-    // Prepare data: [encryptedKey][nonce]
-
-    encryptedKey.insert(encryptedKey.end(), nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    // Prepare data: [nonce][encryptedKey]
+    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + encryptedKey.size());
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());   // Copy nonce to beginning
+    std::copy(encryptedKey.data(), encryptedKey.data() + encryptedKey.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Move encryptedKey data to avoid copying
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
     bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
-    bool success = saveFuncPtr(filePath, encryptedKey);
+    bool success = saveFuncPtr(filePath, combinedData);
     return success;
 }
 
