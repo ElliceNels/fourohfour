@@ -36,4 +36,7 @@ inline QString generateSalt(size_t length = crypto_pwhash_SALTBYTES) {
     return saltBase64;
 }
 
+bool saveFile(const QString &filePath, const std::vector<unsigned char> &data);
+bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultName);
+
 #endif // KEY_UTILS_H
