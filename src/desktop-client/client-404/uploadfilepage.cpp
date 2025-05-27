@@ -8,7 +8,8 @@
 #include <qjsondocument.h>
 #include <qstackedwidget.h>
 #include "constants.h"
-
+#include "securevector.h"
+#include "securebufferutils.h"
 
 UploadFilePage::UploadFilePage(QWidget *parent)
     : BasePage(parent)
@@ -91,15 +92,16 @@ QByteArray UploadFilePage::formatFileMetadata(){
     return metadataBytes;
 }
 
-void UploadFilePage::encryptUploadedFile(){
+void UploadFilePage::encryptUploadedFile() {
+
     EncryptionHelper crypto;
 
-    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
-    unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
-    try {
+   auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
+   auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
 
-        crypto.generateKey(key, sizeof(key));
-        crypto.generateNonce(nonce, sizeof(nonce));
+    try {
+        crypto.generateKey(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+        crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
         const unsigned char* plaintext_ptr = reinterpret_cast<const unsigned char*>(this->fileData.constData());
         unsigned long long plaintext_len = static_cast<unsigned long long>(this->fileData.size());
@@ -108,11 +110,11 @@ void UploadFilePage::encryptUploadedFile(){
         const unsigned char* metadata_ptr = reinterpret_cast<const unsigned char*>(metadataBytes.constData());
         unsigned long long metadata_len = static_cast<unsigned long long>(metadataBytes.size());
 
-        vector<unsigned char> ciphertext = crypto.encrypt(
+        SecureVector ciphertext = crypto.encrypt(
             plaintext_ptr,
             plaintext_len,
-            key,
-            nonce,
+            key.get(),
+            nonce.get(),
             metadata_ptr,
             metadata_len
             );
@@ -120,8 +122,6 @@ void UploadFilePage::encryptUploadedFile(){
     } catch (const std::exception &e) {
         QMessageBox::critical(this, "Encryption Error", e.what());
     }
-    sodium_memzero(key, sizeof(key));
-    sodium_memzero(nonce, sizeof(nonce));
 }
 
 

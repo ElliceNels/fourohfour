@@ -1,12 +1,13 @@
 #include "encryptionhelper.h"
 #include <stdexcept>
 #include <vector>
+#include "securevector.h"
 
 using namespace std;
 
 EncryptionHelper::EncryptionHelper() {}
 
-void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
+void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) const {
     if (key == nullptr) {
         throw invalid_argument("Key buffer cannot be null");
     }
@@ -16,24 +17,24 @@ void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     crypto_aead_xchacha20poly1305_ietf_keygen(key);//uses randombytes_buf() which sources entropy from the OS
 }
 
-void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size) {
+void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size)const {
     if (nonce == nullptr) {
         throw invalid_argument("Nonce buffer cannot be null");
     }
-    if (nonce_buffer_size < crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
+    if (nonce_buffer_size < crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)   {
         throw invalid_argument("Nonce buffer too small");
     }
     randombytes_buf(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 }
 
-vector<unsigned char> EncryptionHelper::encrypt(
+SecureVector EncryptionHelper::encrypt(
     const unsigned char* plaintext, unsigned long long plaintext_len,
     const unsigned char* key,
     const unsigned char* nonce,
     const unsigned char* additional_data,
     unsigned long long ad_len
     ) {
-    vector<unsigned char> ciphertext(plaintext_len + crypto_aead_xchacha20poly1305_ietf_ABYTES);
+    SecureVector ciphertext(plaintext_len + crypto_aead_xchacha20poly1305_ietf_ABYTES);
     unsigned long long ciphertext_len;
 
     int ret = crypto_aead_xchacha20poly1305_ietf_encrypt(
@@ -43,21 +44,20 @@ vector<unsigned char> EncryptionHelper::encrypt(
         plaintext_len,
         additional_data,
         ad_len,
-        nullptr, // secret nonce parameter not used
+        nullptr,
         nonce,
         key
         );
 
     if (ret != 0) {
-        throw runtime_error("Encryption failed");
+        throw std::runtime_error("Encryption failed");
     }
 
-    // Because we allocate more space than needed, we trim to the size of the actual ciphertext
     ciphertext.resize(ciphertext_len);
     return ciphertext;
 }
 
-vector<unsigned char> EncryptionHelper::decrypt(
+SecureVector EncryptionHelper::decrypt(
     const unsigned char* ciphertext, unsigned long long ciphertext_len,
     const unsigned char* key,
     const unsigned char* nonce,
@@ -68,8 +68,10 @@ vector<unsigned char> EncryptionHelper::decrypt(
         throw runtime_error("Ciphertext too short");
     }
 
-    vector<unsigned char> plaintext(ciphertext_len - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+    SecureVector plaintext(ciphertext_len - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+
     unsigned long long plaintext_len;
+    plaintext.resize(plaintext_len);
 
     int ret = crypto_aead_xchacha20poly1305_ietf_decrypt(
         plaintext.data(),
