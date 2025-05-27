@@ -65,6 +65,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         viewfilespage.h
         viewfilespage.cpp
         viewfilespage.ui
+        basepage.h
+        basepage.cpp
 
     )
 else()

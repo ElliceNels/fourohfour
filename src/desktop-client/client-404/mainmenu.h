@@ -2,31 +2,38 @@
 #define MAINMENU_H
 
 #include <QWidget>
+#include "basepage.h"
 
 namespace Ui {
 class MainMenu;
 }
 
-class MainMenu : public QWidget
+class MainMenu : public BasePage
 {
     Q_OBJECT
 
 public:
     explicit MainMenu(QWidget *parent = nullptr);
+    void preparePage() override;
     ~MainMenu();
     MainMenu& operator=(const MainMenu&) = delete;  // Prevent assignment
 
 private slots:
-    void on_uploadButton_clicked();
-
-    void on_verifyButton_clicked();
-
     void on_logOutButton_clicked();
-
-    void on_viewFilesButton_clicked();
 
 private:
     Ui::MainMenu *ui;
+
+    // Overridden methods from BasePage abstract class
+    void initialisePageUi() override;
+    void setupConnections() override;
+
+signals:
+    void goToUploadFilePageRequested();
+    void goToVerifyPageRequested();
+    void goToLoginPageRequested();
+    void goToViewFilesPageRequested();
+
 };
 
 #endif // MAINMENU_H

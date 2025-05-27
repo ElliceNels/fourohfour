@@ -44,6 +44,25 @@ private:
     UploadFilePage *uploadFilePage;
     MainMenu *mainMenu;
     ViewFilesPage *viewFilesPage;
+
+    // Templates must be fully defined in the header file because
+    // the compiler needs to see the complete definition wherever
+    // the template is instantiated.
+
+    template<typename PageType>
+    PageType* createAndAddPage(QWidget* parent, QStackedWidget* stackedWidget) {
+        BasePage* basePage = new PageType(parent);   // Runtime polymorphism
+        basePage->preparePage();                     // Calls overridden preparePage()
+        stackedWidget->addWidget(basePage);
+        return static_cast<PageType*>(basePage);     // Cast to actual type
+    }
+
+    template<typename SenderType, typename SignalFunc>
+    void connectPageNavigation(SenderType* sender, SignalFunc signal, int pageIndex) {
+        connect(sender, signal, this, [this, pageIndex]() {
+            stackedWidget->setCurrentIndex(pageIndex);
+        });
+    }
 };
 
 #endif // MAINWINDOW_H

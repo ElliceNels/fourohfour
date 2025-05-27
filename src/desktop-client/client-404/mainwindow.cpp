@@ -7,32 +7,36 @@
 #include "pages.h"
 #include "constants.h"
 
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    this->ui->setupUi(this);
 
-    stackedWidget = new QStackedWidget(this);
-    stackedWidget->setStyleSheet(Styles::CentralWidget);
+    this->stackedWidget = new QStackedWidget(this);
+    this->stackedWidget->setStyleSheet(Styles::CentralWidget);
 
-   
-    titlePage = new TitlePage(this);
-    registerPage = new RegisterPage(this);
-    loginPage = new LoginPage(this);
-    verifyPage = new VerifyPage(this);
-    uploadFilePage = new UploadFilePage(this);
-    mainMenu = new MainMenu(this);
-    viewFilesPage = new ViewFilesPage(this);
+    // BasePage is an abstract class (has at least one pure virtual function) so cannot be instantiated
+    // Uncomment the line below to see the warning and error that appear
+    //BasePage* bpPtr = new BasePage();
 
-    // stackedWidget->addWidget(titlePage);
-    // stackedWidget->addWidget(registerPage);
-    // stackedWidget->addWidget(loginPage);
-    // stackedWidget->addWidget(verifyPage);
-    // stackedWidget->addWidget(uploadFilePage);
-    // stackedWidget->addWidget(mainMenu);
-    // stackedWidget->addWidget(viewFilesPage);
+    /*
+     * mainwindow.cpp:22:27: Allocating an object of abstract class type 'BasePage'
+     * basepage.h:19:18: unimplemented pure virtual method 'initialisePageUi' in 'BasePage'
+     * basepage.h:22:18: unimplemented pure virtual method 'setupConnections' in 'BasePage'
+    */
+
+
+    // Demonstrate Runtime polymorphism by creating pages as BasePages first
+    this->titlePage = this->createAndAddPage<TitlePage>(this, this->stackedWidget);
+    this->registerPage = this->createAndAddPage<RegisterPage>(this, this->stackedWidget);
+    this->loginPage = this->createAndAddPage<LoginPage>(this, this->stackedWidget);
+    this->verifyPage = this->createAndAddPage<VerifyPage>(this, this->stackedWidget);
+    this->uploadFilePage = this->createAndAddPage<UploadFilePage>(this, this->stackedWidget);
+    this->mainMenu = this->createAndAddPage<MainMenu>(this, this->stackedWidget);
+    this->viewFilesPage = this->createAndAddPage<ViewFilesPage>(this, this->stackedWidget);
+
+    //Operator overloading
     *stackedWidget + titlePage;
     *stackedWidget + registerPage;
     *stackedWidget + loginPage;
@@ -40,22 +44,35 @@ MainWindow::MainWindow(QWidget *parent)
     *stackedWidget + uploadFilePage;
     *stackedWidget + mainMenu;
     *stackedWidget + viewFilesPage;
-      
-    connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
-        stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);
-    });
 
-    connect(registerPage, &RegisterPage::goToLoginRequested, this, [this]() {
-        stackedWidget->setCurrentIndex(Pages::LoginPageIndex);
-    });
 
-    setCentralWidget(stackedWidget);
+    // Title page navigation
+    this->connectPageNavigation(this->titlePage, &TitlePage::goToRegisterRequested, Pages::RegisterPageIndex);
+    this->connectPageNavigation(this->titlePage, &TitlePage::goToLoginRequested, Pages::LoginPageIndex);
 
-    stackedWidget->setCurrentIndex(Pages::TitlePageIndex); // Show title page
+    // Login/Register navigation
+    this->connectPageNavigation(this->loginPage, &LoginPage::goToRegisterRequested, Pages::RegisterPageIndex);
+    this->connectPageNavigation(this->registerPage, &RegisterPage::goToLoginRequested, Pages::LoginPageIndex);
 
+    // Back to main menu navigation
+    this->connectPageNavigation(this->verifyPage, &VerifyPage::goToMainMenuRequested, Pages::MainMenuIndex);
+    this->connectPageNavigation(this->uploadFilePage, &UploadFilePage::goToMainMenuRequested, Pages::MainMenuIndex);
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::goToMainMenuRequested, Pages::MainMenuIndex);
+    this->connectPageNavigation(this->loginPage, &LoginPage::goToMainMenuRequested, Pages::MainMenuIndex);
+    this->connectPageNavigation(this->registerPage, &RegisterPage::goToMainMenuRequested, Pages::MainMenuIndex);
+
+    // Main menu navigation
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToUploadFilePageRequested, Pages::UploadFilePageIndex);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToVerifyPageRequested, Pages::VerifyPageIndex);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToLoginPageRequested, Pages::LoginPageIndex);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToViewFilesPageRequested, Pages::ViewFilesPageIndex);
+
+    this->setCentralWidget(this->stackedWidget);
+
+    this->stackedWidget->setCurrentIndex(Pages::TitlePageIndex); // Show title page
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+    delete this->ui;
 }
