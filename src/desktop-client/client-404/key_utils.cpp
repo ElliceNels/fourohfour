@@ -54,14 +54,15 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    EncryptionHelper crypto;
+    //EncryptionHelper crypto = *new EncryptionHelper();
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
 
     // Generate key and nonce
-    crypto.generateKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    crypto.generateNonce(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    crypto->generateKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+    crypto->generateNonce(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Encrypt private key file
     vector<unsigned char> ciphertext;
@@ -115,14 +116,14 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     return true;
 }
 
-bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, EncryptionHelper &crypto, QString username)
+bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username)
 {
     // Generate nonce
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
-    crypto.generateNonce(nonce, sizeof(nonce));
+    crypto->generateNonce(nonce, sizeof(nonce));
 
     // Encrypt the key
-    vector<unsigned char> encryptedKey = crypto.encrypt(
+    vector<unsigned char> encryptedKey = crypto->encrypt(
         keyToEncrypt,
         keyLen,
         derivedKey,
@@ -143,9 +144,9 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 }
 
 
-vector<unsigned char> encryptData(const unsigned char* data, size_t dataLen, unsigned char* key, unsigned char* nonce, EncryptionHelper& crypto)
+vector<unsigned char> encryptData(const unsigned char* data, size_t dataLen, unsigned char* key, unsigned char* nonce, shared_ptr<EncryptionHelper> crypto)
 {
-    return crypto.encrypt(
+    return crypto->encrypt(
         data,
         dataLen,
         key,
