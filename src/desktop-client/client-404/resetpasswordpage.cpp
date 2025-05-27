@@ -83,15 +83,11 @@ void ResetPasswordPage::onUpdatePasswordClicked()
 
     //fetchAndStoreSalt();
     oldSalt =  generateSalt(crypto_pwhash_SALTBYTES);
+
     QString newSalt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
     QByteArray newSaltRaw = QByteArray::fromBase64(newSalt.toUtf8()); // decode to raw bytes
 
     //decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
-
-
-    //Debug prints
-    cout << hashed << endl;
-
 
     //sendCredentials(hashed, newSalt.toStdString(););
 
