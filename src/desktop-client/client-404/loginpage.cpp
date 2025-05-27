@@ -54,7 +54,7 @@ void LoginPage::onLoginButtonClicked()
 
     hash_password(password.toStdString(), hashed);
 
-    sendCredentials(sUsername, sPassword);
+    sendCredentials(sUsername, hashed);
 
     // Switch to main menu after login
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
