@@ -15,6 +15,11 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+inline QStackedWidget& operator+(QStackedWidget& stack, QWidget* widget) {
+    stack.addWidget(widget);
+    return stack;
+}
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

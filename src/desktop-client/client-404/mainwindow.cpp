@@ -26,13 +26,20 @@ MainWindow::MainWindow(QWidget *parent)
     mainMenu = new MainMenu(this);
     viewFilesPage = new ViewFilesPage(this);
 
-    stackedWidget->addWidget(titlePage);
-    stackedWidget->addWidget(registerPage);
-    stackedWidget->addWidget(loginPage);
-    stackedWidget->addWidget(verifyPage);
-    stackedWidget->addWidget(uploadFilePage);
-    stackedWidget->addWidget(mainMenu);
-    stackedWidget->addWidget(viewFilesPage);
+    // stackedWidget->addWidget(titlePage);
+    // stackedWidget->addWidget(registerPage);
+    // stackedWidget->addWidget(loginPage);
+    // stackedWidget->addWidget(verifyPage);
+    // stackedWidget->addWidget(uploadFilePage);
+    // stackedWidget->addWidget(mainMenu);
+    // stackedWidget->addWidget(viewFilesPage);
+    *stackedWidget + titlePage;
+    *stackedWidget + registerPage;
+    *stackedWidget + loginPage;
+    *stackedWidget + verifyPage;
+    *stackedWidget + uploadFilePage;
+    *stackedWidget + mainMenu;
+    *stackedWidget + viewFilesPage;
       
     connect(loginPage, &LoginPage::goToRegisterRequested, this, [this]() {
         stackedWidget->setCurrentIndex(Pages::RegisterPageIndex);
