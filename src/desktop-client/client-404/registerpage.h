@@ -2,19 +2,20 @@
 #define REGISTERPAGE_H
 
 #include <QWidget>
-
+#include "basepage.h"
 using namespace std;
 
 namespace Ui {
 class RegisterPage;
 }
 
-class RegisterPage : public QWidget
+class RegisterPage : public BasePage
 {
     Q_OBJECT
 
 public:
     explicit RegisterPage(QWidget *parent = nullptr);
+    void preparePage() override;
     ~RegisterPage();
 
 private slots:
@@ -25,8 +26,13 @@ private slots:
 private:
     Ui::RegisterPage *ui;
 
+    // Overridden methods from BasePage abstract class
+    void initialisePageUi() override;
+    void setupConnections() override;
+
 signals:
     void goToLoginRequested();
+    void goToMainMenuRequested();
 };
 
 #endif // REGISTERPAGE_H

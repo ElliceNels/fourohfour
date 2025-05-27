@@ -1,5 +1,4 @@
 #include "verifypage.h"
-#include "pages.h"
 #include "ui_verifypage.h"
 #include <QFileDialog>
 #include <QMessageBox>
@@ -9,17 +8,24 @@
 #include <sodium.h>
 
 VerifyPage::VerifyPage(QWidget *parent)
-    : QWidget(parent)
+    : BasePage(parent)
     , ui(new Ui::VerifyPage)
     ,otherPublicKey(nullptr)
 {
+    qDebug() << "Constructing and setting up Verify Page";
+}
+void VerifyPage::preparePage(){
+    qDebug() << "Preparing Verify Page";
+    initialisePageUi();    // Will call the derived class implementation
+    setupConnections();    // Will call the derived class implementation
+}
+
+void VerifyPage::initialisePageUi(){
     ui->setupUi(this);
 }
 
-VerifyPage::~VerifyPage()
-{
-    delete ui;
-    delete otherPublicKey;  // clean up pointer to avoid memory leak
+void VerifyPage::setupConnections(){
+    connect(ui->backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
@@ -115,12 +121,9 @@ void VerifyPage::on_verifyButton_clicked(){
     this->ui->displayLineEdit->setText(hash);
 }
 
-void VerifyPage::on_backButton_clicked()
+VerifyPage::~VerifyPage()
 {
-    // Switch back to main menu
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    qDebug() << "Destroying Verify Page";
+    delete ui;
+    delete otherPublicKey;  // clean up pointer to avoid memory leak
 }
-

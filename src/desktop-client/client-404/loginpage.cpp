@@ -1,5 +1,4 @@
 #include "loginpage.h"
-#include "pages.h"
 #include "qwidget.h"
 #include "ui_loginpage.h"
 #include <iostream>
@@ -7,22 +6,29 @@
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::LoginPage)
 {
+    qDebug() << "Constructing and setting up Login Page";
+}
+
+void LoginPage::preparePage(){
+    qDebug() << "Preparing Login Page";
+    initialisePageUi();    // Will call the derived class implementation
+    setupConnections();    // Will call the derived class implementation
+}
+
+void LoginPage::initialisePageUi(){
     ui->setupUi(this);
+    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+}
+
+void LoginPage::setupConnections(){
 
     // Connect the button click to the slot
     connect(ui->loginButton, &QPushButton::clicked, this, &LoginPage::onLoginButtonClicked);
     connect(ui->goToRegisterButton, &QPushButton::clicked, this, &LoginPage::goToRegisterRequested);
-
-    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &LoginPage::onShowPasswordClicked);
-}
-
-LoginPage::~LoginPage()
-{
-    delete ui;
 }
 
 void LoginPage::onLoginButtonClicked()
@@ -38,10 +44,7 @@ void LoginPage::onLoginButtonClicked()
     //cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
 
     // Switch to main menu after login
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    emit goToMainMenuRequested();
 }
 
 void LoginPage::onShowPasswordClicked()
@@ -53,4 +56,10 @@ void LoginPage::onShowPasswordClicked()
         ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
         ui->showPasswordButton->setText("Show");
     }
+}
+
+LoginPage::~LoginPage()
+{
+    qDebug() << "Destroying Login Page";
+    delete ui;
 }
