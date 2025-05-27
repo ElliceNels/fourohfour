@@ -9,27 +9,27 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
 
     this->fileExtension = fileFormat;
     this->fileId = id;
-    fileNameLabel = createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth);
-    fileSizeLabel = createElidedLabel(fileSize, fileSizeLabelWidth);
-    ownerLabel = createElidedLabel(owner, fileOwnerLabelWidth);
+    this->fileNameLabel = this->createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth);
+    this->fileSizeLabel = this->createElidedLabel(fileSize, fileSizeLabelWidth);
+    this->ownerLabel = this->createElidedLabel(owner, fileOwnerLabelWidth);
 
     // Buttons
-    downloadButton = new QPushButton("Download");
-    shareButton = new QPushButton("Share");
+    this->downloadButton = new QPushButton("Download");
+    this->shareButton = new QPushButton("Share");
 
-    connect(downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
-    connect(shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare);
+    connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
+    connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare);
 
     // Layout
     auto *layout = new QHBoxLayout(this);
-    layout->addWidget(fileNameLabel);
-    layout->addWidget(fileSizeLabel);
-    layout->addWidget(ownerLabel);
+    layout->addWidget(this->fileNameLabel);
+    layout->addWidget(this->fileSizeLabel);
+    layout->addWidget(this->ownerLabel);
     layout->addStretch();
-    layout->addWidget(downloadButton);
-    layout->addWidget(shareButton);
+    layout->addWidget(this->downloadButton);
+    layout->addWidget(this->shareButton);
 
-    setLayout(layout);
+    this->setLayout(layout);
 
     this->setStyleSheet(Styles::FileItem);
 }
@@ -59,5 +59,5 @@ void FileItemWidget::handleDownload() {
 
 void FileItemWidget::handleShare() {
     // share logic here
-    qDebug() << "Share clicked for file:" << fileNameLabel->toolTip();
+    qDebug() << "Share clicked for file:" << this->fileNameLabel->toolTip();
 }

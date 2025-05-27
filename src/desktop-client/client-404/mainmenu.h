@@ -16,6 +16,7 @@ public:
     explicit MainMenu(QWidget *parent = nullptr);
     void preparePage() override;
     ~MainMenu();
+    MainMenu& operator=(const MainMenu&) = delete;  // Prevent assignment
 
 private slots:
     void on_logOutButton_clicked();

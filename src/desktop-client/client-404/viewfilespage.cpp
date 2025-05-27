@@ -11,21 +11,21 @@ ViewFilesPage::ViewFilesPage(QWidget *parent)
 }
 void ViewFilesPage::preparePage(){
     qDebug() << "Preparing View Files Page";
-    initialisePageUi();    // Will call the derived class implementation
-    setupConnections();    // Will call the derived class implementation
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
 }
 
 void ViewFilesPage::initialisePageUi(){
-    ui->setupUi(this);
+    this->ui->setupUi(this);
 }
 
 void ViewFilesPage::setupConnections(){
-    connect(ui->backButton, &QPushButton::clicked, this, &ViewFilesPage::goToMainMenuRequested);
+    connect(this->ui->backButton, &QPushButton::clicked, this, &ViewFilesPage::goToMainMenuRequested);
 }
 
 ViewFilesPage::~ViewFilesPage()
 {
     qDebug() << "Destroying View Files Page";
-    delete ui;
+    delete this->ui;
 }
 

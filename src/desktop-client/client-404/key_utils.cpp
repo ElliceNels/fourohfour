@@ -41,22 +41,10 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
     json["publicKey"] = publicKey;
     json["privateKey"] = privateKey;
 
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
+    //Function pointer
+    bool (*saveFuncPtr)(QWidget*, const QJsonObject&, const QString&) = saveFile;
 
-
-    QString fileName = QFileDialog::getSaveFileName(parent, "Save Keys", defaultName, "JSON Files (*.json);;All Files (*)");
-    if (!fileName.isEmpty()) {
-        QFile file(fileName);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            file.write(jsonData);
-            file.close();
-            return true;
-        } else {
-            QMessageBox::warning(parent, "Error", "Failed to open file for writing.");
-        }
-    }
-    return false;
+    return saveFuncPtr(parent, json, defaultName);
 }
 
 
@@ -66,14 +54,15 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    EncryptionHelper crypto;
+
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
     auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
     auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
 
     // Generate key and nonce
-    crypto.generateKey(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    crypto->generateKey(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+    crypto->generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Encrypt private key file
     SecureVector ciphertext;
@@ -89,11 +78,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    QFile file(fileName);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size())); //convert to raw bytes
-        file.close();
-    } else {
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    if (!saveFuncPtr(fileName, ciphertext)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
         jsonData.clear();
@@ -115,16 +101,15 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     return true;
 }
 
-bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, EncryptionHelper &crypto, QString username)
+bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username)
 {
     // Generate nonce
     auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-
     crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
 
     // Encrypt the key
-    SecureVector encryptedKey = crypto.encrypt(
+    SecureVector encryptedKey = crypto->encrypt(
         keyToEncrypt,
         keyLen,
         derivedKey,
@@ -139,14 +124,11 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
-    QFile file(filePath);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reinterpret_cast<const char*>(encryptedKey.data()), static_cast<qint64>(encryptedKey.size()));
-        file.close();
-        return true;
-    } else {
-        return false;
-    }
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    bool success = saveFuncPtr(filePath, encryptedKey);
+    fill(encryptedKey.begin(), encryptedKey.end(), 0);
+    encryptedKey.clear();
+    return success;
 }
 
 
@@ -162,7 +144,7 @@ SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsign
     }
 
     // Encrypt with no metadata
-    return crypto.encrypt(
+    return crypto->encrypt(
         plaintext_ptr,
         plaintext_len,
         key,
@@ -172,27 +154,33 @@ SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsign
         );
 }
 
-QString generateSalt(size_t length){
-    const size_t SALT_LENGTH = length;
-    SecureVector salt(SALT_LENGTH);
-    randombytes_buf(salt.data(), SALT_LENGTH);
-
-
-    // Convert to QString
-    QByteArray saltArray(reinterpret_cast<char*>(salt.data()), SALT_LENGTH);
-    QString saltBase64 = saltArray.toBase64();
-    return saltBase64;
+//Function overloading
+bool saveFile(const QString &filePath, const std::vector<unsigned char> &data) {
+    QFile file(filePath);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(reinterpret_cast<const char*>(data.data()), static_cast<qint64>(data.size()));
+        file.close();
+        return true;
+    }
+    return false;
 }
 
-bool deriveKeyFromPassword(const string &password, const unsigned char *salt, unsigned char *key, size_t key_len) {
-    unsigned long long opslimit = crypto_pwhash_OPSLIMIT_INTERACTIVE;
-    size_t memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
+bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultName) {
+    QJsonDocument doc(json);
+    QByteArray jsonData = doc.toJson();
 
-    return crypto_pwhash(
-               key, key_len,
-               password.c_str(), password.size(),
-               salt,
-               opslimit, memlimit,
-               crypto_pwhash_ALG_DEFAULT
-               ) == 0;
+    QString fileName = QFileDialog::getSaveFileName(parent, "Save Keys", defaultName, "JSON Files (*.json);;All Files (*)");
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            file.write(jsonData);
+            file.close();
+            return true;
+        } else {
+            QMessageBox::warning(parent, "Error", "Failed to open file for writing.");
+        }
+    }
+    return false;
 }
+
+

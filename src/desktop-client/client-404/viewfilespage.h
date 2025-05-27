@@ -16,6 +16,7 @@ public:
     explicit ViewFilesPage(QWidget *parent = nullptr);
     void preparePage() override;
     ~ViewFilesPage();
+    ViewFilesPage& operator=(const ViewFilesPage&) = delete;  // Prevent assignment
 
 
 private:

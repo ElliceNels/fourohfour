@@ -17,6 +17,7 @@ public:
     explicit RegisterPage(QWidget *parent = nullptr);
     void preparePage() override;
     ~RegisterPage();
+    RegisterPage& operator=(const RegisterPage&) = delete;  // Prevent assignment
 
 private slots:
     void onCreateAccountClicked();

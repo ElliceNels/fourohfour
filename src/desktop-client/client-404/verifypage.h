@@ -17,6 +17,7 @@ public:
     void set_other_public_key(const QByteArray &otherpk);
     void preparePage() override;
     ~VerifyPage();
+    VerifyPage& operator=(const VerifyPage&) = delete;  // Prevent assignment
 
 private slots:
     void on_verifyButton_clicked();
