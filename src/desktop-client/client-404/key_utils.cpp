@@ -63,13 +63,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     vector<unsigned char> ciphertext;
     bool success = false;
     try {
-        ciphertext = encryptData(
-            reinterpret_cast<const unsigned char*>(jsonData.constData()),
-            static_cast<size_t>(jsonData.size()),
-            key,
-            nonce,
-            crypto
-            );
+        ciphertext = encryptData(jsonData, key, nonce, crypto);
     } catch (const exception &e) {
         QMessageBox::critical(parent, "Encryption Error", e.what());
         sodium_memzero(key, sizeof(key));
@@ -141,11 +135,21 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 }
 
 
-vector<unsigned char> encryptData(const unsigned char* data, size_t dataLen, unsigned char* key, unsigned char* nonce, shared_ptr<EncryptionHelper> crypto)
-{
+vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto){
+
+    const unsigned char* plaintext_ptr;
+    unsigned long long plaintext_len;
+    try {
+        plaintext_ptr = reinterpret_cast<const unsigned char*>(plaintext.constData());
+        plaintext_len = static_cast<unsigned long long>(plaintext.size());
+    } catch (const exception& e) {
+        qWarning() << "Exception:" << e.what();
+    }
+
+    // Encrypt with no metadata
     return crypto->encrypt(
-        data,
-        dataLen,
+        plaintext_ptr,
+        plaintext_len,
         key,
         nonce,
         nullptr,
