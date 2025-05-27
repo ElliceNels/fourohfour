@@ -1,35 +1,33 @@
 #include "titlepage.h"
 #include "ui_titlepage.h"
-#include "pages.h"
 #include <QStackedWidget>
 
 TitlePage::TitlePage(QWidget *parent)
-    : QWidget(parent)
-    , ui(new Ui::TitlePage)
+    : BasePage(parent)
+    ,ui(new Ui::TitlePage)
 {
-    ui->setupUi(this);
+    qDebug() << "Constructing and setting up Title Page";
+
+}
+void TitlePage::preparePage(){
+    qDebug() << "Preparing Title Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void TitlePage::initialisePageUi(){
+    this->ui->setupUi(this);
+}
+
+void TitlePage::setupConnections(){
+    connect(this->ui->signupButton, &QPushButton::clicked, this, &TitlePage::goToRegisterRequested);
+    connect(this->ui->loginButton, &QPushButton::clicked, this, &TitlePage::goToLoginRequested);
 }
 
 TitlePage::~TitlePage()
 {
-    delete ui;
+    qDebug() << "Destroying Title Page";
+    delete this->ui;
 }
 
-void TitlePage::on_signupButton_clicked()
-{
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::RegisterPageIndex);
-    }
-}
-
-
-
-void TitlePage::on_loginButton_clicked()
-{
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::LoginPageIndex);
-    }
-}
 

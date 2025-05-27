@@ -2,47 +2,62 @@
 #include "qwidget.h"
 #include "ui_loginpage.h"
 #include <iostream>
+#include <qstackedwidget.h>
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::LoginPage)
 {
-    ui->setupUi(this);
-
-    // Connect the button click to the slot
-    connect(ui->loginButton, &QPushButton::clicked, this, &LoginPage::onLoginButtonClicked);
-    connect(ui->goToRegisterButton, &QPushButton::clicked, this, &LoginPage::goToRegisterRequested);
-
-    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-    connect(ui->showPasswordButton, &QPushButton::clicked, this, &LoginPage::onShowPasswordClicked);
+    qDebug() << "Constructing and setting up Login Page";
 }
 
-LoginPage::~LoginPage()
-{
-    delete ui;
+void LoginPage::preparePage(){
+    qDebug() << "Preparing Login Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void LoginPage::initialisePageUi(){
+    this->ui->setupUi(this);
+    this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+}
+
+void LoginPage::setupConnections(){
+    connect(this->ui->loginButton, &QPushButton::clicked, this, &LoginPage::onLoginButtonClicked);
+    connect(this->ui->goToRegisterButton, &QPushButton::clicked, this, &LoginPage::goToRegisterRequested);
+    connect(this->ui->showPasswordButton, &QPushButton::clicked, this, &LoginPage::onShowPasswordClicked);
 }
 
 void LoginPage::onLoginButtonClicked()
 {
-    QString username = ui->usernameLineEdit->text();
-    QString password = ui->passwordLineEdit->text();
+    QString username = this->ui->usernameLineEdit->text();
+    QString password = this->ui->passwordLineEdit->text();
 
-    //Debug prints
+    // Debug prints
     cout << "Username: " << username.toStdString() << endl;
     cout << "Password: " << password.toStdString() << endl;
 
-    //Uncomment when we can query password from the server
-    //cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
+    // Uncomment when we can query password from the server
+    // cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
+
+    // Switch to main menu after login
+    emit this->goToMainMenuRequested();
 }
 
 void LoginPage::onShowPasswordClicked()
 {
-    if (ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->showPasswordButton->setText("Hide");
+    if (this->ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->showPasswordButton->setText("Hide");
     } else {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->showPasswordButton->setText("Show");
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->showPasswordButton->setText("Show");
     }
+}
+
+LoginPage::~LoginPage()
+{
+    qDebug() << "Destroying Login Page";
+    delete this->ui;
 }

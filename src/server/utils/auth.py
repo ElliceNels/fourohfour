@@ -2,8 +2,10 @@ from datetime import datetime
 from flask import jsonify, request
 from src.server.utils.db_setup import get_session
 from src.server.models.tables import Users
-from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+from src.server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+import logging
 
+logger = logging.getLogger(__name__)
 
 def login(username: str, hash_password: bytes) -> dict:
     """Login route to authenticate users.
@@ -17,22 +19,25 @@ def login(username: str, hash_password: bytes) -> dict:
     """
 
     if not username or not hash_password:
+        logger.warning("Login failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     # Check the username and password against the database
-    db = get_session()
-    user: Users = db.query(Users).filter_by(username=username).first()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
 
     # Cond 1: Username doesnt exist
     if not user:
+        logger.warning(f"Login failed for user {username}: User not found")
         return jsonify({"error": "User not found"}), 404
     
     # Cond 2: Password is incorrect for the given username
     if user.password != hash_password:
+        logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
     access_token, refresh_token = generate_token(user.id)
+    logger.info(f"User {username} logged in successfully")
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token
@@ -52,35 +57,36 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
     """
     
     if not username or not password or not public_key or not salt:
+        logger.warning("Sign up failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = get_session()
+    with get_session() as db:
 
-    # Cond 1: The username already exists
-    existing_user = db.query(Users).filter_by(username=username).first()
-    if existing_user:
-        db.close()
-        return jsonify({"error": "Username already exists"}), 409
-    
-    # Cond 2: The public key already exists -> should be unique
-    existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
-    if existing_public_key:
-        db.close()
-        return jsonify({"error": "Public key already exists"}), 409
-    
-    # Create a new user
-    new_user = Users(
-        username=username,
-        password=password,
-        public_key=public_key,
-        salt=salt,
-        created_at=datetime.now(),
-        updated_at=datetime.now()
-    )
+        # Cond 1: The username already exists
+        existing_user = db.query(Users).filter_by(username=username).first()
+        if existing_user:
+            logger.warning(f"Sign up failed for user {username}: Username already exists")
+            return jsonify({"error": "Username already exists"}), 409
+        
+        # Cond 2: The public key already exists -> should be unique
+        existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
+        if existing_public_key:
+            logger.warning(f"Sign up failed for user {username}: Public key already exists")
+            return jsonify({"error": "Public key already exists"}), 409
+        
+        # Create a new user
+        new_user = Users(
+            username=username,
+            password=password,
+            public_key=public_key,
+            salt=salt,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
 
-    db.add(new_user)
-    db.commit()
-    db.close()
+        db.add(new_user)
+        db.commit()
+    logger.info(f"User {username} signed up successfully")
 
     access_token, refresh_token = generate_token(new_user.id)
     return jsonify({
@@ -100,29 +106,30 @@ def change_password(token: str, new_password: str) -> dict:
     """
     
     if not token or not new_password:
+        logger.warning("Change password failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     user_id, error = get_user_id_from_token(token)
     if error:
         return error
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Cond 1: The new password is the same as the current one
-    if user.password == new_password:
-        db.close()
-        return jsonify({"error": "New password is the same as the current one"}), 400
-    
-    # Update the password
-    user.password = new_password
-    user.updated_at = datetime.now()
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        
+        if not user:
+            logger.warning(f"Change password failed for user {user_id}: User not found")
+            return jsonify({"error": "User not found"}), 404
+        
+        # Cond 1: The new password is the same as the current one
+        if user.password == new_password:
+            logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
+            return jsonify({"error": "New password is the same as the current one"}), 400
+        
+        # Update the password
+        user.password = new_password
+        user.updated_at = datetime.now()
+        db.commit()
+        logger.info(f"User {user_id} changed password successfully")
     return jsonify({"message": "Password updated successfully"}), 200
 
 def delete_account(username: str) -> dict:
@@ -136,19 +143,20 @@ def delete_account(username: str) -> dict:
     """
     
     if not username:
+        logger.warning("Delete account failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
-    db = get_session()
-    user: Users = db.query(Users).filter_by(username=username).first()
-    
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Delete the user
-    db.delete(user)
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
+        
+        if not user:
+            logger.warning(f"Delete account failed for user {username}: User not found")
+            return jsonify({"error": "User not found"}), 404
+        
+        # Delete the user
+        db.delete(user)
+        db.commit()
+    logger.info(f"User {username} deleted account successfully")
     return jsonify({"message": "Account deleted successfully"}), 200
 
 
@@ -164,34 +172,36 @@ def change_username(token: str, new_username: str) -> dict:
     """
     
     if not token or not new_username:
+        logger.warning("Change username failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
     user_id, error = get_user_id_from_token(token)
     if error:
         return error
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    if not user:
-        db.close()
-        return jsonify({"error": "User not found"}), 404
-    
-    # Cond 1: The new username already exists
-    existing_user = db.query(Users).filter_by(username=new_username).first()
-    if existing_user:
-        db.close()
-        return jsonify({"error": "Username already exists"}), 409
-    
-    # Cond 2: Username is the same as the current one
-    if user.username == new_username:
-        db.close()
-        return jsonify({"error": "New username is the same as the current one"}), 400
-    
-    # Update the username
-    user.username = new_username
-    user.updated_at = datetime.now()
-    db.commit()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        if not user:
+            logger.warning(f"Change username failed for user {user_id}: User not found")      
+            return jsonify({"error": "User not found"}), 404
+        
+        # Cond 1: The new username already exists
+        existing_user = db.query(Users).filter_by(username=new_username).first()
+        if existing_user:
+            logger.warning(f"Change username failed for user {user_id}: Username already exists")
+            return jsonify({"error": "Username already exists"}), 409
+        
+        # Cond 2: Username is the same as the current one
+        if user.username == new_username:
+            logger.warning(f"Change username failed for user {user_id}: New username is the same as the current one")
+            return jsonify({"error": "New username is the same as the current one"}), 400
+        
+        # Update the username
+        user.username = new_username
+        user.updated_at = datetime.now()
+        db.commit()
+    logger.info(f"User {user_id} changed username successfully")
+
     return jsonify({"message": "Username updated successfully"}), 200
 
 def get_current_user(token: str) -> dict:
@@ -212,17 +222,18 @@ def get_current_user(token: str) -> dict:
     """
     token, error = get_current_token()
     if error:
+        logger.warning("Current user retrieval failed: Missing required fields")
         return error['response'], error['status']
 
     user_id, error = get_user_id_from_token(token)
     if error:
         return error['response'], error['status']
 
-    db = get_session()
-    user: Users = db.query(Users).filter_by(id=user_id).first()
-    db.close()
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
 
     if not user:
+        logger.warning(f"Current user retrieval failed: User not found for token")
         return jsonify({"error": "User not found"}), 404
 
     user_info = {

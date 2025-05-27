@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>VerifyPage</class>
- <widget class="QWidget" name="VerifyPage">
+ <class>MainMenu</class>
+ <widget class="QWidget" name="MainMenu">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -28,141 +28,38 @@
   <property name="styleSheet">
    <string notr="true">background-color: rgb(231, 236, 239);</string>
   </property>
-  <widget class="QLabel" name="verifyLabel">
+  <widget class="QLabel" name="titleLabel">
    <property name="geometry">
     <rect>
-     <x>250</x>
-     <y>120</y>
-     <width>201</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Tw Cen MT</family>
-     <pointsize>50</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="text">
-    <string>Verify</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignmentFlag::AlignCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="nameLabel">
-   <property name="geometry">
-    <rect>
-     <x>460</x>
-     <y>120</y>
-     <width>311</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <family>Tw Cen MT</family>
-     <pointsize>50</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">color: rgb(96, 150, 186);</string>
-   </property>
-   <property name="text">
-    <string>Public Key</string>
-   </property>
-   <property name="alignment">
-    <set>Qt::AlignmentFlag::AlignCenter</set>
-   </property>
-  </widget>
-  <widget class="QLabel" name="instructLabel">
-   <property name="geometry">
-    <rect>
-     <x>230</x>
-     <y>220</y>
-     <width>591</width>
+     <x>300</x>
+     <y>180</y>
+     <width>511</width>
      <height>101</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>13</pointsize>
+     <pointsize>50</pointsize>
+     <bold>true</bold>
     </font>
    </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(0, 0, 0);</string>
+   </property>
    <property name="text">
-    <string>Please upload your public key file to generate a hash 
- of your key and the other person's public key to verify each other's identity.</string>
+    <string>Main Menu</string>
    </property>
    <property name="alignment">
     <set>Qt::AlignmentFlag::AlignCenter</set>
    </property>
   </widget>
-  <widget class="QLineEdit" name="displayLineEdit">
+  <widget class="QPushButton" name="uploadButton">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>360</y>
-     <width>511</width>
-     <height>31</height>
-    </rect>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">border: 2px solid black</string>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="dragEnabled">
-    <bool>false</bool>
-   </property>
-   <property name="readOnly">
-    <bool>true</bool>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="verifyButton">
-   <property name="geometry">
-    <rect>
-     <x>450</x>
-     <y>450</y>
-     <width>171</width>
-     <height>41</height>
-    </rect>
-   </property>
-   <property name="font">
-    <font>
-     <pointsize>18</pointsize>
-     <bold>true</bold>
-    </font>
-   </property>
-   <property name="styleSheet">
-    <string notr="true"> QPushButton {
-        background-color: rgb(96, 150, 186);
-        border: 0px solid black;
-		  border-radius: 15px;
-        color: rgb(255, 255, 255);
-    }
-
-    QPushButton:hover {
-        background-color: #2980b9;
-    }
-
-    QPushButton:pressed {
-        background-color: #1c5980;
-    }</string>
-   </property>
-   <property name="text">
-    <string>Generate</string>
-   </property>
-  </widget>
-  <widget class="QPushButton" name="backButton">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>10</y>
-     <width>91</width>
-     <height>31</height>
+     <x>410</x>
+     <y>370</y>
+     <width>141</width>
+     <height>51</height>
     </rect>
    </property>
    <property name="font">
@@ -190,7 +87,125 @@
 </string>
    </property>
    <property name="text">
-    <string>Back</string>
+    <string>Upload File</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="verifyButton">
+   <property name="geometry">
+    <rect>
+     <x>580</x>
+     <y>370</y>
+     <width>141</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">   QPushButton {
+        background-color: rgb(39, 76, 119);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: rgb(30, 60, 100); 
+    }
+
+    QPushButton:pressed {
+        background-color: rgb(20, 45, 80); 
+    }
+
+</string>
+   </property>
+   <property name="text">
+    <string>Verify User</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="logOutButton">
+   <property name="geometry">
+    <rect>
+     <x>990</x>
+     <y>10</y>
+     <width>91</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"> QPushButton {
+        background-color: rgb(96, 150, 186);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: #2980b9;
+    }
+
+    QPushButton:pressed {
+        background-color: #1c5980;
+    }</string>
+   </property>
+   <property name="text">
+    <string>Log Out</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="viewFilesButton">
+   <property name="geometry">
+    <rect>
+     <x>490</x>
+     <y>450</y>
+     <width>141</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>15</pointsize>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">   QPushButton {
+        background-color: rgb(39, 76, 119);
+        border: 0px solid black;
+		  border-radius: 15px;
+        color: rgb(255, 255, 255);
+    }
+
+    QPushButton:hover {
+        background-color: rgb(30, 60, 100); 
+    }
+
+    QPushButton:pressed {
+        background-color: rgb(20, 45, 80); 
+    }
+
+</string>
+   </property>
+   <property name="text">
+    <string>View Files</string>
    </property>
    <property name="flat">
     <bool>true</bool>

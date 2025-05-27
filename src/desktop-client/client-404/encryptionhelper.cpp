@@ -4,11 +4,7 @@
 
 using namespace std;
 
-EncryptionHelper::EncryptionHelper() {
-    if (sodium_init() < 0) {
-        throw runtime_error("Failed to initialize libsodium");
-    }
-}
+EncryptionHelper::EncryptionHelper() {}
 
 void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     if (key == nullptr) {
@@ -17,7 +13,7 @@ void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     if (key_buffer_size < crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
         throw invalid_argument("Key buffer too small");
     }
-    crypto_aead_xchacha20poly1305_ietf_keygen(key);
+    crypto_aead_xchacha20poly1305_ietf_keygen(key);//uses randombytes_buf() which sources entropy from the OS
 }
 
 void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size) {
