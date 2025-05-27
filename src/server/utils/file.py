@@ -2,8 +2,8 @@ from datetime import datetime, UTC
 from flask import jsonify
 import os
 import base64
-from src.server.models.tables import Files, FilePermissions, FileMetadata
-from src.server.utils.db_setup import get_session
+from server.models.tables import Files, FilePermissions, FileMetadata
+from server.utils.db_setup import get_session
 import logging
 
 logger = logging.getLogger(__name__)

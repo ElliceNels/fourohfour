@@ -6,16 +6,12 @@ Some test explainations:
 - The tests cover both successful and error cases for each function (using parameterized tests, each set is run with the function).
 """
 
-# Change module search path at runtime to include the parent directory (src/server)
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../..')))
 
 import pytest
 from unittest.mock import MagicMock
-from src.server.utils.auth import login, sign_up, change_password, delete_account, change_username
-from src.server.models.tables import Users
-from src.server.app import create_app
+from server.utils.auth import login, sign_up, change_password, delete_account, change_username
+from server.models.tables import Users
+from server.app import create_app
 
 app = create_app()
 
@@ -58,7 +54,7 @@ def mock_session_ctx(mock_db):
 def test_login_cases(username, password, expected_status, mock_db, app_ctx, mocker):
     user = Users(username=username, password=b"correct_password") if expected_status in [CODE_SUCCESS, CODE_UNAUTHORIZED] else None
     mock_db.query().filter_by().first.return_value = user
-    mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     response = login(username, password)
     assert response[1] == expected_status
     data = response[0].get_json()
@@ -80,7 +76,7 @@ def test_sign_up_cases(username, password, public_key, salt, expected_status, mo
         mock_db.query().filter_by().first.side_effect = [Users(username=username), None]
     else:
         mock_db.query().filter_by().first.return_value = None
-    mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     response = sign_up(username, password, public_key, salt)
     assert response[1] == expected_status
     data = response[0].get_json()
@@ -109,21 +105,21 @@ def test_change_password_cases(
     username, old_password, new_password, token, user_exists, token_error, expected_status, expected_error,
     mock_db, app_ctx, mocker
 ):
-    from src.server.utils.auth import change_password
+    from server.utils.auth import change_password
     # Patch DB session
     if user_exists:
         user = Users(id=1, username=username, password=old_password)
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None
-    mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     # Patch get_user_id_from_token
     patch_args = dict()
     if token_error:
         patch_args['side_effect'] = lambda t: (None, token_error)
     else:
         patch_args['return_value'] = (1, None)
-    mocker.patch('src.server.utils.auth.get_user_id_from_token', **patch_args)
+    mocker.patch('server.utils.auth.get_user_id_from_token', **patch_args)
     # Call function
     response = change_password(token, new_password)
     if token_error:
@@ -143,7 +139,7 @@ def test_change_password_cases(
 def test_delete_account(username, expected_status, mock_db, app_ctx, mocker):
     user = Users(username=username) if expected_status == CODE_SUCCESS else None
     mock_db.query().filter_by().first.return_value = user
-    mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     response = delete_account(username)
     assert response[1] == expected_status
     data = response[0].get_json()
@@ -169,8 +165,8 @@ def test_change_username_cases(token, new_username, user_exists, token_error, us
         patch_args['side_effect'] = lambda t: (None, token_error)
     else:
         patch_args['return_value'] = (1, None)
-    mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
-    mocker.patch('src.server.utils.auth.get_user_id_from_token', **patch_args)
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    mocker.patch('server.utils.auth.get_user_id_from_token', **patch_args)
     response = change_username(token, new_username)
     if token_error:
         assert response == token_error
@@ -194,16 +190,16 @@ def test_change_username_cases(token, new_username, user_exists, token_error, us
     ]
 )
 def test_get_current_user_cases(token, token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key, mock_db, app_ctx, mocker):
-    from src.server.utils.auth import get_current_user
+    from server.utils.auth import get_current_user
 
     # Patch get_current_token
     if token_error:
-        mocker.patch('src.server.utils.auth.get_current_token', return_value=(None, token_error))
+        mocker.patch('server.utils.auth.get_current_token', return_value=(None, token_error))
     else:
-        mocker.patch('src.server.utils.auth.get_current_token', return_value=("token", None))
+        mocker.patch('server.utils.auth.get_current_token', return_value=("token", None))
 
     # Patch get_user_id_from_token
-    mocker.patch('src.server.utils.auth.get_user_id_from_token', return_value=(1, None))
+    mocker.patch('server.utils.auth.get_user_id_from_token', return_value=(1, None))
 
     # Patch DB session and user
     if user_exists is None:
@@ -212,10 +208,10 @@ def test_get_current_user_cases(token, token_error, user_exists, expected_status
     elif user_exists:
         user = Users(id=1, username="user", password="pw", public_key=b"pk", salt=b"salt", created_at="now", updated_at="now")
         mock_db.query().filter_by().first.return_value = user
-        mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+        mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     else:
         mock_db.query().filter_by().first.return_value = None
-        mocker.patch('src.server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+        mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
 
     resp, status = get_current_user(token)
     assert status == expected_status

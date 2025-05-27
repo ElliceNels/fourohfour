@@ -1,5 +1,5 @@
-from src.server.config import config 
-from src.server.models.tables import Base
+from server.config import config 
+from server.models.tables import Base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import os
