@@ -40,11 +40,10 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
     json["publicKey"] = publicKey;
     json["privateKey"] = privateKey;
 
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
+    //Function pointer
+    bool (*saveFuncPtr)(QWidget*, const QJsonObject&, const QString&) = saveFile;
 
-
-    return saveFile(parent, json, defaultName);
+    return saveFuncPtr(parent, json, defaultName);
 }
 
 
@@ -85,7 +84,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    if (!saveFile(fileName, ciphertext)) {
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    if (!saveFuncPtr(fileName, ciphertext)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
         jsonData.clear();
@@ -137,7 +137,8 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
-    bool success = saveFile(filePath, encryptedKey);
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    bool success = saveFuncPtr(filePath, encryptedKey);
     fill(encryptedKey.begin(), encryptedKey.end(), 0);
     encryptedKey.clear();
     return success;
