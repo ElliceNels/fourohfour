@@ -26,6 +26,7 @@ MainWindow::MainWindow(QWidget *parent)
      * basepage.h:22:18: unimplemented pure virtual method 'setupConnections' in 'BasePage'
     */
 
+
     // Demonstrate Runtime polymorphism by creating pages as BasePages first
     this->titlePage = this->createAndAddPage<TitlePage>(this, this->stackedWidget);
     this->registerPage = this->createAndAddPage<RegisterPage>(this, this->stackedWidget);
@@ -35,13 +36,15 @@ MainWindow::MainWindow(QWidget *parent)
     this->mainMenu = this->createAndAddPage<MainMenu>(this, this->stackedWidget);
     this->viewFilesPage = this->createAndAddPage<ViewFilesPage>(this, this->stackedWidget);
 
-    this->stackedWidget->addWidget(this->titlePage);
-    this->stackedWidget->addWidget(this->registerPage);
-    this->stackedWidget->addWidget(this->loginPage);
-    this->stackedWidget->addWidget(this->verifyPage);
-    this->stackedWidget->addWidget(this->uploadFilePage);
-    this->stackedWidget->addWidget(this->mainMenu);
-    this->stackedWidget->addWidget(this->viewFilesPage);
+    //Operator overloading
+    *stackedWidget + titlePage;
+    *stackedWidget + registerPage;
+    *stackedWidget + loginPage;
+    *stackedWidget + verifyPage;
+    *stackedWidget + uploadFilePage;
+    *stackedWidget + mainMenu;
+    *stackedWidget + viewFilesPage;
+
 
     // Title page navigation
     this->connectPageNavigation(this->titlePage, &TitlePage::goToRegisterRequested, Pages::RegisterPageIndex);

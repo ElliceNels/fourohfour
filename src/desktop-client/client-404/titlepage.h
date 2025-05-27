@@ -16,6 +16,7 @@ public:
     explicit TitlePage(QWidget *parent = nullptr);
     void preparePage() override;
     ~TitlePage();
+    TitlePage& operator=(const TitlePage&) = delete;  // Prevent assignment
 
 private:
     Ui::TitlePage *ui;

@@ -18,6 +18,7 @@ public:
     explicit LoginPage(QWidget *parent = nullptr);
     void preparePage() override;
     ~LoginPage();
+    LoginPage& operator=(const LoginPage&) = delete;  // Prevent assignment
 
 private slots:
     void onLoginButtonClicked();

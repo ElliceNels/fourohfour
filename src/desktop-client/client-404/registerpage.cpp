@@ -73,7 +73,7 @@ void RegisterPage::onCreateAccountClicked()
     }
     QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (password != normalizedPassword) {
-        QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
+        QMessageBox::warning(this, "Error", "Your password contains characters that may look different on other devices.");
     }
     if (dictionaryWords.contains(password.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
@@ -100,13 +100,14 @@ void RegisterPage::onCreateAccountClicked()
 
 
     QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8()); // decode to raw bytes
+    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
     string pubKey = password.toStdString();
     string sSalt = salt.toStdString();
+    string* saltPtr = &sSalt;
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
@@ -119,7 +120,7 @@ void RegisterPage::onCreateAccountClicked()
     cout << hashed << endl;
     cout << pubKeyBase64.toStdString() << endl;
     cout << privKeyBase64.toStdString() << endl;
-    cout << "Salt: " << sSalt << endl;
+    cout << "Salt: " << *saltPtr << endl;
 
     //Uncomment when server side is ready
     //sendCredentials(sAccountName, sEmail, hashed, pubKey, sSalt);
