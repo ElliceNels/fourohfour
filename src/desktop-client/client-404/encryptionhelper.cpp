@@ -6,7 +6,7 @@ using namespace std;
 
 EncryptionHelper::EncryptionHelper() {}
 
-void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) const {
+void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     if (key == nullptr) {
         throw invalid_argument("Key buffer cannot be null");
     }
@@ -16,7 +16,7 @@ void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) c
     crypto_aead_xchacha20poly1305_ietf_keygen(key);//uses randombytes_buf() which sources entropy from the OS
 }
 
-void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size)const {
+void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_size) {
     if (nonce == nullptr) {
         throw invalid_argument("Nonce buffer cannot be null");
     }

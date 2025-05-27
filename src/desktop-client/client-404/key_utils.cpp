@@ -78,7 +78,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
     if (!saveFuncPtr(fileName, ciphertext)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
@@ -105,7 +105,7 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 {
     // Generate nonce
     auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-    crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    crypto->generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
 
     // Encrypt the key
@@ -124,7 +124,7 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
-    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
     bool success = saveFuncPtr(filePath, encryptedKey);
     fill(encryptedKey.begin(), encryptedKey.end(), 0);
     encryptedKey.clear();
@@ -132,7 +132,7 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 }
 
 
-SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, EncryptionHelper &crypto){
+SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto){
 
     const unsigned char* plaintext_ptr;
     unsigned long long plaintext_len;
@@ -155,7 +155,7 @@ SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsign
 }
 
 //Function overloading
-bool saveFile(const QString &filePath, const std::vector<unsigned char> &data) {
+bool saveFile(const QString &filePath, const SecureVector &data) {
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(reinterpret_cast<const char*>(data.data()), static_cast<qint64>(data.size()));
