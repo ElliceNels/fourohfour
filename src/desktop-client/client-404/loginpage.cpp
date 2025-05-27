@@ -121,19 +121,27 @@ bool LoginPage::isRateLimited(const QString& ip)
     QList<QDateTime>& attempts = loginAttempts[ip];
     QDateTime now = QDateTime::currentDateTime();
 
-    // Remove attempts older than the rate limit window
-    attempts.erase(
-        std::remove_if(attempts.begin(), attempts.end(),
-                       [now](const QDateTime& attempt) {
-                           return attempt.msecsTo(now) > RATE_LIMIT_WINDOW_MS;
-                       }),
-        attempts.end()
-        );
+    QDateTime* startPtr = attempts.data(); //relationship between arrays and pointers
+    QDateTime* endPtr = startPtr + attempts.size();
+    QDateTime* currentPtr = startPtr;
 
+    // Move startPtr forward for each old element we want to discard using pointer arithmetic
+    while (currentPtr < endPtr) {
+        if (currentPtr->msecsTo(now) > RATE_LIMIT_WINDOW_MS) {
+            //Old attempt, move startPtr forward
+            startPtr++;
+        }
+        currentPtr++;
+    }
+
+    // Resize the list to only keep elements from startPtr onwards
+    attempts.resize(endPtr - startPtr);
+
+    // Debug print
     cout << "attempts size:" << attempts.size() << endl;
+
     return attempts.size() >= MAX_LOGIN_ATTEMPTS;
 }
-
 void LoginPage::recordLoginAttempt(const QString& ip)
 {
     if (!loginAttempts.contains(ip)) {
