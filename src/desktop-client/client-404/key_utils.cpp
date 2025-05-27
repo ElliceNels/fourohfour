@@ -126,8 +126,6 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
     bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
     bool success = saveFuncPtr(filePath, encryptedKey);
-    fill(encryptedKey.begin(), encryptedKey.end(), 0);
-    encryptedKey.clear();
     return success;
 }
 
