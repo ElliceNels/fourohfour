@@ -14,6 +14,7 @@ class UploadFilePage : public QWidget
 public:
     explicit UploadFilePage(QWidget *parent = nullptr);
     ~UploadFilePage();
+    UploadFilePage& operator=(const UploadFilePage&) = delete;  // Prevent assignment
 
 private slots:
     void on_uploadButton_clicked();

@@ -14,6 +14,7 @@ class TitlePage : public QWidget
 public:
     explicit TitlePage(QWidget *parent = nullptr);
     ~TitlePage();
+    TitlePage& operator=(const TitlePage&) = delete;  // Prevent assignment
 
 private slots:
     void on_signupButton_clicked();

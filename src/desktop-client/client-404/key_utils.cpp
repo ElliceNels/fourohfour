@@ -155,6 +155,7 @@ vector<unsigned char> encryptData(const unsigned char* data, size_t dataLen, uns
         );
 }
 
+//Function overloading
 bool saveFile(const QString &filePath, const std::vector<unsigned char> &data) {
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
@@ -183,47 +184,4 @@ bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultNa
     return false;
 }
 
-// bool saveFile(const QString& filePath, const vector<unsigned char>& data) {
-//     QFile file(filePath);
-//     if (file.open(QIODevice::WriteOnly)) {
-//         file.write(reinterpret_cast<const char*>(data.data()), static_cast<qint64>(data.size()));
-//         file.close();
-//         return true;
-//     }
-//     return false;
-// }
-
-// bool saveFile(const QString& filePath, const char* data, size_t size) {
-//     QFile file(filePath);
-//     if (file.open(QIODevice::WriteOnly)) {
-//         file.write(data, static_cast<qint64>(size));
-//         file.close();
-//         return true;
-//     }
-//     return false;
-// }
-// vector<unsigned char> ciphertext;
-// bool success = false;
-// try {
-//     ciphertext = encryptData(
-//         reinterpret_cast<const unsigned char*>(jsonData.constData()),
-//         static_cast<size_t>(jsonData.size()),
-//         key,
-//         nonce,
-//         crypto
-//         );
-// } catch (const exception &e) {
-//     QMessageBox::critical(parent, "Encryption Error", e.what());
-//     sodium_memzero(key, sizeof(key));
-// }
-
-// // Prepare data: [ciphertext][nonce]
-// ciphertext.insert(ciphertext.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-
-// //Save encrypted private key file
-// QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-// QFile file(fileName);
-// if (file.open(QIODevice::WriteOnly)) {
-//     file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size())); //convert to raw bytes
-//     file.close();
 

@@ -14,6 +14,7 @@ class ViewFilesPage : public QWidget
 public:
     explicit ViewFilesPage(QWidget *parent = nullptr);
     ~ViewFilesPage();
+    ViewFilesPage& operator=(const ViewFilesPage&) = delete;  // Prevent assignment
 
 private slots:
     void on_backButton_clicked();

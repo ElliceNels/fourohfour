@@ -14,6 +14,7 @@ class MainMenu : public QWidget
 public:
     explicit MainMenu(QWidget *parent = nullptr);
     ~MainMenu();
+    MainMenu& operator=(const MainMenu&) = delete;  // Prevent assignment
 
 private slots:
     void on_uploadButton_clicked();
