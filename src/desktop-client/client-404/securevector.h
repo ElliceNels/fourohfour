@@ -8,12 +8,10 @@ class SecureVector {
 public:
     SecureVector();
     explicit SecureVector(size_t size);
-    SecureVector(const std::vector<unsigned char>& v);
+    SecureVector(const SecureVector& other);
     ~SecureVector();
 
-    // Disable copy constructor and assignment
-    SecureVector(const SecureVector&) = delete;
-    SecureVector& operator=(const SecureVector&) = delete;
+    SecureVector& operator=(const SecureVector& other);
 
     // Enable move constructor and assignment
     SecureVector(SecureVector&& other) noexcept;
@@ -36,6 +34,7 @@ public:
 
 private:
     std::vector<unsigned char> data_;
+    void copyFrom(const SecureVector& other);
 };
 
 #endif // SECUREVECTOR_H

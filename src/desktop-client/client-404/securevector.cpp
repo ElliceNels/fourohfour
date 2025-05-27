@@ -9,11 +9,31 @@ SecureVector::SecureVector() = default;
 
 SecureVector::SecureVector(size_t size) : data_(size) {}
 
-SecureVector::SecureVector(const  vector<unsigned char>& v) : data_(v) {}
+SecureVector::SecureVector(const SecureVector& other) : data_(other.data_.size()) {
+    copyFrom(other);
+}
 
 SecureVector::~SecureVector() {
     if (!data_.empty()) {
         sodium_memzero(data_.data(), data_.size());
+    }
+}
+
+SecureVector& SecureVector::operator=(const SecureVector& other) {
+    if (this != &other) {
+        // Clear existing data securely
+        clear();
+        
+        // Copy new data
+        data_.resize(other.data_.size());
+        copyFrom(other);
+    }
+    return *this;
+}
+
+void SecureVector::copyFrom(const SecureVector& other) {
+    if (!other.data_.empty()) {
+        std::copy(other.data_.begin(), other.data_.end(), data_.begin());
     }
 }
 
