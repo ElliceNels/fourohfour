@@ -1,6 +1,8 @@
 #ifndef LOGINPAGE_H
 #define LOGINPAGE_H
 #include <QWidget>
+#include <QMap>
+#include <QDateTime>
 
 using namespace std;
 
@@ -23,6 +25,10 @@ private slots:
 
 private:
     Ui::LoginPage *ui;
+    QMap<QString, QList<QDateTime>> loginAttempts;  // IP -> list of attempt timestamps
+    bool isRateLimited(const QString& ip);
+    void recordLoginAttempt(const QString& ip);
+    QString getClientIP();
 
 signals:
     void goToRegisterRequested();
