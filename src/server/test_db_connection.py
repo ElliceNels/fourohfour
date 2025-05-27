@@ -1,53 +1,23 @@
-import pymysql
-import os
+import pytest
 import logging
-from config import config
+from sqlalchemy import text
+from src.server.config import config
+from src.server.utils.db_setup import setup_db, get_session
 
 logger = logging.getLogger(__name__)
 
-def test_connection():
+def test_db_connection():
+    """Test that we can connect to the database using the application's setup_db function."""
     try:
-        # Get database credentials from environment variables
-        db_user = os.getenv('DB_USER')
-        db_password = os.getenv('DB_PASSWORD')
+        # Use the application's database setup
+        setup_db()
         
-        # Log if sensitive credentials are not set
-        if db_user is None:
-            logger.warning("DB_USER not set in environment, using default value: 'fourohfour'")
-            db_user = 'fourohfour'
-        if db_password is None:
-            logger.warning("DB_PASSWORD not set in environment, using default value: 'fourohfour'")
-            db_password = 'fourohfour'
-
-        # Use config values for non-sensitive database settings
-        db_host = config.database.db_host
-        db_port = config.database.db_port
-        db_name = config.database.db_name
-
-        # Attempt to connect to the database
-        logger.info("Attempting to connect to the database...")
-        cnx = pymysql.connect(
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port,
-            database=db_name
-        )
+        # Get a session and verify we can connect
+        with get_session() as session:
+            # Verify we're connected to the correct database
+            db_name = session.execute(text("SELECT DATABASE()")).scalar()
+            assert db_name == config.database.db_name, f"Connected to wrong database: {db_name}"
+            logger.info(f"Successfully connected to database: {db_name}")
         
-        with cnx.cursor() as cursor:
-            cursor.execute("SELECT VERSION()")
-            version = cursor.fetchone()
-            logger.info(f"Connected to MySQL Server version {version[0]}")
-            
-            cursor.execute("SELECT DATABASE()")
-            db = cursor.fetchone()
-            logger.info(f"Connected to database: {db[0]}")
-            
-        cnx.close()
-        logger.info("MySQL connection is closed")
-            
     except Exception as e:
-        logger.error(f"Error while connecting to MySQL: {e}")
-
-if __name__ == "__main__":
-    test_connection() 
+        pytest.fail(f"Failed to connect to database: {str(e)}") 
