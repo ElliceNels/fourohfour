@@ -9,30 +9,30 @@
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
-    , ui(new Ui::VerifyPage)
+    ,ui(new Ui::VerifyPage)
     ,otherPublicKey(nullptr)
 {
     qDebug() << "Constructing and setting up Verify Page";
 }
 void VerifyPage::preparePage(){
     qDebug() << "Preparing Verify Page";
-    initialisePageUi();    // Will call the derived class implementation
-    setupConnections();    // Will call the derived class implementation
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
 }
 
 void VerifyPage::initialisePageUi(){
-    ui->setupUi(this);
+    this->ui->setupUi(this);
 }
 
 void VerifyPage::setupConnections(){
-    connect(ui->backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
+    connect(this->ui->backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
-    if (otherPublicKey != nullptr) {
-        delete otherPublicKey;  // delete old value to avoid leak
+    if (this->otherPublicKey != nullptr) {
+        delete this->otherPublicKey;  // delete old value to avoid leak
     }
-    otherPublicKey = new QByteArray(otherpk);
+    this->otherPublicKey = new QByteArray(otherpk);
 }
 
 QString VerifyPage::fetch_public_key(){
@@ -72,7 +72,7 @@ QString VerifyPage::fetch_public_key(){
 }
 
 QString VerifyPage::generate_hash(QString usersPublicKey){
-    if (usersPublicKey.isEmpty() || otherPublicKey == nullptr || otherPublicKey->isEmpty()) {
+    if (usersPublicKey.isEmpty() || this->otherPublicKey == nullptr ||  this->otherPublicKey->isEmpty()) {
         return QString();
     }
 
@@ -90,7 +90,7 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
     unsigned char hash[crypto_hash_sha256_BYTES];
     crypto_hash_sha256(hash, reinterpret_cast<const unsigned char*>(concatenated.constData()), concatenated.size());
 
-    // Convert the hash into a readable form to display on the ui
+    // Convert the hash into a readable form to display on the this->ui
     QString hexHash;
     for (int i = 0; i < crypto_hash_sha256_BYTES; i++) {
         hexHash.append(QString::asprintf("%02x", hash[i]));
@@ -104,14 +104,14 @@ void VerifyPage::on_verifyButton_clicked(){
     QByteArray placeholder_other_pk = QString("mZ3bW1x8F9j0XQeP7CqyLkA6wE9vFt9hRYKdJPngq+Q=").toUtf8();
     set_other_public_key(placeholder_other_pk);
 
-    QString publicKey = fetch_public_key();
+    QString publicKey = this->fetch_public_key();
 
     if (publicKey.isEmpty()){
         QMessageBox::warning(this, "Error", "Could not retrieve public key");
         return;
     }
 
-    QString hash = generate_hash(publicKey);
+    QString hash = this->generate_hash(publicKey);
 
     if (hash.isEmpty()){
         QMessageBox::warning(this, "Error", "Could not generate hash");
@@ -124,6 +124,6 @@ void VerifyPage::on_verifyButton_clicked(){
 VerifyPage::~VerifyPage()
 {
     qDebug() << "Destroying Verify Page";
-    delete ui;
+    delete this->ui;
     delete otherPublicKey;  // clean up pointer to avoid memory leak
 }
