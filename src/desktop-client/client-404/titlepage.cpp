@@ -4,30 +4,30 @@
 
 TitlePage::TitlePage(QWidget *parent)
     : BasePage(parent)
-    , ui(new Ui::TitlePage)
+    ,ui(new Ui::TitlePage)
 {
     qDebug() << "Constructing and setting up Title Page";
 
 }
 void TitlePage::preparePage(){
     qDebug() << "Preparing Title Page";
-    initialisePageUi();    // Will call the derived class implementation
-    setupConnections();    // Will call the derived class implementation
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
 }
 
 void TitlePage::initialisePageUi(){
-    ui->setupUi(this);
+    this->ui->setupUi(this);
 }
 
 void TitlePage::setupConnections(){
-    connect(ui->signupButton, &QPushButton::clicked, this, &TitlePage::goToRegisterRequested);
-    connect(ui->loginButton, &QPushButton::clicked, this, &TitlePage::goToLoginRequested);
+    connect(this->ui->signupButton, &QPushButton::clicked, this, &TitlePage::goToRegisterRequested);
+    connect(this->ui->loginButton, &QPushButton::clicked, this, &TitlePage::goToLoginRequested);
 }
 
 TitlePage::~TitlePage()
 {
     qDebug() << "Destroying Title Page";
-    delete ui;
+    delete this->ui;
 }
 
 
