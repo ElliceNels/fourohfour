@@ -54,7 +54,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    //EncryptionHelper crypto = *new EncryptionHelper();
+
     shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
