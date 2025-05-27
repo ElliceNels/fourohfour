@@ -29,7 +29,6 @@ public:
     using iterator = std::vector<unsigned char>::iterator;
     using const_iterator = std::vector<unsigned char>::const_iterator;
 
-    // Declare insert here only
     iterator insert(iterator pos, const unsigned char* first, const unsigned char* last);
 
     iterator begin();

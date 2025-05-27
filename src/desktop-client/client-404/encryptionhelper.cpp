@@ -1,6 +1,5 @@
 #include "encryptionhelper.h"
 #include <stdexcept>
-#include <vector>
 #include "securevector.h"
 
 using namespace std;
@@ -50,7 +49,7 @@ SecureVector EncryptionHelper::encrypt(
         );
 
     if (ret != 0) {
-        throw std::runtime_error("Encryption failed");
+        throw runtime_error("Encryption failed");
     }
 
     ciphertext.resize(ciphertext_len);
