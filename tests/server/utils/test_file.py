@@ -1,9 +1,8 @@
+from flask import Flask
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
 from server.utils.file import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
 from server.app import create_app
-
-app = create_app()
 
 # HTTP status code constants
 CODE_SUCCESS = 200
@@ -13,9 +12,15 @@ CODE_FORBIDDEN = 403
 CODE_NOT_FOUND = 404
 CODE_SERVER_ERROR = 500
 
+@pytest.fixture(scope="module")
+def app_fixture():
+    app = Flask(__name__)
+    app.config.update(TESTING=True, JWT_SECRET_KEY="testsecret")
+    return app
+
 @pytest.fixture
-def app_ctx():
-    with app.app_context():
+def app_ctx(app_fixture):
+    with app_fixture.app_context():
         yield
 
 @pytest.fixture
