@@ -75,8 +75,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     // Prepare data: [nonce][ciphertext]
     SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
-    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copy nonce to beginning
-    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);     // Move ciphertext data to avoid copying
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copies the nonce to the start of the buffer
+    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES); // Copy the ciphertext to the buffer right after the nonce
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
@@ -122,8 +122,8 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
     // Prepare data: [nonce][encryptedKey]
     SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + encryptedKey.size());
-    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());   // Copy nonce to beginning
-    std::copy(encryptedKey.data(), encryptedKey.data() + encryptedKey.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Move encryptedKey data to avoid copying
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copies the nonce to the start of the buffer
+    std::copy(encryptedKey.data(), encryptedKey.data() + encryptedKey.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Copy the ciphertext to the buffer right after the nonce
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
