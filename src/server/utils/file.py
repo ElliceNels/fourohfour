@@ -21,7 +21,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
         overwrite (bool): Whether to overwrite existing file
 
     Returns:
-        dict: Response containing success message, file ID, and UUID
+        dict: Response containing success message and UUID
     """
     if file is None:
         return jsonify({'error': 'No file provided'}), 400
@@ -67,7 +67,6 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                     logger.info(f"File {file.filename} updated successfully by user {user_id}")
                     return jsonify({
                         'message': 'File updated successfully',
-                        'file_id': existing_file.id,
                         'uuid': str(existing_file.uuid)
                     }), 200
 
@@ -95,7 +94,6 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
             logger.info(f"File {file.filename} uploaded successfully by user {user_id}")
             return jsonify({
                 'message': 'File uploaded successfully',
-                'file_id': new_file.id,
                 'uuid': str(new_file.uuid)
             }), 201
 
@@ -118,7 +116,7 @@ def get_user_files(user_id: int) -> dict:
             # Get files owned by the user
             owned_files = db.query(Files).filter_by(owner_id=user_id).all()
             owned_files_data = [{
-                'id': file.id,
+                'uuid': str(file.uuid),
                 'filename': file.name,
                 'file_size': file.metadata.size if file.metadata else None,
                 'format': file.metadata.format if file.metadata else None,
@@ -137,7 +135,7 @@ def get_user_files(user_id: int) -> dict:
             file = shared_files_map.get(permission.file_id)
             if file:
                 shared_files_data.append({
-                    'id': file.id,
+                    'uuid': str(file.uuid),
                     'filename': file.name,
                     'file_size': file.metadata.size if file.metadata else None,
                     'format': file.metadata.format if file.metadata else None,
@@ -155,11 +153,11 @@ def get_user_files(user_id: int) -> dict:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def get_file_by_id(file_id: int, user_id: int) -> dict:
-    """Get a specific file by ID if user has access.
+def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
+    """Get a specific file by UUID if user has access.
 
     Args:
-        file_id (int): ID of the requested file
+        file_uuid (str): UUID of the requested file
         user_id (int): ID of the user requesting the file
 
     Returns:
@@ -168,19 +166,19 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
     try:
         with get_session() as db:
             # Find the file
-            file = db.query(Files).get(file_id)
+            file = db.query(Files).filter_by(uuid=file_uuid).first()
             if not file:
-                logger.warning(f"File {file_id} not found for user {user_id}")
+                logger.warning(f"File with UUID {file_uuid} not found for user {user_id}")
                 return jsonify({'error': 'File not found'}), 404
 
             # Check if user has access
             if file.owner_id != user_id:
                 permission = db.query(FilePermissions).filter_by(
-                    file_id=file_id,
+                    file_id=file.id,
                     user_id=user_id
                 ).first()
                 if not permission:
-                    logger.warning(f"User {user_id} not authorized to access file {file_id}")
+                    logger.warning(f"User {user_id} not authorized to access file {file_uuid}")
                     return jsonify({'error': 'Not authorized to access this file'}), 403
 
             # Read the encrypted file
@@ -197,22 +195,22 @@ def get_file_by_id(file_id: int, user_id: int) -> dict:
 
             # If user is owner, include all sharing keys
             if file.owner_id == user_id:
-                permissions = db.query(FilePermissions).filter_by(file_id=file_id).all()
+                permissions = db.query(FilePermissions).filter_by(file_id=file.id).all()
                 response_data['encrypted_keys'] = {
                     perm.user_id: perm.encryption_key for perm in permissions
                 }
-            logger.info(f"User {user_id} retrieved file {file_id} successfully")
+            logger.info(f"User {user_id} retrieved file {file_uuid} successfully")
         return jsonify(response_data)
 
     except Exception as e:
-        logger.error(f"Error retrieving file {file_id} for user {user_id}: {str(e)}")
+        logger.error(f"Error retrieving file {file_uuid} for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def delete_file_by_id(file_id: int, user_id: int) -> dict:
+def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:
     """Delete a file if user is the owner.
 
     Args:
-        file_id (int): ID of the file to delete
+        file_uuid (str): UUID of the file to delete
         user_id (int): ID of the user requesting deletion
 
     Returns:
@@ -221,14 +219,14 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
     try:
         with get_session() as db:
             # Find the file
-            file = db.query(Files).get(file_id)
+            file = db.query(Files).filter_by(uuid=file_uuid).first()
             if not file:
-                logger.warning(f"File {file_id} not found for user {user_id}")
+                logger.warning(f"File with UUID {file_uuid} not found for user {user_id}")
                 return jsonify({'error': 'File not found'}), 404
 
             # Verify ownership
             if file.owner_id != user_id:
-                logger.warning(f"User {user_id} not authorized to delete file {file_id}")
+                logger.warning(f"User {user_id} not authorized to delete file {file_uuid}")
                 return jsonify({'error': 'Not authorized to delete this file'}), 403
 
             # Delete the file from disk
@@ -241,8 +239,9 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
             # Delete from database
             db.delete(file)
             db.commit()
-            logger.info(f"User {user_id} deleted file {file_id} successfully")
+            logger.info(f"User {user_id} deleted file {file_uuid} successfully")
             return jsonify({'message': 'File deleted successfully'})
     except Exception as e:
-        logger.error(f"Error deleting file {file_id} for user {user_id}: {str(e)}")
+        logger.error(f"Error deleting file {file_uuid} for user {user_id}: {str(e)}")
+        db.rollback()
         return jsonify({'error': str(e)}), 500
