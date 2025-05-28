@@ -216,6 +216,7 @@ def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
+    db = None
     try:
         with get_session() as db:
             # Find the file
@@ -243,5 +244,6 @@ def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:
             return jsonify({'message': 'File deleted successfully'})
     except Exception as e:
         logger.error(f"Error deleting file {file_uuid} for user {user_id}: {str(e)}")
-        db.rollback()
+        if db is not None:
+            db.rollback()
         return jsonify({'error': str(e)}), 500
