@@ -148,8 +148,9 @@ void RegisterPage::sendCredentials(string name, string password, string publicKe
     QJsonObject json;
     json["username"] = QString::fromStdString(name);
     json["hashed_password"] = QString::fromStdString(password);
-    json["public_key"] = QString::fromStdString(publicKey);
     json["salt"] = QString::fromStdString(salt);
+    QString base64PublicKey = QString::fromStdString(publicKey).toUtf8().toBase64();
+    json["public_key"] = base64PublicKey;
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
