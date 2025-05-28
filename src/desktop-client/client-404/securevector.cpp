@@ -64,6 +64,10 @@ size_t SecureVector::size() const {
     return data_.size();
 }
 
+bool SecureVector::empty() const {
+    return data_.empty();
+}
+
 // Modify size and clear
 void SecureVector::resize(size_t newSize) {
     data_.resize(newSize);
