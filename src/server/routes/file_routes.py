@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, UTC
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,14 @@ def upload_file():
     - metadata: JSON object containing:
         - size: File size in bytes
         - format: File format/extension
+    - uuid: (optional) UUID of the file to update
+    - overwrite: (optional) Boolean flag to overwrite existing file
 
     Returns:
     {
         "message": "File uploaded successfully",
-        "file_id": <file_id>
+        "file_id": <file_id>,
+        "uuid": <uuid>
     }
     """
     logger.debug(f"Received file upload request")
@@ -36,6 +40,18 @@ def upload_file():
     try:
         current_user = get_current_user()
         
+        # Get UUID and overwrite parameters
+        file_uuid = request.form.get('uuid')
+        overwrite = request.form.get('overwrite', 'false').lower() == 'true'
+        
+        # Validate UUID format if provided
+        if file_uuid:
+            try:
+                file_uuid = uuid.UUID(file_uuid)
+            except ValueError:
+                logger.warning(f"Invalid UUID format provided: {file_uuid}")
+                return jsonify({'error': 'Invalid UUID format'}), 400
+        
         # Save the file to disk
         file = request.files['encrypted_file']
         sanitized_filename = secure_filename(file.filename)
@@ -43,7 +59,7 @@ def upload_file():
         file_path = os.path.join('uploads', filename)
         file.save(file_path)
 
-        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata)
+        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid, overwrite)
 
     except Exception as e:
         # Clean up file if database operation fails

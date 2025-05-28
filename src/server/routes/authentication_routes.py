@@ -214,4 +214,3 @@ def get_current_user():
         logger.warning("Get current user failed: Missing or malformed token")
         return user_info, status_code
     return jsonify(user_info), 200
-
