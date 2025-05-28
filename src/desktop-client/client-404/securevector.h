@@ -20,7 +20,8 @@ public:
     unsigned char* data();
     const unsigned char* data() const;
     size_t size() const;
-
+    bool empty() const;
+    
     void resize(size_t newSize);
     void clear();
 
