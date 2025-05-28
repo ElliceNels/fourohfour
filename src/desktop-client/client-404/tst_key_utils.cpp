@@ -155,6 +155,155 @@ void TestKeyUtils::testSaveFileSecureVector()
     QFile::remove(tempPath);
 }
 
+void TestKeyUtils::testGenerateSalt()
+{
+    // Test default salt generation
+    QString salt1 = generateSalt();
+    QVERIFY(!salt1.isEmpty());
+
+    // Verify base64 format
+    QRegularExpression base64Pattern("^[A-Za-z0-9+/]+={0,2}$");
+    QVERIFY(base64Pattern.match(salt1).hasMatch());
+
+    // Verify length (after base64 decoding)
+    QByteArray decodedSalt = QByteArray::fromBase64(salt1.toUtf8());
+    QCOMPARE(decodedSalt.size(), static_cast<int>(crypto_pwhash_SALTBYTES));
+
+    // Test that two generated salts are different
+    QString salt2 = generateSalt();
+    QVERIFY(salt1 != salt2);
+}
+
+void TestKeyUtils::testGenerateSaltCustomLength()
+{
+    const size_t customLength = 32;
+    QString salt = generateSalt(customLength);
+
+    // Verify base64 format
+    QRegularExpression base64Pattern("^[A-Za-z0-9+/]+={0,2}$");
+    QVERIFY(base64Pattern.match(salt).hasMatch());
+
+    // Verify length (after base64 decoding)
+    QByteArray decodedSalt = QByteArray::fromBase64(salt.toUtf8());
+    QCOMPARE(decodedSalt.size(), static_cast<int>(customLength));
+}
+
+void TestKeyUtils::testDeriveKeyFromPassword()
+{
+    // Initialize sodium
+    if (sodium_init() < 0) {
+        QFAIL("Failed to initialize sodium");
+    }
+
+    // Test data
+    std::string password = "testPassword123!";
+    unsigned char salt[crypto_pwhash_SALTBYTES];
+    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+
+    // Generate random salt
+    randombytes_buf(salt, crypto_pwhash_SALTBYTES);
+
+    // Test key derivation
+    bool result = deriveKeyFromPassword(password, salt, key);
+    QVERIFY(result);
+
+    // Verify key is not all zeros
+    bool allZeros = true;
+    for (size_t i = 0; i < crypto_aead_xchacha20poly1305_ietf_KEYBYTES; i++) {
+        if (key[i] != 0) {
+            allZeros = false;
+            break;
+        }
+    }
+    QVERIFY(!allZeros);
+}
+
+void TestKeyUtils::testDeriveKeyFromPasswordConsistency()
+{
+    // Initialize sodium
+    if (sodium_init() < 0) {
+        QFAIL("Failed to initialize sodium");
+    }
+
+    // Test data
+    std::string password = "testPassword123!";
+    unsigned char salt[crypto_pwhash_SALTBYTES];
+    unsigned char key1[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    unsigned char key2[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+
+    // Generate random salt
+    randombytes_buf(salt, crypto_pwhash_SALTBYTES);
+
+    // Derive key twice with same password and salt
+    bool result1 = deriveKeyFromPassword(password, salt, key1);
+    bool result2 = deriveKeyFromPassword(password, salt, key2);
+
+    QVERIFY(result1);
+    QVERIFY(result2);
+
+    // Verify both keys are identical
+    QCOMPARE(memcmp(key1, key2, crypto_aead_xchacha20poly1305_ietf_KEYBYTES), 0);
+}
+
+void TestKeyUtils::testDeriveKeyFromPasswordDifferentSalts()
+{
+    // Initialize sodium
+    if (sodium_init() < 0) {
+        QFAIL("Failed to initialize sodium");
+    }
+
+    // Test data
+    std::string password = "testPassword123!";
+    unsigned char salt1[crypto_pwhash_SALTBYTES];
+    unsigned char salt2[crypto_pwhash_SALTBYTES];
+    unsigned char key1[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    unsigned char key2[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+
+    // Generate two different salts
+    randombytes_buf(salt1, crypto_pwhash_SALTBYTES);
+    randombytes_buf(salt2, crypto_pwhash_SALTBYTES);
+
+    // Derive keys with different salts
+    bool result1 = deriveKeyFromPassword(password, salt1, key1);
+    bool result2 = deriveKeyFromPassword(password, salt2, key2);
+
+    QVERIFY(result1);
+    QVERIFY(result2);
+
+    // Verify keys are different
+    QVERIFY(memcmp(key1, key2, crypto_aead_xchacha20poly1305_ietf_KEYBYTES) != 0);
+}
+
+void TestKeyUtils::testDeriveKeyFromPasswordEmptyPassword()
+{
+    // Initialize sodium
+    if (sodium_init() < 0) {
+        QFAIL("Failed to initialize sodium");
+    }
+
+    // Test data
+    std::string password = "";
+    unsigned char salt[crypto_pwhash_SALTBYTES];
+    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+
+    // Generate random salt
+    randombytes_buf(salt, crypto_pwhash_SALTBYTES);
+
+    // Test key derivation with empty password
+    bool result = deriveKeyFromPassword(password, salt, key);
+    QVERIFY(result);
+
+    // Verify key is not all zeros
+    bool allZeros = true;
+    for (size_t i = 0; i < crypto_aead_xchacha20poly1305_ietf_KEYBYTES; i++) {
+        if (key[i] != 0) {
+            allZeros = false;
+            break;
+        }
+    }
+    QVERIFY(!allZeros);
+}
+
 
 
 QTEST_MAIN(TestKeyUtils)
