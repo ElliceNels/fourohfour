@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <qstackedwidget.h>
 #include "key_utils.h"
+#include "constants.h"
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
@@ -78,6 +79,13 @@ void RegisterPage::onCreateAccountClicked()
     if (dictionaryWords.contains(password.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
+    }
+    for (const char& restrictedChar : RESTRICTED_CHARS) {
+        if (accountName.contains(QChar(restrictedChar))) {
+            QMessageBox::warning(this, "Error",
+                                 "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+            return;
+        }
     }
 
 
