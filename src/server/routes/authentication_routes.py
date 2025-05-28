@@ -97,12 +97,11 @@ def logout():
     }
     """
 
-    # Get access token from Authorization header
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
+    # Get access token using the utility function
+    access_token, error = jwt.get_current_token()
+    if error:
         logger.warning("Logout failed: Missing or malformed access token")
-        return jsonify({"error": "Missing or malformed access token"}), 401
-    access_token = auth_header.split(' ')[1]
+        return error['response'], error['status']
 
     # Get refresh token from custom header
     refresh_token = request.headers.get('X-Refresh-Token')
@@ -136,14 +135,13 @@ def change_password():
     logger.debug(f"Received change password request")
     new_password = data.get('new_password')
 
-    # Extract the JWT token from the request headers
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '):
-        token = auth_header.split(' ')[1]
-        return auth.change_password(token, new_password)
-    else:
+    # Get token using the utility function
+    token, error = jwt.get_current_token()
+    if error:
         logger.warning("Change password failed: Missing or malformed token")
-        return jsonify({"error": "Missing or malformed token"}), 401
+        return error['response'], error['status']
+
+    return auth.change_password(token, new_password)
 
 @authentication_routes.route('/delete_account', methods=['POST'])
 def delete_account():
@@ -163,13 +161,13 @@ def delete_account():
     logger.debug(f"Received delete account request with data: {data}")
     username = data.get('username')
 
-    # Extract the JWT token from the request headers
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
-        return auth.delete_account(username)
-    else:
+    # Get token using the utility function
+    token, error = jwt.get_current_token()
+    if error:
         logger.warning("Delete account failed: Missing or malformed token")
-        return jsonify({"error": "Missing or malformed token"}), 401
+        return error['response'], error['status']
+
+    return auth.delete_account(username)
 
 @authentication_routes.route('/change_username', methods=['POST'])
 def change_username():
@@ -188,14 +186,13 @@ def change_username():
     logger.debug(f"Received change username request")
     new_username = data.get('new_username')
 
-    # Extract the JWT token from the request headers
-    auth_header = request.headers.get('Authorization')
-    if auth_header and auth_header.startswith('Bearer '): # TODO: Check if the token is valid
-        token = auth_header.split(' ')[1]
-        return auth.change_username(token, new_username)
-    else:
+    # Get token using the utility function
+    token, error = jwt.get_current_token()
+    if error:
         logger.warning("Change username failed: Missing or malformed token")
-        return jsonify({"error": "Missing or malformed token"}), 401
+        return error['response'], error['status']
+
+    return auth.change_username(token, new_username)
 
 @authentication_routes.route('/get_current_user', methods=['GET'])
 def get_current_user():
