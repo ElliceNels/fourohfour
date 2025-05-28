@@ -11,10 +11,9 @@ const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 200;
 const int fileSizeLabelWidth = 60;
 const int fileOwnerLabelWidth = 100;
-const std::array<char, 32> RESTRICTED_CHARS = {
-    '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\'', ';', '%', '&', '=', '+', '$', '#', '@', '!', '~', '`', '^', '(', ')', '[', ']', '{', '}', ',', '.', ' ' //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-};
 
+//source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
+constexpr std::string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
 
 namespace Styles {
 const QString CentralWidget = R"(

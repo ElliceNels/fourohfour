@@ -80,10 +80,9 @@ void RegisterPage::onCreateAccountClicked()
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
     }
-    for (const char& restrictedChar : RESTRICTED_CHARS) {
+    for (char restrictedChar : RESTRICTED_CHARS) {
         if (accountName.contains(QChar(restrictedChar))) {
-            QMessageBox::warning(this, "Error",
-                                 "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+            QMessageBox::warning(this, "Error", "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
             return;
         }
     }
