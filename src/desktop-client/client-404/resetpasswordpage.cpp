@@ -14,18 +14,32 @@
 #include "loginsessionmanager.h"
 #include <QUrl>
 #include <QDebug>
+#include <qstackedwidget.h>
+#include "qwidget.h"
 using namespace std;
 
 ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::ResetPasswordPage)
 {
-    ui->setupUi(this);
+   qDebug() << "Constructing and setting up Password Reset Page";
 
+}
+
+void ResetPasswordPage::preparePage(){
+    qDebug() << "Preparing Register Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void ResetPasswordPage::initialisePageUi(){
+     ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
     ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Password);
+}
 
+void ResetPasswordPage::setupConnections(){
     connect(ui->updatePasswordButton, &QPushButton::clicked, this, &::ResetPasswordPage::onUpdatePasswordClicked);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &ResetPasswordPage::onShowPasswordClicked);
 }
@@ -95,7 +109,7 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     QMessageBox::information(this, "Success", "Password updated!");
 
 
-    // Switch to main menu after registration
+    // Switch to main menu after reset
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
     if (stack) {
         stack->setCurrentIndex(Pages::MainMenuIndex);

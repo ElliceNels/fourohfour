@@ -159,7 +159,7 @@ vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *ke
 
 bool decryptAndReencryptUserFile(const QString& username, const QString& oldPassword, const QString& oldSalt, const QString& newPassword, const QString& newSalt)
 {
-    EncryptionHelper crypto;
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
     //Read encrypted file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;
@@ -184,7 +184,7 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
     //Decrypt
     std::vector<unsigned char> decryptedData;
     try {
-        decryptedData = crypto.decrypt(
+        decryptedData = crypto->decrypt(
             reinterpret_cast<const unsigned char*>(ciphertext.constData()), ciphertext.size(),
             oldKey,
             reinterpret_cast<const unsigned char*>(nonce.constData()),
@@ -201,7 +201,9 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
     unsigned char newKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
     deriveKeyFromPassword(newPassword.toStdString(), reinterpret_cast<const unsigned char*>(newSaltRaw.constData()), newKey, sizeof(newKey));
 
-    encryptAndSaveMasterKey(decryptedData.data(), decryptedData.size(), newKey, crypto, username);
+    return encryptAndSaveMasterKey(decryptedData.data(), decryptedData.size(), newKey, crypto, username);
+
+
 
 }
 
