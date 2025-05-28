@@ -262,7 +262,6 @@ bool UploadFilePage::readAndDecryptKeyStorage(const QString &filepath,
         
         return true;
     } catch (const std::exception& e) {
-        ciphertext.clear();
         QMessageBox::critical(this, "Decryption Error", 
                              QString("Decryption failed: %1").arg(e.what()));
         return false;
