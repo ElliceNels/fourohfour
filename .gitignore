@@ -1,6 +1,7 @@
 # Ignore build and external dependencies
 /build/
 **/build/
+**/build*
 include/
 lib/
 bin/
