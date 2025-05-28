@@ -1,8 +1,8 @@
 from datetime import datetime
 from flask import jsonify, request
-from src.server.utils.db_setup import get_session
-from src.server.models.tables import Users
-from src.server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+from server.utils.db_setup import get_session
+from server.models.tables import Users
+from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
 import logging
 
 logger = logging.getLogger(__name__)
@@ -125,6 +125,11 @@ def change_password(token: str, new_password: str) -> dict:
             logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
             return jsonify({"error": "New password is the same as the current one"}), 400
         
+        # Cond 2: The new password is not provided
+        if new_password == "" or new_password is None:
+            logger.warning(f"Change password failed for user {user_id}: No new password provided")
+            return jsonify({"error": "No new password provided"}), 400
+
         # Update the password
         user.password = new_password
         user.updated_at = datetime.now()
@@ -237,7 +242,7 @@ def get_current_user(token: str) -> dict:
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
-        "user_id": user.user_id,
+        "user_id": user.id,
         "username": user.username,
         "password": user.password,
         "public_key": user.public_key,

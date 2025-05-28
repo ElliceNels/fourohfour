@@ -1,5 +1,5 @@
-from src.server.config import config 
-from src.server.models.tables import Base
+from server.config import config 
+from server.models.tables import Base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 import os
@@ -34,13 +34,18 @@ def setup_db():
         DB_PASSWORD = 'db_password'
 
     db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{config.database.db_name}"    
-    engine = create_engine(db_engine)
+    
+    try:
+        engine = create_engine(db_engine)
 
-    # Ensure the database exists (will create if not)
-    if not database_exists(engine.url):
-        logger.info(f"Database {config.database.db_name} does not exist. Creating it...")
-        create_database(engine.url)
-        logger.info(f"Database {config.database.db_name} created.")
+        # Ensure the database exists (will create if not)
+        if not database_exists(engine.url):
+            logger.info(f"Database {config.database.db_name} does not exist. Creating it...")
+            create_database(engine.url)
+            logger.info(f"Database {config.database.db_name} created.")
+    except Exception as e:
+        logger.error(f"Failed to create database {config.database.db_name}: {e}")
+        raise
 
     Base.metadata.create_all(engine)
 
