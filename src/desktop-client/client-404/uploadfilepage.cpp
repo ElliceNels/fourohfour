@@ -1,5 +1,4 @@
 #include "uploadfilepage.h"
-#include "pages.h"
 #include "ui_uploadfilepage.h"
 #include <qfileinfo.h>
 #include <QFileDialog>
@@ -12,17 +11,26 @@
 
 
 UploadFilePage::UploadFilePage(QWidget *parent)
-    : QWidget(parent)
+    : BasePage(parent)
     , ui(new Ui::UploadFilePage)
 {
-    ui->setupUi(this);
-    ui->confirmButton->hide();
-    ui->confirmLabel->hide();
+    qDebug() << "Constructing and setting up Upload File Page";
 }
 
-UploadFilePage::~UploadFilePage()
-{
-    delete ui;
+void UploadFilePage::preparePage(){
+    qDebug() << "Preparing Upload File Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void UploadFilePage::initialisePageUi(){
+    this->ui->setupUi(this);
+    this->ui->confirmButton->hide();
+    this->ui->confirmLabel->hide();
+}
+
+void UploadFilePage::setupConnections(){
+    connect(this->ui->backButton, &QPushButton::clicked, this, &UploadFilePage::goToMainMenuRequested);
 }
 
 void UploadFilePage::on_uploadButton_clicked()
@@ -37,7 +45,7 @@ void UploadFilePage::on_uploadButton_clicked()
         this->fileType = fileInfo.suffix();
         this->fileSize = fileInfo.size();  // originally in bytes
 
-        if (fileSize > MAX_FILE_SIZE_BYTES) {
+        if (this->fileSize > MAX_FILE_SIZE_BYTES) {
             QMessageBox::warning(this, "Error", "This file exceeds the 100MB limit");
             return;
         }
@@ -55,13 +63,13 @@ void UploadFilePage::on_uploadButton_clicked()
 
 
         // Display file meta data
-        ui->fileNameOutput->setText(fileName);
-        ui->fileTypeOutput->setText("." + fileType);
-        ui->fileSizeOutput->setText(QString::number(fileSize) + " bytes");
+        this->ui->fileNameOutput->setText(this->fileName);
+        this->ui->fileTypeOutput->setText("." + this->fileType);
+        this->ui->fileSizeOutput->setText(QString::number(this->fileSize) + " bytes");
 
         // Show confirm label and instructions
-        ui->confirmButton->show();
-        ui->confirmLabel->show();
+        this->ui->confirmButton->show();
+        this->ui->confirmLabel->show();
     }
 }
 
@@ -96,7 +104,7 @@ void UploadFilePage::encryptUploadedFile(){
         const unsigned char* plaintext_ptr = reinterpret_cast<const unsigned char*>(this->fileData.constData());
         unsigned long long plaintext_len = static_cast<unsigned long long>(this->fileData.size());
 
-        QByteArray metadataBytes = formatFileMetadata();
+        QByteArray metadataBytes = this->formatFileMetadata();
         const unsigned char* metadata_ptr = reinterpret_cast<const unsigned char*>(metadataBytes.constData());
         unsigned long long metadata_len = static_cast<unsigned long long>(metadataBytes.size());
 
@@ -122,28 +130,23 @@ void UploadFilePage::on_confirmButton_clicked(){
     encryptUploadedFile();
     QMessageBox::information(this, "Success", "File uploaded successfully!");
 
-    // Clean up member variables and ui
+    // Clean up member variables and this->ui
     this->fileData.clear();
     this->fileName.clear();
     this->fileType.clear();
     this->fileSize = 0;
 
-    ui->fileNameOutput->setText("-");
-    ui->fileTypeOutput->setText("-");
-    ui->fileSizeOutput->setText("-");
+    this->ui->fileNameOutput->setText("-");
+    this->ui->fileTypeOutput->setText("-");
+    this->ui->fileSizeOutput->setText("-");
 
-    ui->confirmButton->hide();
-    ui->confirmLabel->hide();
+    this->ui->confirmButton->hide();
+    this->ui->confirmLabel->hide();
 }
 
-
-
-void UploadFilePage::on_backButton_clicked()
+UploadFilePage::~UploadFilePage()
 {
-    // Switch to main menu after login
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    qDebug() << "Destroying Upload File Page";
+    delete this->ui;
 }
 

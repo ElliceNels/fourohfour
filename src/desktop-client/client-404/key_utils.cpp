@@ -16,10 +16,6 @@
 using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
-    if (sodium_init() < 0) {
-        // libsodium couldn't be initialized
-        return false;
-    }
 
     unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
     unsigned char privateKey[crypto_box_SECRETKEYBYTES];
@@ -40,22 +36,10 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
     json["publicKey"] = publicKey;
     json["privateKey"] = privateKey;
 
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
+    //Function pointer
+    bool (*saveFuncPtr)(QWidget*, const QJsonObject&, const QString&) = saveFile;
 
-
-    QString fileName = QFileDialog::getSaveFileName(parent, "Save Keys", defaultName, "JSON Files (*.json);;All Files (*)");
-    if (!fileName.isEmpty()) {
-        QFile file(fileName);
-        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            file.write(jsonData);
-            file.close();
-            return true;
-        } else {
-            QMessageBox::warning(parent, "Error", "Failed to open file for writing.");
-        }
-    }
-    return false;
+    return saveFuncPtr(parent, json, defaultName);
 }
 
 
@@ -65,14 +49,15 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    EncryptionHelper crypto;
+
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
 
     // Generate key and nonce
-    crypto.generateKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    crypto.generateNonce(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    crypto->generateKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+    crypto->generateNonce(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Encrypt private key file
     vector<unsigned char> ciphertext;
@@ -89,11 +74,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    QFile file(fileName);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reinterpret_cast<const char*>(ciphertext.data()), static_cast<qint64>(ciphertext.size())); //convert to raw bytes
-        file.close();
-    } else {
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    if (!saveFuncPtr(fileName, ciphertext)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
         jsonData.clear();
@@ -124,14 +106,14 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     return true;
 }
 
-bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, EncryptionHelper &crypto, QString username)
+bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username)
 {
     // Generate nonce
     unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
-    crypto.generateNonce(nonce, sizeof(nonce));
+    crypto->generateNonce(nonce, sizeof(nonce));
 
     // Encrypt the key
-    vector<unsigned char> encryptedKey = crypto.encrypt(
+    vector<unsigned char> encryptedKey = crypto->encrypt(
         keyToEncrypt,
         keyLen,
         derivedKey,
@@ -145,22 +127,15 @@ bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, c
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
-    QFile file(filePath);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(reinterpret_cast<const char*>(encryptedKey.data()), static_cast<qint64>(encryptedKey.size()));
-        file.close();
-        fill(encryptedKey.begin(), encryptedKey.end(), 0);
-        encryptedKey.clear();
-        return true;
-    } else {
-        fill(encryptedKey.begin(), encryptedKey.end(), 0);
-        encryptedKey.clear();
-        return false;
-    }
+    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
+    bool success = saveFuncPtr(filePath, encryptedKey);
+    fill(encryptedKey.begin(), encryptedKey.end(), 0);
+    encryptedKey.clear();
+    return success;
 }
 
 
-vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, EncryptionHelper &crypto){
+vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto){
 
     const unsigned char* plaintext_ptr;
     unsigned long long plaintext_len;
@@ -172,7 +147,7 @@ vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *ke
     }
 
     // Encrypt with no metadata
-    return crypto.encrypt(
+    return crypto->encrypt(
         plaintext_ptr,
         plaintext_len,
         key,
@@ -230,26 +205,34 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
 
 }
 
-QString generateSalt(size_t length){
-    const size_t SALT_LENGTH = length;
-    unsigned char salt[SALT_LENGTH];
-    randombytes_buf(salt, SALT_LENGTH);
 
-    // Convert to QString
-    QByteArray saltArray(reinterpret_cast<char*>(salt), SALT_LENGTH);
-    QString saltBase64 = saltArray.toBase64();
-    return saltBase64;
+//Function overloading
+bool saveFile(const QString &filePath, const std::vector<unsigned char> &data) {
+    QFile file(filePath);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(reinterpret_cast<const char*>(data.data()), static_cast<qint64>(data.size()));
+        file.close();
+        return true;
+    }
+    return false;
 }
 
-bool deriveKeyFromPassword(const string &password, const unsigned char *salt, unsigned char *key, size_t key_len) {
-    unsigned long long opslimit = crypto_pwhash_OPSLIMIT_INTERACTIVE;
-    size_t memlimit = crypto_pwhash_MEMLIMIT_INTERACTIVE;
+bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultName) {
+    QJsonDocument doc(json);
+    QByteArray jsonData = doc.toJson();
 
-    return crypto_pwhash(
-               key, key_len,
-               password.c_str(), password.size(),
-               salt,
-               opslimit, memlimit,
-               crypto_pwhash_ALG_DEFAULT
-               ) == 0;
+    QString fileName = QFileDialog::getSaveFileName(parent, "Save Keys", defaultName, "JSON Files (*.json);;All Files (*)");
+    if (!fileName.isEmpty()) {
+        QFile file(fileName);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            file.write(jsonData);
+            file.close();
+            return true;
+        } else {
+            QMessageBox::warning(parent, "Error", "Failed to open file for writing.");
+        }
+    }
+    return false;
 }
+
+

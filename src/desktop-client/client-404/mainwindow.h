@@ -16,6 +16,11 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+inline QStackedWidget& operator+(QStackedWidget& stack, QWidget* widget) {
+    stack.addWidget(widget);
+    return stack;
+}
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -41,6 +46,25 @@ private:
     MainMenu *mainMenu;
     ResetPasswordPage *resetPasswordPage;
     ViewFilesPage *viewFilesPage;
+
+    // Templates must be fully defined in the header file because
+    // the compiler needs to see the complete definition wherever
+    // the template is instantiated.
+
+    template<typename PageType>
+    PageType* createAndAddPage(QWidget* parent, QStackedWidget* stackedWidget) {
+        BasePage* basePage = new PageType(parent);   // Runtime polymorphism
+        basePage->preparePage();                     // Calls overridden preparePage()
+        stackedWidget->addWidget(basePage);
+        return static_cast<PageType*>(basePage);     // Cast to actual type
+    }
+
+    template<typename SenderType, typename SignalFunc>
+    void connectPageNavigation(SenderType* sender, SignalFunc signal, int pageIndex) {
+        connect(sender, signal, this, [this, pageIndex]() {
+            stackedWidget->setCurrentIndex(pageIndex);
+        });
+    }
 };
 
 #endif // MAINWINDOW_H
