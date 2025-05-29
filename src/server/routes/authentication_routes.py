@@ -81,8 +81,9 @@ def sign_up():
     hash_password = data.get('hashed_password')
     public_key = data.get('public_key')
     salt = data.get('salt')
+    bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
-    return auth.sign_up(username, hash_password, public_key, salt)
+    return auth.sign_up(username, hash_password, public_key, bytes_salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
