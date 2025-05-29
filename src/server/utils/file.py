@@ -71,6 +71,19 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                 else:
                     logger.warning(f"File with UUID {file_uuid} not found for overwrite")
                     return jsonify({'error': 'File not found to overwrite'}), 404
+            else:
+                # Check if user already has a file with the same name
+                existing_file = db.query(Files).filter_by(
+                    owner_id=user_id,
+                    name=file.filename
+                ).first()
+                
+                if existing_file:
+                    logger.warning(f"User {user_id} attempted to upload file with existing name: {file.filename}")
+                    return jsonify({
+                        'error': 'File with this name already exists',
+                        'uuid': str(existing_file.uuid)
+                    }), 409
 
             # Create new file entry
             new_file = Files(
