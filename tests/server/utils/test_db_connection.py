@@ -4,9 +4,9 @@ from sqlalchemy import text
 from datetime import datetime, UTC, timedelta
 import uuid
 from sqlalchemy.exc import IntegrityError, DataError
-from src.server.config import config
-from src.server.utils.db_setup import setup_db, get_session
-from src.server.models.tables import Users, Files, FilePermissions, FileMetadata
+from server.config import config
+from server.utils.db_setup import setup_db, get_session
+from server.models.tables import Users, Files, FilePermissions, FileMetadata
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +117,7 @@ def test_create_and_fetch_user(db_session):
     logger.info("Testing user creation and fetch")
     user = create_user(db_session)
     fetched = db_session.query(Users).filter_by(id=user.id).first()
+    assert fetched is not None
     assert fetched.username == user.username
     logger.debug(f"Successfully fetched user: {user.username}")
 
