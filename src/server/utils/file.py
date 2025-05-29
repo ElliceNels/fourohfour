@@ -9,7 +9,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_uuid: uuid.UUID = None, overwrite: bool = False) -> dict:
+def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_uuid: uuid.UUID = None) -> dict:
     """Upload a file to the database and disk storage.
 
     Args:
@@ -17,8 +17,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
         file: The file object from request.files
         file_path (str): Path where the file will be stored
         metadata (dict): Dictionary containing file metadata (size, format)
-        file_uuid (uuid.UUID, optional): UUID of the file to update
-        overwrite (bool): Whether to overwrite existing file
+        file_uuid (uuid.UUID, optional): UUID of the file to update. If provided and file exists, it will be overwritten.
 
     Returns:
         dict: Response containing success message and UUID
@@ -33,9 +32,9 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                 existing_file = db.query(Files).filter_by(uuid=file_uuid).first()
                 
                 if existing_file:
-                    if not overwrite:
-                        logger.warning(f"File with UUID {file_uuid} already exists and overwrite is false")
-                        return jsonify({'error': 'File with this UUID already exists'}), 409
+                    if existing_file.owner_id != user_id:
+                        logger.warning(f"User {user_id} attempted to overwrite file {file_uuid} they don't own")
+                        return jsonify({'error': 'Not authorized to overwrite this file'}), 403
                     
                     # Delete old file from disk
                     try:
@@ -69,6 +68,9 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                         'message': 'File updated successfully',
                         'uuid': str(existing_file.uuid)
                     }), 200
+                else:
+                    logger.warning(f"File with UUID {file_uuid} not found for overwrite")
+                    return jsonify({'error': 'File not found to overwrite'}), 404
 
             # Create new file entry
             new_file = Files(

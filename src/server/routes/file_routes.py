@@ -22,7 +22,6 @@ def upload_file():
         - size: File size in bytes
         - format: File format/extension
     - uuid: (optional) UUID of the file to update
-    - overwrite: (optional) Boolean flag to overwrite existing file
 
     Returns:
     {
@@ -39,9 +38,8 @@ def upload_file():
     try:
         current_user = get_current_user()
         
-        # Get UUID and overwrite parameters
+        # Get UUID parameter
         file_uuid = request.form.get('uuid')
-        overwrite = request.form.get('overwrite', 'false').lower() == 'true'
         
         # Validate UUID format if provided
         if file_uuid:
@@ -58,7 +56,7 @@ def upload_file():
         file_path = os.path.join('uploads', filename)
         file.save(file_path)
 
-        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid, overwrite)
+        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid)
 
     except Exception as e:
         # Clean up file if database operation fails
