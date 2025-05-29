@@ -2,8 +2,8 @@ from datetime import datetime, UTC
 from flask import jsonify
 import os
 import base64
-from src.server.models.tables import Files, FilePermissions, FileMetadata
-from src.server.utils.db_setup import get_session
+from server.models.tables import Files, FilePermissions, FileMetadata
+from server.utils.db_setup import get_session
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,8 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
     Returns:
         dict: Response containing success message and file ID or error message
     """
+    if file is None:
+        return jsonify({'error': 'No file provided'}), 400
     with get_session() as db:
         try:
             # Create database entry
@@ -50,7 +52,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict) -> dic
 
         except Exception as e:
             db.rollback()
-            logger.error(f"Error uploading file {file.filename}: {str(e)}")
+            logger.error(f"Error uploading file {getattr(file, 'filename', 'unknown')}: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
 def get_user_files(user_id: int) -> dict:
@@ -167,8 +169,8 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
-    with get_session() as db:
-        try:
+    try:
+        with get_session() as db:
             # Find the file
             file = db.query(Files).get(file_id)
             if not file:
@@ -192,8 +194,6 @@ def delete_file_by_id(file_id: int, user_id: int) -> dict:
             db.commit()
             logger.info(f"User {user_id} deleted file {file_id} successfully")
             return jsonify({'message': 'File deleted successfully'})
-
-        except Exception as e:
-            db.rollback()
-            logger.error(f"Error deleting file {file_id} for user {user_id}: {str(e)}")
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        logger.error(f"Error deleting file {file_id} for user {user_id}: {str(e)}")
+        return jsonify({'error': str(e)}), 500

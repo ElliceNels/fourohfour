@@ -1,6 +1,7 @@
 # Ignore build and external dependencies
 /build/
 **/build/
+**/build*
 include/
 lib/
 bin/
@@ -27,3 +28,7 @@ __pycache__/
 # Ignore log files and logs directory
 logs/
 *.log
+
+# Ignore vstudio files
+.vs/
+.vscode/

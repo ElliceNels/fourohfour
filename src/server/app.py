@@ -2,18 +2,18 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
-import os
-from src.server.routes.authentication_routes import authentication_routes as auth_bp
-from src.server.routes.permission_routes import permission_bp
-from src.server.routes.file_routes import files_bp
-from src.server.utils.db_setup import setup_db
-
-from src.server.logger import setup_logger
-
-logger = logging.getLogger(__name__)
-
 # Load environment variables
 load_dotenv()
+import os
+from server.routes.authentication_routes import authentication_routes as auth_bp
+from server.routes.permission_routes import permission_bp
+from server.routes.file_routes import files_bp
+from server.utils.db_setup import setup_db
+from server.logger import setup_logger
+
+logger = logging.getLogger(__name__)
+EXIT_ERROR = 1
+
 # Initialize the logger
 setup_logger()
 
@@ -24,9 +24,6 @@ def create_app():
     # Enable CORS
     CORS(app)
     logger.info('CORS enabled for Flask app')
-
-    # DB configuration
-    setup_db()
 
     # Basic configuration
     secret_key = os.getenv('SECRET_KEY')
@@ -54,6 +51,14 @@ def create_app():
     
     return app
 
+# Create the app instance
+try:
+    setup_db()
+except Exception as e:
+    logger.critical(f"Failed to setup database: {e}")
+    exit(EXIT_ERROR)
+
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True) 
