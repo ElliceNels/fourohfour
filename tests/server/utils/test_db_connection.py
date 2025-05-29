@@ -60,7 +60,7 @@ def create_user(session, username=None):
         username=username,
         password="hashed_password",
         salt=b"salt",
-        public_key=f"public_key_{uuid.uuid4().hex[:8]}".encode(),
+        public_key=f"public_key_{uuid.uuid4().hex[:8]}",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC)
     )
@@ -242,7 +242,7 @@ def test_duplicate_usernames_fail(db_session):
 
 def test_duplicate_public_keys_fail(db_session):
     """Test that creating users with duplicate public keys fails."""
-    public_key = b"duplicate_key"
+    public_key = "duplicate_key"
     user1 = Users(
         username="user1",
         password="password",
