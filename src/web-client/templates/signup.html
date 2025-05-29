@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - fourohfour Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function togglePassword() {
+            var pwd = document.getElementById('password');
+            var btn = document.getElementById('show-btn');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                pwd.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <span class="logo-primary">fourohfour</span><span class="logo-secondary"> Files</span>
+    </div>
+    <div class="center-viewport">
+        <div class="hero">
+            <h1 class="hero-title">
+                <span class="hero-primary">Create</span> <span class="hero-secondary">Account</span>
+            </h1>
+            <p class="hero-subtitle">Join fourohfour Files today</p>
+        </div>
+
+        <!-- Flash messages for validation errors/success -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form class="signup-form" method="POST" action="/signup">
+            <div class="form-group">
+                <label for="username" class="form-label">Account Name</label>
+                <input id="username" name="username" type="text" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="password" class="form-label">Password</label>
+                <div class="password-row">
+                    <input id="password" name="password" type="password" required autocomplete="new-password">
+                    <button type="button" id="show-btn" class="btn show-btn" onclick="togglePassword()">Show</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">Confirm Password</label>
+                <input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password">
+            </div>
+            <div class="password-hint">
+                We recommend for your password to be at least 15 characters. Your password should also be unique and difficult to guess.
+            </div>
+            <button type="submit" class="btn big-btn signup-btn">Create Account</button>
+        </form>
+        <div class="form-footer">
+            Already have an account?
+            <a href="{{ url_for('login') }}">Log in to account</a>
+        </div>
+    </div>
+</body>
+</html>
