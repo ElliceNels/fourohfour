@@ -42,14 +42,14 @@ src/server/
 
 ## Getting Started
 Assuming this is your first time running the app:
- - Navigate to `src/server`
- - Set up a virtual environment `python-m venv venv` and activate `venv/Scripts/activate`
+ - Set up a virtual environment at the fourohfour directory using `python -m venv venv` and activate `venv/Scripts/activate`
 	 - Install dependencies `pip install -r requirements.txt`
  - **Set up local database** *(see below)*
  - Apply any pending **database migrations** *(see below)*
  - [Optional] Set `JWT_SECRET_KEY` and `SECRET_KEY` using generated values *(see "Generating Secrets" below)*
  -  Run from the `fourohfour` directory with `python -m src.server.app` 
-	 - You may need to set `$env:PYTHONPATH = "C:\Users\jeanl\College\Blocks\Block 8\fourohfour\src"` *(<- powershell syntax)*
+	 - You may need to set `$env:PYTHONPATH = "C:\Users\...\fourohfour\src"` *(<- powershell syntax)*
+    - Or using .env `PYTHONPATH = src`
  - The app should now run at `localhost:5000` 
 	 - To diagnose issues see **Checking Logs** below
 
@@ -72,15 +72,17 @@ Assuming this is your first time running the app:
    GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'localhost';
    FLUSH PRIVILEGES;
    ```
+   *note: the user and password is different for production 
 
-4. Create `.env` file in server directory with the values that you set above. 
+4. Create `.env` file in the fourohfour directory and add the values that you set above. 
 	- If you have set up mySQL with the default values db_user and db_password, this is optional but good practice:
    ```
    DB_USER=db_user
    DB_PASSWORD=db_password
    ```
 
-5. Now when you run the app, SQLAlchemy should create a database with the relevent tables automatically, and use this going forward. 
+5. Now when you run the app, SQLAlchemy should create a database with the relevent tables automatically, and use this going forward.
+   - Database connection and integration testing use different databases
 
 ## Generating Secrets
 The application requires two secret keys for security:
@@ -105,8 +107,17 @@ To generate these keys:
 
 3. The script will automatically update your `.env` file with the new keys.
 
+To manually add these keys:
+1. Choose secure, random JWT and flask secret keys
+
+2. Add these values to your .env
+   ```
+   JWT_SECRET_KEY=your_key_here
+   SECRET_KEY=your_secret_key_here
+   ```
+
 Important Security Notes:
-- Keys are stored in the `.env` file and should never be hardcoded
+- Keys are stored in the `.env` file and should never be hardcoded in the application
 - Keep keys consistent across server restarts
 - Use different keys for development and production
 - Never commit keys to version control
@@ -197,9 +208,26 @@ ps aux | grep gunicorn
    ```
 
 # Testing
+
+### Prequisites
+- Ensure PyTest is installed
+- Ensure PYTHONPATH is set in your .env
+- Ensure you have a local MySQL server running
+- Ensure your pytest.ini file contains teh following:
+   ```
+   [pytest]
+   pythonpath = src
+   testpaths = tests
+   ```
+### Running Tests
+
 1. From the `fourohfour` directory
    ```bash
    pytest
+   ```
+   If you would like to run a specific file:
+   ```
+   pytest file/path/from/tests/directory
    ```
 
 # TroubleShooting
