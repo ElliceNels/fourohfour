@@ -70,6 +70,10 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         viewfilespage.ui
         basepage.h
         basepage.cpp
+        securevector.h
+        securevector.cpp
+        securebufferutils.h
+
 
 
     )

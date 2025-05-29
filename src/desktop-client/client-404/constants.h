@@ -12,10 +12,12 @@ const int fileNameLabelWidth = 200;
 const int fileSizeLabelWidth = 60;
 const int fileOwnerLabelWidth = 100;
 
+//source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
+constexpr std::string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
 
 namespace Styles {
 const QString CentralWidget = R"(
-            background-color: rgb(231, 236, 239);
+            background-color: rgb(255, 255, 255);
         )";
 
 const QString FileItem = R"(

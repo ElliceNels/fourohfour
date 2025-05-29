@@ -1,9 +1,10 @@
 from datetime import datetime
 from flask import jsonify, request
-from src.server.utils.db_setup import get_session
-from src.server.models.tables import Users
-from src.server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+from server.utils.db_setup import get_session
+from server.models.tables import Users
+from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
 import logging
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +44,13 @@ def login(username: str, hash_password: bytes) -> dict:
         "refresh_token": refresh_token
     }), 200
 
-def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dict:
+def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
     """Sign up route to register new users.
 
     Args:
         username (str): Username of the new user.
         password (str): validated password of the new user.
-        public_key (bytes): public key of the new user.
+        public_key (str): base64 encoded public key of the new user.
         salt (bytes): salt used for hashing the password.
 
     Returns:
@@ -60,8 +61,14 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
         logger.warning("Sign up failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
+    try:
+        # Decode the base64 public key
+        decoded_public_key = base64.b64decode(public_key)
+    except Exception as e:
+        logger.warning(f"Sign up failed for user {username}: Invalid public key format - {str(e)}")
+        return jsonify({"error": "Invalid public key format - must be base64 encoded"}), 400
+    
     with get_session() as db:
-
         # Cond 1: The username already exists
         existing_user = db.query(Users).filter_by(username=username).first()
         if existing_user:
@@ -69,7 +76,7 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
             return jsonify({"error": "Username already exists"}), 409
         
         # Cond 2: The public key already exists -> should be unique
-        existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
+        existing_public_key = db.query(Users).filter_by(public_key=decoded_public_key).first()
         if existing_public_key:
             logger.warning(f"Sign up failed for user {username}: Public key already exists")
             return jsonify({"error": "Public key already exists"}), 409
@@ -78,7 +85,7 @@ def sign_up(username: str, password: str, public_key: bytes, salt: bytes) -> dic
         new_user = Users(
             username=username,
             password=password,
-            public_key=public_key,
+            public_key=decoded_public_key,
             salt=salt,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -125,6 +132,11 @@ def change_password(token: str, new_password: str) -> dict:
             logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
             return jsonify({"error": "New password is the same as the current one"}), 400
         
+        # Cond 2: The new password is not provided
+        if new_password == "" or new_password is None:
+            logger.warning(f"Change password failed for user {user_id}: No new password provided")
+            return jsonify({"error": "No new password provided"}), 400
+
         # Update the password
         user.password = new_password
         user.updated_at = datetime.now()
@@ -237,7 +249,7 @@ def get_current_user(token: str) -> dict:
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
-        "user_id": user.user_id,
+        "user_id": user.id,
         "username": user.username,
         "password": user.password,
         "public_key": user.public_key,

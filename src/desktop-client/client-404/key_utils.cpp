@@ -12,17 +12,22 @@
 #include <vector>
 #include "constants.h"
 #include "loginsessionmanager.h"
+#include "securebufferutils.h"
+#include "securevector.h"
+
 
 using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
 
-    unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
-    unsigned char privateKey[crypto_box_SECRETKEYBYTES];
-    crypto_box_keypair(publicKey, privateKey);
+    auto publicKey = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
+    auto privateKey = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
 
-    QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
-    QByteArray privKeyArray(reinterpret_cast<char*>(privateKey), crypto_box_SECRETKEYBYTES);
+    crypto_box_keypair(publicKey.get(), privateKey.get());
+
+
+    QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_box_PUBLICKEYBYTES);
+    QByteArray privKeyArray(reinterpret_cast<char*>(privateKey.get()), crypto_box_SECRETKEYBYTES);
 
     publicKeyBase64 = pubKeyArray.toBase64();
     privateKeyBase64 = privKeyArray.toBase64();
@@ -52,36 +57,34 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
 
-    unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
-    unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
+    auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
+    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
 
     // Generate key and nonce
-    crypto->generateKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    crypto->generateNonce(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    crypto->generateKey(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+    crypto->generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
     //Encrypt private key file
-    vector<unsigned char> ciphertext;
+    SecureVector ciphertext;
     bool success = false;
     try {
-        ciphertext = encryptData(jsonData, key, nonce, crypto);
+        ciphertext = encryptData(jsonData, key.get(), nonce.get(), crypto);
     } catch (const exception &e) {
         QMessageBox::critical(parent, "Encryption Error", e.what());
-        sodium_memzero(key, sizeof(key));
     }
 
-    // Prepare data: [ciphertext][nonce]
-    ciphertext.insert(ciphertext.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    // Prepare data: [nonce][ciphertext]
+    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copies the nonce to the start of the buffer
+    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES); // Copy the ciphertext to the buffer right after the nonce
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
-    if (!saveFuncPtr(fileName, ciphertext)) {
+    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
+    if (!saveFuncPtr(fileName, combinedData)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
         jsonData.clear();
-
-        fill(ciphertext.begin(), ciphertext.end(), 0);
-        ciphertext.clear();
         return false;
     }
 
@@ -89,53 +92,48 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     jsonData.fill(0);
     jsonData.clear();
 
-    fill(ciphertext.begin(), ciphertext.end(), 0);
-    ciphertext.clear();
-
 
     //Encrypt and save master key
-    if(!encryptAndSaveMasterKey(key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES, derivedKey, crypto, username)){
+    if(!encryptAndSaveMasterKey(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES, derivedKey, crypto, username)){
         cout << "Error saving encrypted key file" << endl;
-        sodium_memzero(key, sizeof(key));
         return false;
     }
 
-    LoginSessionManager::getInstance().setSession(username, key, crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-
-    sodium_memzero(key, sizeof(key));
+    LoginSessionManager::getInstance().setSession(username, key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
     return true;
 }
 
 bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username)
 {
     // Generate nonce
-    unsigned char nonce[crypto_aead_xchacha20poly1305_ietf_NPUBBYTES];
-    crypto->generateNonce(nonce, sizeof(nonce));
+    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
+    crypto->generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+
 
     // Encrypt the key
-    vector<unsigned char> encryptedKey = crypto->encrypt(
+    SecureVector encryptedKey = crypto->encrypt(
         keyToEncrypt,
         keyLen,
         derivedKey,
-        nonce,
+        nonce.get(),
         nullptr,
         0
         );
 
-    // Prepare data: [encryptedKey][nonce]
-    encryptedKey.insert(encryptedKey.end(), nonce, nonce + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    // Prepare data: [nonce][encryptedKey]
+    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + encryptedKey.size());
+    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copies the nonce to the start of the buffer
+    std::copy(encryptedKey.data(), encryptedKey.data() + encryptedKey.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Copy the ciphertext to the buffer right after the nonce
 
     // Save to file
     QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;//masterKey.bin;
-    bool (*saveFuncPtr)(const QString&, const std::vector<unsigned char>&) = saveFile; //function pointer
-    bool success = saveFuncPtr(filePath, encryptedKey);
-    fill(encryptedKey.begin(), encryptedKey.end(), 0);
-    encryptedKey.clear();
+    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
+    bool success = saveFuncPtr(filePath, combinedData);
     return success;
 }
 
 
-vector<unsigned char> encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto){
+SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto){
 
     const unsigned char* plaintext_ptr;
     unsigned long long plaintext_len;
@@ -182,7 +180,7 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
     deriveKeyFromPassword(oldPassword.toStdString(), reinterpret_cast<const unsigned char*>(oldSaltRaw.constData()), oldKey, sizeof(oldKey));
 
     //Decrypt
-    std::vector<unsigned char> decryptedData;
+    SecureVector decryptedData;
     try {
         decryptedData = crypto->decrypt(
             reinterpret_cast<const unsigned char*>(ciphertext.constData()), ciphertext.size(),
@@ -209,7 +207,7 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
 
 
 //Function overloading
-bool saveFile(const QString &filePath, const std::vector<unsigned char> &data) {
+bool saveFile(const QString &filePath, const SecureVector &data) {
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
         file.write(reinterpret_cast<const char*>(data.data()), static_cast<qint64>(data.size()));

@@ -25,7 +25,12 @@ DB_PASSWORD=your-db-password
 
 4. Run the server:
 ```bash
+# Development mode (Flask development server)
 python -m src.server.app
+
+# Production mode (Gunicorn)
+cd ~/db_test
+nohup gunicorn -w 4 -b 0.0.0.0:4004 src.server.app:app > gunicorn.log 2>&1 &
 ```
 
 # Deploying to Gobbler Server
@@ -58,48 +63,59 @@ python -m src.server.app
 
 3. Start Flask with nohup (so it will continue after you kill your terminal):
    ```bash
+   # Using Flask development server
    nohup flask run --host=0.0.0.0 --port=4004 > flask.log 2>&1 &
+
+   # Using Gunicorn (recommended for production)
+   cd ~/db_test
+   nohup gunicorn -w 4 -b 0.0.0.0:4004 src.server.app:app > gunicorn.log 2>&1 &
    ```
 
 4. Verify it's running:
    ```bash
-   ps aux | grep flask
+   ps aux | grep gunicorn
    ```
-   You should see your Flask process in the output.
+   You should see multiple processes:
+   - One master process
+   - Four worker processes (because of -w 4)
+   - One grep process (which you can ignore)
 
 ## Checking Logs
 To see what's happening with your app:
 ```bash
+# If using Flask development server
 tail -f flask.log
+
+# If using Gunicorn
+tail -f gunicorn.log
 ```
 
 ## Stopping the App
-1. Find the process ID (PID):
+1. Find the process IDs (PIDs):
    ```bash
-   ps aux | grep flask
+   ps aux | grep gunicorn
    ```
-   Look for the line containing `flask run` and note the PID number.
+   Look for the lines containing `gunicorn` and note the PID numbers.
 
-2. Kill the process:
+2. Kill all gunicorn processes:
    ```bash
-   kill <PID>
+   pkill -9 gunicorn
    ```
-   Replace `<PID>` with the actual process ID number.
 
 3. Verify it's stopped:
    ```bash
-   ps aux | grep flask
+   ps aux | grep gunicorn
    ```
-   The Flask process should no longer appear.
+   You should only see the grep process itself.
 
 ## Troubleshooting
 - If the app isn't starting, check the logs:
   ```bash
-  cat flask.log
+  cat gunicorn.log
   ```
 - If you can't kill the process, use force kill:
   ```bash
-  kill -9 <PID>
+  pkill -9 gunicorn
   ```
 - If port 4004 is already in use:
   ```bash
@@ -107,7 +123,7 @@ tail -f flask.log
   ```
   This will show what's using the port.
 
-# Database Setup Guide
+# Database Setup Guide (THIS PART IS AI GENERATED ngl)
 
 ## Development vs Production
 

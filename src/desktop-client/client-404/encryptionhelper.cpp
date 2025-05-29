@@ -1,6 +1,6 @@
 #include "encryptionhelper.h"
 #include <stdexcept>
-#include <vector>
+#include "securevector.h"
 
 using namespace std;
 
@@ -20,20 +20,20 @@ void EncryptionHelper::generateNonce(unsigned char* nonce, size_t nonce_buffer_s
     if (nonce == nullptr) {
         throw invalid_argument("Nonce buffer cannot be null");
     }
-    if (nonce_buffer_size < crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
+    if (nonce_buffer_size < crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)   {
         throw invalid_argument("Nonce buffer too small");
     }
     randombytes_buf(nonce, crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 }
 
-vector<unsigned char> EncryptionHelper::encrypt(
+SecureVector EncryptionHelper::encrypt(
     const unsigned char* plaintext, unsigned long long plaintext_len,
     const unsigned char* key,
     const unsigned char* nonce,
     const unsigned char* additional_data,
     unsigned long long ad_len
     ) {
-    vector<unsigned char> ciphertext(plaintext_len + crypto_aead_xchacha20poly1305_ietf_ABYTES);
+    SecureVector ciphertext(plaintext_len + crypto_aead_xchacha20poly1305_ietf_ABYTES);
     unsigned long long ciphertext_len;
 
     int ret = crypto_aead_xchacha20poly1305_ietf_encrypt(
@@ -43,7 +43,7 @@ vector<unsigned char> EncryptionHelper::encrypt(
         plaintext_len,
         additional_data,
         ad_len,
-        nullptr, // secret nonce parameter not used
+        nullptr,
         nonce,
         key
         );
@@ -52,12 +52,11 @@ vector<unsigned char> EncryptionHelper::encrypt(
         throw runtime_error("Encryption failed");
     }
 
-    // Because we allocate more space than needed, we trim to the size of the actual ciphertext
     ciphertext.resize(ciphertext_len);
     return ciphertext;
 }
 
-vector<unsigned char> EncryptionHelper::decrypt(
+SecureVector EncryptionHelper::decrypt(
     const unsigned char* ciphertext, unsigned long long ciphertext_len,
     const unsigned char* key,
     const unsigned char* nonce,
@@ -68,7 +67,8 @@ vector<unsigned char> EncryptionHelper::decrypt(
         throw runtime_error("Ciphertext too short");
     }
 
-    vector<unsigned char> plaintext(ciphertext_len - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+    SecureVector plaintext(ciphertext_len - crypto_aead_xchacha20poly1305_ietf_ABYTES);
+
     unsigned long long plaintext_len;
 
     int ret = crypto_aead_xchacha20poly1305_ietf_decrypt(
