@@ -76,6 +76,7 @@ def test_login_cases(username, password, expected_status, mock_db, app_ctx, mock
     ("user", None, "cGs=", b"salt", CODE_BAD_REQUEST),  # Missing password
     ("user", "pass", None, b"salt", CODE_BAD_REQUEST),  # Missing public_key
     ("user", "pass", "cGs=", None, CODE_BAD_REQUEST),  # Missing salt
+    ("user", "pass", "invalid_base64!", b"salt", CODE_BAD_REQUEST),  # Invalid base64 public key format
 ])
 def test_sign_up_cases(username, password, public_key, salt, expected_status, mock_db, app_ctx, mocker):
     if expected_status == CODE_CONFLICT:
