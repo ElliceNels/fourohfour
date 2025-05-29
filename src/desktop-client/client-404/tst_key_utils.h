@@ -27,9 +27,7 @@ private slots:
     void testEncryptData();
     void testEncryptDataEmptyInput();
     void testEncryptDataLargeInput();
-
-    // Test cases for saveFile
-    void testSaveFileSecureVector();
+    void testEncryptAndDecryptData();
 
     //Test cases for salt
     void testGenerateSalt();

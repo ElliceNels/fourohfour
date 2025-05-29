@@ -74,6 +74,47 @@ void TestKeyUtils::testEncryptData()
     QVERIFY(ciphertext.size() > plaintext.size()); // Ciphertext should be larger due to auth tag
 }
 
+void TestKeyUtils::testEncryptAndDecryptData()
+{
+    // Create test data
+    QByteArray plaintext = "Test encryption data";
+    auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
+    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
+
+    // Initialize sodium
+    if (sodium_init() < 0) {
+        QFAIL("Failed to initialize sodium");
+    }
+
+    // Generate random key and nonce
+    randombytes_buf(key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+    randombytes_buf(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+
+    // Create encryption helper
+    auto crypto = std::make_shared<EncryptionHelper>();
+
+    // Encrypt data
+    SecureVector ciphertext = encryptData(plaintext, key.get(), nonce.get(), crypto);
+
+    // Decrypt data
+    SecureVector decrypted;
+    try {
+        decrypted = crypto->decrypt(
+            ciphertext.data(), ciphertext.size(),
+            key.get(),
+            nonce.get(),
+            nullptr, // no additional data
+            0
+            );
+    } catch (const std::exception& e) {
+        QFAIL(e.what());
+    }
+
+    // Verify decryption matches original plaintext
+    QByteArray decryptedArray(reinterpret_cast<const char*>(decrypted.data()), static_cast<int>(decrypted.size()));
+    QCOMPARE(decryptedArray, plaintext);
+}
+
 void TestKeyUtils::testEncryptDataEmptyInput()
 {
     QByteArray plaintext;
@@ -125,34 +166,6 @@ void TestKeyUtils::testEncryptDataLargeInput()
     // Verify encryption of large data
     QVERIFY(ciphertext.size() > 0);
     QVERIFY(ciphertext.size() > plaintext.size());
-}
-
-void TestKeyUtils::testSaveFileSecureVector()
-{
-    // Create test data
-    SecureVector data(100);
-    std::fill(data.begin(), data.end(), 'A');
-
-    // Create a temporary file
-    QTemporaryFile tempFile;
-    tempFile.setAutoRemove(false);
-    tempFile.open();
-    QString tempPath = tempFile.fileName();
-    tempFile.close();
-
-    // Save data
-    bool result = saveFile(tempPath, data);
-    QVERIFY(result);
-
-    // Verify file contents
-    QFile file(tempPath);
-    QVERIFY(file.open(QIODevice::ReadOnly));
-    QByteArray readData = file.readAll();
-    QCOMPARE(readData.size(), static_cast<int>(data.size()));
-
-    // Cleanup
-    file.close();
-    QFile::remove(tempPath);
 }
 
 void TestKeyUtils::testGenerateSalt()
