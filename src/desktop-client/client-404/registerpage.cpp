@@ -113,7 +113,7 @@ void RegisterPage::onCreateAccountClicked()
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
-    string pubKey = password.toStdString();
+    string pubKey = pubKeyBase64.toStdString();
     string sSalt = salt.toStdString();
     string* saltPtr = &sSalt;
 

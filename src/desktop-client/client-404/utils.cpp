@@ -7,7 +7,7 @@ using namespace std;
 bool sendData(QByteArray jsonData, QObject *parent, QString endpoint)
 {
     QNetworkAccessManager manager(parent);
-    QNetworkRequest request(QUrl(serverPath + endpoint));
+    QNetworkRequest request((QUrl(endpoint)));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     QNetworkReply *reply = manager.post(request, jsonData);

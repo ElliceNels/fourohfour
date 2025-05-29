@@ -24,7 +24,7 @@ constexpr std::string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )"
 
 namespace Styles {
 const QString CentralWidget = R"(
-            background-color: rgb(255, 255, 255);
+            background-color: rgb(231, 236, 239);
         )";
 
 const QString FileItem = R"(
