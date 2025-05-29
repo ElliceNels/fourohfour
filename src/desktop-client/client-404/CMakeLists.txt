@@ -17,6 +17,11 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Test)
 set(SODIUM_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
 set(SODIUM_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libsodium.dll.a")
 
+# Set libcurl paths to local directories 
+set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
+set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libcurl.dll.a")
+
+
 set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp
@@ -75,7 +80,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         securevector.h
         securevector.cpp
         securebufferutils.h
-    )
+            )
 else()
     if(ANDROID)
         add_library(client-404 SHARED
@@ -115,6 +120,7 @@ target_link_libraries(client-404 PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     ${SODIUM_LIBRARY}
+    ${CURL_LIBRARY}  
 )
 
 # Link libraries for test target
