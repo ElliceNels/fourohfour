@@ -13,6 +13,8 @@
 #include "loginsessionmanager.h"
 #include <QUuid>
 
+using namespace std;
+
 UploadFilePage::UploadFilePage(QWidget *parent)
     : BasePage(parent)
     , ui(new Ui::UploadFilePage)
@@ -125,8 +127,8 @@ bool UploadFilePage::encryptUploadedFile() {
     // This will be the data that is sent to the server
     SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
 
-    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copy nonce to beginning
-    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Move ciphertext data to avoid copying
+    copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copy nonce to beginning
+    copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Move ciphertext data to avoid copying
 
 
     // After sending to the server, we will recieve a uuid for the file as a string.
@@ -134,7 +136,7 @@ bool UploadFilePage::encryptUploadedFile() {
 
     return SaveKeyToLocalStorage(fileUuid, key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES); // expected key length that configured when creating the buffer
 
-    } catch (const std::exception &e) {
+    } catch (const exception &e) {
         QMessageBox::critical(this, "Encryption Error", e.what());
         return false;
     }
@@ -232,8 +234,8 @@ bool UploadFilePage::readAndDecryptKeyStorage(const QString &filepath,
     SecureVector ciphertext(ciphertextSize);
     auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
     
-    std::copy(fileData.constData(), fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, nonce.get());
-    std::copy(fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, fileData.constData() + fileData.size(), ciphertext.begin());
+    copy(fileData.constData(), fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, nonce.get());
+    copy(fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, fileData.constData() + fileData.size(), ciphertext.begin());
 
     // Decrypt data
     EncryptionHelper crypto;
@@ -261,7 +263,7 @@ bool UploadFilePage::readAndDecryptKeyStorage(const QString &filepath,
         }
         
         return true;
-    } catch (const std::exception& e) {
+    } catch (const exception& e) {
         QMessageBox::critical(this, "Decryption Error", 
                              QString("Decryption failed: %1").arg(e.what()));
         return false;
@@ -315,8 +317,8 @@ bool UploadFilePage::encryptAndSaveKeyStorage(const QString &filepath, const QBy
     // Prepare data for saving: [nonce][ciphertext]
     SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
 
-    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());
-    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+    copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());
+    copy(ciphertext.data(), ciphertext.data() + ciphertext.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
     
     // Save file
     QFile file(filepath);
