@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 from server.utils import auth, jwt
+from server.utils.jwt import JWTError
 import logging
 
 logger = logging.getLogger(__name__)
@@ -50,11 +51,11 @@ def refresh():
     if not refresh_token:
         return jsonify({"error": "Missing refresh token"}), 400
         
-    new_access_token, error = jwt.refresh_access_token(refresh_token)
-    if error:
-        return error['response'], error['status']
-        
-    return jsonify({"access_token": new_access_token}), 200
+    try:
+        new_access_token = jwt.refresh_access_token(refresh_token)
+        return jsonify({"access_token": new_access_token}), 200
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
 
 @authentication_routes.route('/sign_up', methods=['POST'])
 def sign_up():
@@ -97,18 +98,18 @@ def logout():
     }
     """
 
-    # Get access token using the utility function
-    access_token, error = jwt.get_current_token()
-    if error:
-        logger.warning("Logout failed: Missing or malformed access token")
-        return error['response'], error['status']
-
     # Get refresh token from custom header
     refresh_token = request.headers.get('X-Refresh-Token')
     if not refresh_token:
         logger.warning("Logout failed: Missing or malformed refresh token")
         return jsonify({"error": "Missing refresh token"}), 400
         
+    try:
+        access_token = jwt.get_current_token()
+    except JWTError as e:
+        logger.warning("Logout failed: Missing or malformed access token")
+        return jsonify({"error": e.message}), e.status
+
     # Invalidate both tokens
     if jwt.invalidate_token(access_token) and jwt.invalidate_token(refresh_token):
         logger.info(f"User logged out successfully with token")
@@ -135,11 +136,11 @@ def change_password():
     logger.debug(f"Received change password request")
     new_password = data.get('new_password')
 
-    # Get token using the utility function
-    token, error = jwt.get_current_token()
-    if error:
+    try:
+        token = jwt.get_current_token()
+    except JWTError as e:
         logger.warning("Change password failed: Missing or malformed token")
-        return error['response'], error['status']
+        return jsonify({"error": e.message}), e.status
 
     return auth.change_password(token, new_password)
 
@@ -161,11 +162,11 @@ def delete_account():
     logger.debug(f"Received delete account request with data: {data}")
     username = data.get('username')
 
-    # Get token using the utility function
-    token, error = jwt.get_current_token()
-    if error:
+    try:
+        token = jwt.get_current_token()
+    except JWTError as e:
         logger.warning("Delete account failed: Missing or malformed token")
-        return error['response'], error['status']
+        return jsonify({"error": e.message}), e.status
 
     return auth.delete_account(username)
 
@@ -186,11 +187,11 @@ def change_username():
     logger.debug(f"Received change username request")
     new_username = data.get('new_username')
 
-    # Get token using the utility function
-    token, error = jwt.get_current_token()
-    if error:
+    try:
+        token = jwt.get_current_token()
+    except JWTError as e:
         logger.warning("Change username failed: Missing or malformed token")
-        return error['response'], error['status']
+        return jsonify({"error": e.message}), e.status
 
     return auth.change_username(token, new_username)
 
@@ -209,8 +210,12 @@ def get_current_user():
     }
     """
     logger.debug("Received request to get current user")
-    user_info, status_code = auth.get_current_user()
-    if status_code != 200:
-        logger.warning("Get current user failed: Missing or malformed token")
-        return user_info, status_code
-    return jsonify(user_info), 200
+    try:
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            logger.warning("Get current user failed: Missing or malformed token")
+            return user_info, status_code
+        return jsonify(user_info), 200
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
+
