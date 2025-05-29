@@ -170,9 +170,8 @@ bool RegisterPage::sendCredentials(string name, string password, string publicKe
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    QString endpoint = "/sign_up";
 
-    return sendData(jsonData, this, endpoint);
+    return sendData(jsonData, this, registerEndpoint);
 }
 
 

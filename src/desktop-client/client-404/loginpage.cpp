@@ -102,9 +102,8 @@ bool LoginPage::sendCredentials(string name, string password)
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
-    QString endpoint = "/login";
 
-    return sendData(jsonData, this, endpoint);
+    return sendData(jsonData, this, loginEndpoint);
 }
 
 bool LoginPage::isRateLimited(const QString& ip)

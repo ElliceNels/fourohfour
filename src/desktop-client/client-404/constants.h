@@ -16,6 +16,8 @@ const int fileOwnerLabelWidth = 100;
 const QString serverPath = "http://localhost:5000";
 //http://gobbler.info:4004
 //http://localhost:5000
+const QString loginEndpoint = serverPath + "/login";
+const QString registerEndpoint = serverPath + "/sign_up";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 constexpr std::string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
