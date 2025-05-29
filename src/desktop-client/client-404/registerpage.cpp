@@ -1,5 +1,4 @@
 #include "registerpage.h"
-#include "pages.h"
 #include "ui_registerpage.h"
 #include <QMessageBox>
 #include "password_utils.h"
@@ -11,32 +10,39 @@
 #include <QNetworkReply>
 #include <qstackedwidget.h>
 #include "key_utils.h"
+#include "constants.h"
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::RegisterPage)
 {
-    ui->setupUi(this);
-
-    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-    ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
-
-    connect(ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
-    connect(ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
-    connect(ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
+    qDebug() << "Constructing and setting up Register Page";
 }
 
-RegisterPage::~RegisterPage()
-{
-    delete ui;
+void RegisterPage::preparePage(){
+    qDebug() << "Preparing Register Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void RegisterPage::initialisePageUi(){
+    this->ui->setupUi(this);
+    this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+    this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+}
+
+void RegisterPage::setupConnections(){
+    connect(this->ui->createAccountButton, &QPushButton::clicked, this, &RegisterPage::onCreateAccountClicked);
+    connect(this->ui->showPasswordButton, &QPushButton::clicked, this, &RegisterPage::onShowPasswordClicked);
+    connect(this->ui->goToLoginButton, &QPushButton::clicked, this, &RegisterPage::goToLoginRequested);
 }
 
 void RegisterPage::onCreateAccountClicked()
 {
-    QString accountName = ui->accountNameLineEdit->text();
-    QString password = ui->passwordLineEdit->text();
-    QString confirmPassword = ui->confirmPasswordLineEdit->text();
+    QString accountName = this->ui->accountNameLineEdit->text();
+    QString password = this->ui->passwordLineEdit->text();
+    QString confirmPassword = this->ui->confirmPasswordLineEdit->text();
     QSet<QString> dictionaryWords;
 
     dictionaryWords = loadDictionaryWords("../../common_passwords.txt"); //source: https://work2go.se/en/category/news/
@@ -68,11 +74,17 @@ void RegisterPage::onCreateAccountClicked()
     }
     QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (password != normalizedPassword) {
-        QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
+        QMessageBox::warning(this, "Error", "Your password contains characters that may look different on other devices.");
     }
     if (dictionaryWords.contains(password.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
+    }
+    for (char restrictedChar : RESTRICTED_CHARS) {
+        if (accountName.contains(QChar(restrictedChar))) {
+            QMessageBox::warning(this, "Error", "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+            return;
+        }
     }
 
 
@@ -95,13 +107,14 @@ void RegisterPage::onCreateAccountClicked()
 
 
     QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8()); // decode to raw bytes
+    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
     string pubKey = password.toStdString();
     string sSalt = salt.toStdString();
+    string* saltPtr = &sSalt;
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
@@ -114,7 +127,7 @@ void RegisterPage::onCreateAccountClicked()
     cout << hashed << endl;
     cout << pubKeyBase64.toStdString() << endl;
     cout << privKeyBase64.toStdString() << endl;
-    cout << "Salt: " << sSalt << endl;
+    cout << "Salt: " << *saltPtr << endl;
 
     //Uncomment when server side is ready
     sendCredentials(sAccountName, hashed, pubKey, sSalt);
@@ -124,22 +137,19 @@ void RegisterPage::onCreateAccountClicked()
 
 
     // Switch to main menu after registration
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    emit goToMainMenuRequested();
 }
 
 void RegisterPage::onShowPasswordClicked()
 {
-    if (ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->showPasswordButton->setText("Hide");
+    if (this->ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->showPasswordButton->setText("Hide");
     } else {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->showPasswordButton->setText("Show");
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->showPasswordButton->setText("Show");
     }
 }
 
@@ -171,4 +181,11 @@ void RegisterPage::sendCredentials(string name, string password, string publicKe
         reply->deleteLater();
     });
 
+}
+
+
+RegisterPage::~RegisterPage()
+{
+    qDebug() << "Destroying Register Page";
+    delete this->ui;
 }

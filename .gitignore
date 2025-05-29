@@ -23,3 +23,11 @@ ENV/
 
 # Ignore Python cache files
 __pycache__/
+
+# Ignore log files and logs directory
+logs/
+*.log
+
+# Ignore vstudio files
+.vs/
+.vscode/

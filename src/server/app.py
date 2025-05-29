@@ -2,18 +2,18 @@ import logging
 from flask import Flask
 from flask_cors import CORS
 from dotenv import load_dotenv
-import os
-from src.server.routes.authentication_routes import authentication_routes as auth_bp
-from src.server.routes.permission_routes import permission_bp
-from src.server.routes.file_routes import files_bp
-from src.server.utils.db_setup import setup_db
-
-from logger import setup_logger
-
-logger = logging.getLogger(__name__)
-
 # Load environment variables
 load_dotenv()
+import os
+from server.routes.authentication_routes import authentication_routes as auth_bp
+from server.routes.permission_routes import permission_bp
+from server.routes.file_routes import files_bp
+from server.utils.db_setup import setup_db
+from server.logger import setup_logger
+
+logger = logging.getLogger(__name__)
+EXIT_ERROR = 1
+
 # Initialize the logger
 setup_logger()
 
@@ -25,12 +25,19 @@ def create_app():
     CORS(app)
     logger.info('CORS enabled for Flask app')
 
-    # DB configuration
-    # setup_db()
-
     # Basic configuration
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
-    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-jwt-secret')
+    secret_key = os.getenv('SECRET_KEY')
+    jwt_secret_key = os.getenv('JWT_SECRET_KEY')
+    
+    if secret_key is None:
+        logger.warning("SECRET_KEY not set in environment, using default value: 'dev'")
+        secret_key = 'dev'
+    if jwt_secret_key is None:
+        logger.warning("JWT_SECRET_KEY not set in environment, using default value: 'dev-jwt-secret'")
+        jwt_secret_key = 'dev-jwt-secret'
+    
+    app.config['SECRET_KEY'] = secret_key
+    app.config['JWT_SECRET_KEY'] = jwt_secret_key
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(permission_bp)
@@ -44,6 +51,14 @@ def create_app():
     
     return app
 
+# Create the app instance
+try:
+    setup_db()
+except Exception as e:
+    logger.critical(f"Failed to setup database: {e}")
+    exit(EXIT_ERROR)
+
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True) 

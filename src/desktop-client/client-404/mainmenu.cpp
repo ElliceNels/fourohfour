@@ -1,48 +1,38 @@
 #include "mainmenu.h"
-#include "pages.h"
 #include "ui_mainmenu.h"
 #include <qstackedwidget.h>
+#include "loginsessionmanager.h"
 
 MainMenu::MainMenu(QWidget *parent)
-    : QWidget(parent)
+    : BasePage(parent)
     , ui(new Ui::MainMenu)
 {
-    ui->setupUi(this);
+    qDebug() << "Constructing and setting up MainMenu ";
+}
+
+void MainMenu::preparePage(){
+    qDebug() << "Preparing MainMenu";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void MainMenu::initialisePageUi(){
+    this->ui->setupUi(this);
+}
+
+void MainMenu::setupConnections(){
+    connect(this->ui->uploadButton, &QPushButton::clicked, this, &MainMenu::goToUploadFilePageRequested);
+    connect(this->ui->viewFilesButton, &QPushButton::clicked, this, &MainMenu::goToViewFilesPageRequested);
+    connect(this->ui->verifyButton, &QPushButton::clicked, this, &MainMenu::goToVerifyPageRequested);
+}
+
+void MainMenu::on_logOutButton_clicked() {
+    LoginSessionManager::getInstance().clearSession();
+    emit this->goToLoginPageRequested();
 }
 
 MainMenu::~MainMenu()
 {
-    delete ui;
+    qDebug() << "Destroying Main Menu";
+    delete this->ui;
 }
-
-void MainMenu::on_uploadButton_clicked()
-{
-    // Switch to upload file page
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::UploadFilePageIndex);
-    }
-}
-
-
-void MainMenu::on_verifyButton_clicked()
-{
-    // Switch to verify user page
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::VerifyPageIndex);
-    }
-}
-
-
-void MainMenu::on_logOutButton_clicked()
-{
-    // Switch to back to login page
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::LoginPageIndex);
-    }
-
-    // will need to implement logic to clear user  memory once a user logs out
-}
-

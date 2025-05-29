@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, BLOB, ForeignKey, DateTime, DECIMAL
+from sqlalchemy import CheckConstraint, Column, Integer, String, BLOB, ForeignKey, DateTime, DECIMAL, VARBINARY
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime, UTC
 
@@ -12,7 +12,7 @@ class Users(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(100), nullable=False)
     salt = Column(BLOB, nullable=False)
-    public_key = Column(BLOB, nullable=False, unique=True)
+    public_key = Column(VARBINARY(2048), nullable=False, unique=True)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 

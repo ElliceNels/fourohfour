@@ -1,7 +1,7 @@
 """This module contains the logger setup function."""
 
 import logging
-from config import config
+from server.config import config
 import os
 from pathlib import Path
 

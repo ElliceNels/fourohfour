@@ -55,7 +55,22 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         constants.h
         encryptionhelper.h
         encryptionhelper.cpp
-        mainmenu.h mainmenu.cpp mainmenu.ui
+        mainmenu.h
+        mainmenu.cpp
+        mainmenu.ui
+        loginsessionmanager.h
+        loginsessionmanager.cpp
+        fileitemwidget.h
+        fileitemwidget.cpp
+        viewfilespage.h
+        viewfilespage.cpp
+        viewfilespage.ui
+        basepage.h
+        basepage.cpp
+        securevector.h
+        securevector.cpp
+        securebufferutils.h
+
 
     )
 else()

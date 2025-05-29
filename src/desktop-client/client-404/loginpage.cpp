@@ -7,7 +7,6 @@
 #include "ui_loginpage.h"
 #include <iostream>
 #include <qstackedwidget.h>
-#include "pages.h"
 #include <QMessageBox>
 #include "password_utils.h"
 #include <iostream>
@@ -22,34 +21,38 @@
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
-    QWidget(parent),
+    BasePage(parent),
     ui(new Ui::LoginPage)
 {
-    ui->setupUi(this);
-
-    // Connect the button click to the slot
-    connect(ui->loginButton, &QPushButton::clicked, this, &LoginPage::onLoginButtonClicked);
-    connect(ui->goToRegisterButton, &QPushButton::clicked, this, &LoginPage::goToRegisterRequested);
-
-    ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-    connect(ui->showPasswordButton, &QPushButton::clicked, this, &LoginPage::onShowPasswordClicked);
+    qDebug() << "Constructing and setting up Login Page";
 }
 
-LoginPage::~LoginPage()
-{
-    delete ui;
+void LoginPage::preparePage(){
+    qDebug() << "Preparing Login Page";
+    this->initialisePageUi();    // Will call the derived class implementation
+    this->setupConnections();    // Will call the derived class implementation
+}
+
+void LoginPage::initialisePageUi(){
+    this->ui->setupUi(this);
+    this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+}
+
+void LoginPage::setupConnections(){
+    connect(this->ui->loginButton, &QPushButton::clicked, this, &LoginPage::onLoginButtonClicked);
+    connect(this->ui->goToRegisterButton, &QPushButton::clicked, this, &LoginPage::goToRegisterRequested);
+    connect(this->ui->showPasswordButton, &QPushButton::clicked, this, &LoginPage::onShowPasswordClicked);
 }
 
 void LoginPage::onLoginButtonClicked()
 {
-    QString username = ui->usernameLineEdit->text();
-    QString password = ui->passwordLineEdit->text();
+    QString username = this->ui->usernameLineEdit->text();
+    QString password = this->ui->passwordLineEdit->text();
 
     // Check rate limiting
     QString clientIP = getClientIP();
     if (isRateLimited(clientIP)) {
-        QMessageBox::warning(this, "Rate Limited",
-                             "Too many login attempts. Please try again in 5 minutes.");
+        QMessageBox::warning(this, "Rate Limited", "Too many login attempts. Please try again in 5 minutes.");
         return;
     }
     recordLoginAttempt(clientIP);
@@ -67,21 +70,25 @@ void LoginPage::onLoginButtonClicked()
 
     sendCredentials(sUsername, hashed);
 
+    // Debug prints
+    cout << "Username: " << username.toStdString() << endl;
+    cout << "Password: " << password.toStdString() << endl;
+
+    // Uncomment when we can query password from the server
+    // cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
+
     // Switch to main menu after login
-    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
-    if (stack) {
-        stack->setCurrentIndex(Pages::MainMenuIndex);
-    }
+    emit this->goToMainMenuRequested();
 }
 
 void LoginPage::onShowPasswordClicked()
 {
-    if (ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
-        ui->showPasswordButton->setText("Hide");
+    if (this->ui->passwordLineEdit->echoMode() == QLineEdit::Password) {
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Normal);
+        this->ui->showPasswordButton->setText("Hide");
     } else {
-        ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->showPasswordButton->setText("Show");
+        this->ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
+        this->ui->showPasswordButton->setText("Show");
     }
 }
 
@@ -155,4 +162,11 @@ QString LoginPage::getClientIP()
 {
     cout << "returned hostname" << endl;
     return QHostInfo::localHostName();
+}
+
+LoginPage::~LoginPage()
+{
+    qDebug() << "Destroying Login Page";
+    delete this->ui;
+
 }

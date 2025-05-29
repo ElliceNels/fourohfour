@@ -1,10 +1,9 @@
 from datetime import datetime, UTC
 import jwt
 from flask import jsonify, current_app, request
-from config import config
-from src.server.utils.db_setup import get_session
-from src.server.models.tables import TokenInvalidation
-from src.server.config import config
+from server.config import config 
+from server.utils.db_setup import get_session
+from server.models.tables import TokenInvalidation
 
 def get_current_token() -> tuple[str | None, dict | None]:
     """Extract and validate the JWT token from the Authorization header.
