@@ -1,5 +1,5 @@
 import unicodedata
-from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, encrypt_and_save_master_key, derive_key_from_password, generate_salt, decode_salt
+from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
 from password_utils import hash_password
 
 RESTRICTED_CHARS = set('!@#$%^&*()+=[]{}|\\;:\'",<>/?`~')  
