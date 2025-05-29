@@ -252,15 +252,6 @@ bool UploadFilePage::readAndDecryptKeyStorage(const QString &filepath,
         
         jsonData = QByteArray(reinterpret_cast<const char*>(plaintext.data()),
                               static_cast<int>(plaintext.size()));
-
-        // DELETE BEFORE MERGE
-        QJsonDocument debugDoc = QJsonDocument::fromJson(jsonData);
-        if (debugDoc.isObject()) {
-            qDebug().noquote() << "Decrypted JSON Data:";
-            qDebug().noquote() << QJsonDocument(debugDoc).toJson(QJsonDocument::Indented);
-        } else {
-            qDebug() << "Decrypted JSON is not a valid object";
-        }
         
         return true;
     } catch (const exception& e) {
