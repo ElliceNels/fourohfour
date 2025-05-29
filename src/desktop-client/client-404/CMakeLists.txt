@@ -9,9 +9,13 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Add Network to the required components
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network)
+# Add Network and Test to the required components
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Network Test)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Test)
+
+# Set libsodium paths to local directories
+set(SODIUM_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
+set(SODIUM_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libsodium.dll.a")
 
 set(PROJECT_SOURCES
     main.cpp
@@ -30,6 +34,7 @@ set(PROJECT_SOURCES
     loginpage.ui
 )
 
+# Main application target
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
@@ -46,11 +51,11 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         titlepage.cpp
         titlepage.ui
         pages.h
-        verifypage.h 
-        verifypage.cpp 
+        verifypage.h
+        verifypage.cpp
         verifypage.ui
-        uploadfilepage.h 
-        uploadfilepage.cpp 
+        uploadfilepage.h
+        uploadfilepage.cpp
         uploadfilepage.ui
         constants.h
         encryptionhelper.h
@@ -70,8 +75,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         securevector.h
         securevector.cpp
         securebufferutils.h
-
-
     )
 else()
     if(ANDROID)
@@ -85,19 +88,59 @@ else()
     endif()
 endif()
 
-target_include_directories(client-404 PRIVATE "../include")
-target_link_directories(client-404 PRIVATE "../lib")
-target_link_libraries(client-404 PRIVATE sodium)
+# Test target
+add_executable(tst_key_utils
+    tst_key_utils.cpp
+    tst_key_utils.h
+    key_utils.cpp
+    key_utils.h
+    securevector.h
+    securevector.cpp
+    securebufferutils.h
+    encryptionhelper.h
+    encryptionhelper.cpp
+    loginsessionmanager.h
+    loginsessionmanager.cpp  # Added this file
+)
 
-# Link both Widgets and Network modules
-target_link_libraries(client-404 PRIVATE Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+# Link libraries for main application
+target_include_directories(client-404 PRIVATE
+    "${CMAKE_SOURCE_DIR}/../include"
+    ${SODIUM_INCLUDE_DIR}
+)
+target_link_directories(client-404 PRIVATE
+    "${CMAKE_SOURCE_DIR}/../lib"
+)
+target_link_libraries(client-404 PRIVATE
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Network
+    ${SODIUM_LIBRARY}
+)
+
+# Link libraries for test target
+target_include_directories(tst_key_utils PRIVATE
+    "${CMAKE_SOURCE_DIR}/../include"
+    ${SODIUM_INCLUDE_DIR}
+)
+target_link_directories(tst_key_utils PRIVATE
+    "${CMAKE_SOURCE_DIR}/../lib"
+)
+target_link_libraries(tst_key_utils PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Test
+    Qt${QT_VERSION_MAJOR}::Widgets
+    ${SODIUM_LIBRARY}
+)
+
+# Enable testing
+enable_testing()
+add_test(NAME key_utils_test COMMAND tst_key_utils)
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.client-404)
 endif()
+
 set_target_properties(client-404 PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
