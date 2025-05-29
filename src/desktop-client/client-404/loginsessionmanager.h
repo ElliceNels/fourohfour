@@ -2,6 +2,7 @@
 #define LOGINSESSIONMANAGER_H
 
 #include <QString>
+#include "securevector.h"
 
 class LoginSessionManager {
 
@@ -9,8 +10,8 @@ public:
     static LoginSessionManager& getInstance();
 
     void setSession(const QString& username, const unsigned char* masterKey, size_t keyLength);
-    const QString& getUsername() const;
-    const unsigned char* getMasterKey() const;
+    const QString getUsername() const;
+    const SecureVector getMasterKey() const;
     void clearSession();
 
 private:
@@ -23,8 +24,7 @@ private:
     LoginSessionManager& operator=(LoginSessionManager&&) = delete;      // Disable move assignment: you cannot move-assign one instance to another.
 
     QString m_username;
-    unsigned char* m_masterKey;
-    size_t m_keyLength;
+    SecureVector m_masterKey;
 };
 
 #endif

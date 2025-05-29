@@ -3,9 +3,9 @@
 #include <sodium.h>
 #include <cstring>
 #include <QString>
+#include "securevector.h"
 
-LoginSessionManager::LoginSessionManager()
-    : m_masterKey(nullptr), m_keyLength(0) {}
+LoginSessionManager::LoginSessionManager() {}
 
 LoginSessionManager::~LoginSessionManager() {
     this->clearSession();
@@ -18,33 +18,25 @@ LoginSessionManager& LoginSessionManager::getInstance() {
 }
 
 void LoginSessionManager::setSession(const QString& username, const unsigned char* masterKey, size_t keyLength) {
-    this->clearSession(); // clear old data first just in case
-
+    this->clearSession();
     this->m_username = username;
-    this->m_keyLength = keyLength;
-
-    // Allocate and copy the key securely
-    this->m_masterKey = static_cast<unsigned char*>(sodium_malloc(keyLength));
-    if (this->m_masterKey) {
-        memcpy(this->m_masterKey, masterKey, keyLength);
-    }
+    
+    // Create new SecureVector and copy the key
+    this->m_masterKey = SecureVector(keyLength);
+    std::copy(masterKey, masterKey + keyLength, m_masterKey.begin());
 }
 
-const QString& LoginSessionManager::getUsername() const {
+
+const QString LoginSessionManager::getUsername() const {
     return this->m_username;
 }
 
-const unsigned char* LoginSessionManager::getMasterKey() const {
-    return this->m_masterKey;
+const SecureVector LoginSessionManager::getMasterKey() const {
+    return SecureVector(this->m_masterKey);  // Return a SecureVector containing the master key
 }
 
 void LoginSessionManager::clearSession() {
-    if (this->m_masterKey) {
-        sodium_memzero(this->m_masterKey, this->m_keyLength);
-        sodium_free(this->m_masterKey);
-        this->m_masterKey = nullptr;
-    }
-    this->m_keyLength = 0;
+    this->m_masterKey.clear();  // SecureVector handles secure zeroing
     this->m_username.clear();
 
     qDebug() << "Session cleaned up when called";

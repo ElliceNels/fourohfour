@@ -12,6 +12,10 @@ from flask import Flask
 from unittest.mock import MagicMock
 from server.utils.auth import login, sign_up, change_password, delete_account, change_username
 from server.models.tables import Users
+from server.app import create_app
+import base64
+
+app = create_app()
 
 CODE_BAD_REQUEST = 400
 CODE_UNAUTHORIZED = 401
@@ -66,12 +70,13 @@ def test_login_cases(username, password, expected_status, mock_db, app_ctx, mock
         assert "error" in data
 
 @pytest.mark.parametrize("username, password, public_key, salt, expected_status", [
-    ("new_user", "secure_pass", b"pub_key", b"salt123", CODE_CREATED),  # Success
-    ("existing_user", "secure_pass", b"pub_key", b"salt123", CODE_CONFLICT),  # Username exists
-    (None, "pass", b"pk", b"salt", CODE_BAD_REQUEST),  # Missing username
-    ("user", None, b"pk", b"salt", CODE_BAD_REQUEST),  # Missing password
+    ("new_user", "secure_pass", "cHViX2tleQ==", b"salt123", CODE_CREATED),  # Success - base64 of "pub_key"
+    ("existing_user", "secure_pass", "cHViX2tleQ==", b"salt123", CODE_CONFLICT),  # Username exists
+    (None, "pass", "cGs=", b"salt", CODE_BAD_REQUEST),  # Missing username - base64 of "pk"
+    ("user", None, "cGs=", b"salt", CODE_BAD_REQUEST),  # Missing password
     ("user", "pass", None, b"salt", CODE_BAD_REQUEST),  # Missing public_key
-    ("user", "pass", b"pk", None, CODE_BAD_REQUEST),  # Missing salt
+    ("user", "pass", "cGs=", None, CODE_BAD_REQUEST),  # Missing salt
+    ("user", "pass", "invalid_base64!", b"salt", CODE_BAD_REQUEST),  # Invalid base64 public key format
 ])
 def test_sign_up_cases(username, password, public_key, salt, expected_status, mock_db, app_ctx, mocker):
     if expected_status == CODE_CONFLICT:
