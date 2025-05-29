@@ -2,7 +2,6 @@ from nacl.bindings import (
     crypto_aead_xchacha20poly1305_ietf_KEYBYTES,
     crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
     crypto_aead_xchacha20poly1305_ietf_ABYTES,
-    crypto_aead_xchacha20poly1305_ietf_keygen,
     crypto_aead_xchacha20poly1305_ietf_encrypt,
     crypto_aead_xchacha20poly1305_ietf_decrypt
 )
@@ -17,7 +16,7 @@ class EncryptionHelper:
         """" 
         Returns a securely generated random key
         """
-        return crypto_aead_xchacha20poly1305_ietf_keygen()
+        return nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
 
     @staticmethod
     def generate_nonce():
@@ -60,3 +59,4 @@ class EncryptionHelper:
         except Exception as e:
             raise RuntimeError("Decryption failed or message forged") from e
         return plaintext
+    

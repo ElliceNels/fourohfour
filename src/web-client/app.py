@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, url_for
-from signup import validate_registration, load_dictionary_words
+from signup import validate_registration, manage_registration
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -23,8 +23,10 @@ def signup():
         if not valid:
             flash(message, "error")
         else:
+            manage_registration(account_name, password)
             flash(message, "success")
             return redirect(url_for('login'))
+    
 
     return render_template('signup.html')
 

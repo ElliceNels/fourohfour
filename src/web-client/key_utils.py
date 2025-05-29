@@ -7,7 +7,9 @@ from nacl.bindings import (
     crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
 )
 import nacl.utils
-from encryption_helper import EncryptionHelper  # Make sure this file is in your project
+from nacl import pwhash
+from encryption_helper import EncryptionHelper  
+from constants import BINARY_EXTENSION
 
 def generate_sodium_keypair():
     """
@@ -31,7 +33,7 @@ def save_keys_to_json_file(public_key_b64, private_key_b64, filename):
         json.dump(data, f, indent=2)
     return True
 
-def encrypt_and_save_key(private_key_b64, derived_key, username, keys_path, binary_extension):
+def encrypt_and_save_key(private_key_b64, derived_key, username):
     """
     Encrypt the private key with a random key, then encrypt that key with the derived key.
     Save both to files.
@@ -50,18 +52,18 @@ def encrypt_and_save_key(private_key_b64, derived_key, username, keys_path, bina
     combined_data = nonce + ciphertext
 
     # Save encrypted private key file
-    file_name = os.path.join(keys_path, f"{username}{binary_extension}")
+    file_name = f"./keys_{username}{BINARY_EXTENSION}"
     with open(file_name, 'wb') as f:
         f.write(combined_data)
 
     # Encrypt and save master key
-    if not encrypt_and_save_master_key(key, derived_key, username, keys_path, binary_extension):
+    if not encrypt_and_save_master_key(key, derived_key, username):
         print("Error saving encrypted key file")
         return False
 
     return True
 
-def encrypt_and_save_master_key(key_to_encrypt, derived_key, username, keys_path, binary_extension):
+def encrypt_and_save_master_key(key_to_encrypt, derived_key, username):
     """
     Encrypt the random key with the derived key and save to file.
     """
@@ -69,22 +71,17 @@ def encrypt_and_save_master_key(key_to_encrypt, derived_key, username, keys_path
     encrypted_key = EncryptionHelper.encrypt(key_to_encrypt, derived_key, nonce)
     combined_data = nonce + encrypted_key
 
-    file_path = os.path.join(keys_path, f"master_{username}{binary_extension}")
+    file_path = f"./masterKey_{username}{BINARY_EXTENSION}"
     with open(file_path, 'wb') as f:
         f.write(combined_data)
     return True
 
+def derive_key_from_password(password: str, salt: bytes, key_len: int = 32) -> bytes:
+    opslimit = pwhash.argon2id.OPSLIMIT_INTERACTIVE
+    memlimit = pwhash.argon2id.MEMLIMIT_INTERACTIVE
+    return pwhash.argon2id.kdf(key_len, password.encode('utf-8'), salt, opslimit=opslimit, memlimit=memlimit)
 
-def derive_key_from_password(password: str, salt: bytes, key_len: int = nacl.pwhash.argon2id.OUTLEN) -> bytes:
-    """
-    Derive a key from a password and salt using Argon2id (interactive limits).
-    Returns the derived key as bytes.
-    """
-    opslimit = nacl.pwhash.argon2id.OPSLIMIT_INTERACTIVE
-    memlimit = nacl.pwhash.argon2id.MEMLIMIT_INTERACTIVE
-    return nacl.pwhash.argon2id.kdf(key_len, password.encode('utf-8'), salt, opslimit=opslimit, memlimit=memlimit)
-
-def generate_salt(length: int = nacl.pwhash.SALTBYTES) -> str:
+def generate_salt(length: int = pwhash.argon2id.SALTBYTES) -> str:
     """
     Generate a random salt and return it as a base64-encoded string.
     """
@@ -97,16 +94,3 @@ def decode_salt(salt_b64: str) -> bytes:
     Decode a base64-encoded salt string back to bytes.
     """
     return base64.b64decode(salt_b64)
-
-
-# Generate keypair
-pub_b64, priv_b64 = generate_sodium_keypair()
-print("Public:", pub_b64)
-print("Private:", priv_b64)
-
-# Save to JSON
-save_keys_to_json_file(pub_b64, priv_b64, "mykeys.json")
-
-# Example: Encrypt and save key (simulate derived_key)
-derived_key = nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
-encrypt_and_save_key(priv_b64, derived_key, "alice", "./", ".bin")

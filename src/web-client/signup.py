@@ -1,4 +1,6 @@
 import unicodedata
+from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, encrypt_and_save_master_key, derive_key_from_password, generate_salt, decode_salt
+from password_utils import hash_password
 
 RESTRICTED_CHARS = set('!@#$%^&*()+=[]{}|\\;:\'",<>/?`~')  
 
@@ -29,3 +31,26 @@ def validate_registration(account_name, password, confirm_password):
         return False, "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens."
 
     return True, "Account created successfully!"
+
+def manage_registration(account_name, password):
+    pub_b64, priv_b64 = generate_sodium_keypair()
+    save_keys_to_json_file(pub_b64, priv_b64, "./mykeys.json")
+
+    print("Public key:" + pub_b64)
+    print("Private key:" + priv_b64)
+    print("Account: " + account_name)
+
+
+    hashed = hash_password(password)
+    print("Hahsed pass:"+ hashed)
+
+    salt = generate_salt()
+    raw_salt = decode_salt(salt)
+
+    derived_key = derive_key_from_password(hashed, raw_salt)
+    print("Salt: " + salt)
+
+    encrypt_and_save_key(priv_b64, derived_key, account_name)
+
+
+
