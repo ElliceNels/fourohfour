@@ -22,7 +22,7 @@ public:
 private slots:
     void onCreateAccountClicked();
     void onShowPasswordClicked();
-    bool sendCredentials(string name, string password, string publicKey, string salt);
+    string sendCredentials(string name, string password, string publicKey, string salt);
 
 private:
     Ui::RegisterPage *ui;

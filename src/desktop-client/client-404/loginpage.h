@@ -25,7 +25,7 @@ public:
 private slots:
     void onLoginButtonClicked();
     void onShowPasswordClicked();
-    bool sendCredentials(string name, string password);
+    string sendCredentials(string name, string password);
 
 private:
     Ui::LoginPage *ui;

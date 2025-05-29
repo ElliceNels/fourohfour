@@ -69,7 +69,7 @@ void LoginPage::onLoginButtonClicked()
 
     hash_password(password.toStdString(), hashed);
 
-    if (!sendCredentials(sUsername, hashed)) {
+    if (sendCredentials(sUsername, hashed) == "ERROR") {
         QMessageBox::warning(this, "Authentication Failed", "Incorrent username or password. Please try again");
         return;
     }
@@ -94,7 +94,7 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
-bool LoginPage::sendCredentials(string name, string password)
+string LoginPage::sendCredentials(string name, string password)
 {
     QJsonObject json;
     json["username"] = QString::fromStdString(name);

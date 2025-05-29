@@ -4,7 +4,7 @@
 #include "qnetworkreply.h"
 #include <iostream>
 using namespace std;
-bool sendData(QByteArray jsonData, QObject *parent, QString endpoint)
+string sendData(QByteArray jsonData, QObject *parent, QString endpoint)
 {
     QNetworkAccessManager manager(parent);
     QNetworkRequest request((QUrl(endpoint)));
@@ -17,15 +17,15 @@ bool sendData(QByteArray jsonData, QObject *parent, QString endpoint)
     QAbstractSocket::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
-    bool success = false;
+    string ret;
     if (reply->error() == QNetworkReply::NoError) {
         QByteArray response = reply->readAll();
         cout << "server response:" << response.toStdString() << endl;
-        success = true;
+        ret = response.toStdString();
     } else {
         cout << "server error: " << reply->errorString().toStdString() << endl;
-        success = false;
+        ret = "ERROR";
     }
     reply->deleteLater();
-    return success;
+    return ret;
 }

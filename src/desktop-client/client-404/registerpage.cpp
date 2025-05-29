@@ -118,7 +118,7 @@ void RegisterPage::onCreateAccountClicked()
     string* saltPtr = &sSalt;
 
 
-    if (!sendCredentials(sAccountName, hashed, pubKey, sSalt)) {
+    if (sendCredentials(sAccountName, hashed, pubKey, sSalt == "ERROR")) {
         QMessageBox::warning(this, "Error", "Error creating account, please try again later");
         return;
     }
@@ -159,7 +159,7 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
-bool RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
+string RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
 {
     QJsonObject json;
     json["username"] = QString::fromStdString(name);
