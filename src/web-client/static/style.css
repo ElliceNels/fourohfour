@@ -1,0 +1,187 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header {
+    position: absolute;
+    top: 32px;
+    left: 32px;
+    font-size: 1.7rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    z-index: 10;
+}
+
+.logo-primary {
+    color: #2196F3;
+    font-weight: 600;
+}
+
+.logo-secondary {
+    color: #424242;
+    font-weight: 400;
+}
+
+.center-viewport {
+    min-height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    line-height: 1.1;
+}
+
+.hero-primary {
+    color: #2196F3;
+}
+
+.hero-secondary {
+    color: #424242;
+}
+
+.hero-subtitle {
+    font-size: 1.2rem;
+    color: #757575;
+    margin-bottom: 40px;
+}
+
+.button-row {
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.btn.big-btn {
+    min-width: 180px;
+    min-height: 50px;
+    background: #21a1ff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    box-shadow: 2px 2px 0 0 #222;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn.big-btn:hover {
+    background: #1976D2;
+    box-shadow: 4px 4px 0 0 #222;
+}
+
+/* Login & Signup Form Styles */
+.login-form, .signup-form {
+    width: 400px;
+    max-width: 90vw;
+    margin: 0 auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-label {
+    font-size: 1rem;
+    color: #424242;
+    margin-bottom: 2px;
+}
+
+input[type="text"], input[type="password"] {
+    padding: 12px;
+    font-size: 1rem;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus, input[type="password"]:focus {
+    border-color: #2196F3;
+}
+
+.password-row {
+    display: flex;
+    gap: 12px;
+}
+
+.show-btn {
+    min-width: 80px;
+    height: 42px;
+    background: #21a1ff;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 2px 2px 0 0 #222;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    margin-left: 0;
+    margin-top: 0;
+    padding: 0;
+}
+
+.show-btn:hover {
+    background: #1976D2;
+    box-shadow: 4px 4px 0 0 #222;
+}
+
+.login-btn, .signup-btn {
+    width: 100%;
+    margin-top: 10px;
+    min-height: 50px;
+    font-size: 1.2rem;
+    border-radius: 6px;
+}
+
+.password-hint {
+    color: #757575;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    margin-top: -8px;
+}
+
+.form-footer {
+    margin-top: 32px;
+    text-align: center;
+    color: #222;
+    font-size: 1rem;
+}
+
+.form-footer a {
+    color: #2196F3;
+    text-decoration: none;
+    margin-left: 4px;
+}
+
+.form-footer a:hover {
+    text-decoration: underline;
+}
