@@ -70,6 +70,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         securevector.h
         securevector.cpp
         securebufferutils.h
+        utils.h
+        utils.cpp
 
 
     )

@@ -18,6 +18,7 @@
 #include <qstackedwidget.h>
 #include <QHostInfo>
 #include "constants.h"
+#include "utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -68,14 +69,15 @@ void LoginPage::onLoginButtonClicked()
 
     hash_password(password.toStdString(), hashed);
 
-    sendCredentials(sUsername, hashed);
+    if (!sendCredentials(sUsername, hashed)) {
+        QMessageBox::warning(this, "Authentication Failed", "Incorrent username or password. Please try again");
+        return;
+    }
 
     // Debug prints
     cout << "Username: " << username.toStdString() << endl;
     cout << "Password: " << password.toStdString() << endl;
 
-    // Uncomment when we can query password from the server
-    // cout << "Password verification: " << verify_password(hashed, secondPassword) << endl;
 
     // Switch to main menu after login
     emit this->goToMainMenuRequested();
@@ -92,7 +94,7 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
-void LoginPage::sendCredentials(string name, string password)
+bool LoginPage::sendCredentials(string name, string password)
 {
     QJsonObject json;
     json["username"] = QString::fromStdString(name);
@@ -100,23 +102,9 @@ void LoginPage::sendCredentials(string name, string password)
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
+    QString endpoint = "/login";
 
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("http://gobbler.info:4004/login"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    QNetworkReply *reply = manager->post(request, jsonData);
-
-    connect(reply, &QNetworkReply::finished, this, [reply]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            QByteArray response = reply->readAll();
-            cout << response.toStdString() << endl;
-        } else {
-            cout << "error: " << reply->errorString().toStdString() << endl;
-        }
-        reply->deleteLater();
-    });
-
+    return sendData(jsonData, this, endpoint);
 }
 
 bool LoginPage::isRateLimited(const QString& ip)

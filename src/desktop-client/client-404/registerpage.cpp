@@ -11,6 +11,7 @@
 #include <qstackedwidget.h>
 #include "key_utils.h"
 #include "constants.h"
+#include "utils.h"
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
@@ -116,6 +117,13 @@ void RegisterPage::onCreateAccountClicked()
     string sSalt = salt.toStdString();
     string* saltPtr = &sSalt;
 
+
+    if (!sendCredentials(sAccountName, hashed, pubKey, sSalt)) {
+        QMessageBox::warning(this, "Error", "Error creating account, please try again later");
+        return;
+    }
+
+
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
     saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
@@ -129,8 +137,6 @@ void RegisterPage::onCreateAccountClicked()
     cout << privKeyBase64.toStdString() << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-    //Uncomment when server side is ready
-    sendCredentials(sAccountName, hashed, pubKey, sSalt);
 
 
     QMessageBox::information(this, "Success", "Account created!");
@@ -153,7 +159,7 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
-void RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
+bool RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
 {
     QJsonObject json;
     json["username"] = QString::fromStdString(name);
@@ -164,23 +170,9 @@ void RegisterPage::sendCredentials(string name, string password, string publicKe
 
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
+    QString endpoint = "/sign_up";
 
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("http://gobbler.info:4004/sign_up"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    QNetworkReply *reply = manager->post(request, jsonData);
-
-    connect(reply, &QNetworkReply::finished, this, [reply]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            QByteArray response = reply->readAll();
-            cout << response.toStdString() << endl;
-        } else {
-           cout << "error: " << reply->errorString().toStdString() << endl;
-        }
-        reply->deleteLater();
-    });
-
+    return sendData(jsonData, this, endpoint);
 }
 
 
