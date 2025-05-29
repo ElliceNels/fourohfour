@@ -1,8 +1,9 @@
 from flask import Flask
 import pytest
 from unittest.mock import MagicMock, patch, mock_open
-from server.utils.file import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
+from server.utils.file import upload_file_to_db, get_user_files, get_file_by_uuid, delete_file_by_uuid
 from server.app import create_app
+import uuid
 
 # HTTP status code constants
 CODE_SUCCESS = 200
@@ -46,6 +47,7 @@ def test_upload_file_to_db(user_id, file_present, db_error, expected_status, moc
     file = DummyFile() if file_present else None
     file_path = "/tmp/test.txt"
     metadata = {'size': 123, 'format': 'txt'}
+    test_uuid = uuid.uuid4()
     if db_error:
         mock_db.add.side_effect = Exception("DB error")
     else:
@@ -53,22 +55,25 @@ def test_upload_file_to_db(user_id, file_present, db_error, expected_status, moc
         mock_db.flush.side_effect = None
         mock_db.commit.side_effect = None
         mock_db.rollback.side_effect = None
-        # Simulate new_file.id
+        # Simulate new_file.id and uuid
         def add_side_effect(obj):
             if hasattr(obj, 'id'):
                 obj.id = 42
+            if hasattr(obj, 'uuid'):
+                obj.uuid = test_uuid
         mock_db.add.side_effect = add_side_effect
     mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
     response, status = upload_file_to_db(user_id, file, file_path, metadata)
     assert status == expected_status
     data = response.get_json()
     if expected_status == CODE_CREATED:
-        assert 'file_id' in data
+        assert 'uuid' in data
+        assert data['uuid'] == str(test_uuid)
     else:
         assert 'error' in data
 
 @pytest.mark.parametrize("user_id, owned_files, shared_files, db_error, expected_status", [
-    (1, [type('Obj', (), {'id': 1, 'name': 'a', 'metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
+    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
     (2, [], [], True, CODE_SERVER_ERROR),
 ])
 def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_status, mock_db, app_ctx, mocker):
@@ -88,49 +93,66 @@ def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_s
             data = data.get_json()
             assert 'owned_files' in data
             assert 'shared_files' in data
+            if owned_files:
+                assert 'uuid' in data['owned_files'][0]
     else:
         data = response.get_json()
         assert 'owned_files' in data
         assert 'shared_files' in data
+        if owned_files:
+            assert 'uuid' in data['owned_files'][0]
 
-@pytest.mark.parametrize("file_id, user_id, file_found, owner, has_permission, file_read_error, db_error, expected_status", [
-    (1, 1, True, True, True, False, False, CODE_SUCCESS),  # Owner, success
-    (2, 2, True, False, True, False, False, CODE_SUCCESS),  # Shared, success
-    (3, 3, True, False, False, False, False, CODE_FORBIDDEN),  # No permission
-    (4, 4, False, False, False, False, False, CODE_NOT_FOUND),  # File not found
-    (5, 5, True, True, True, True, False, CODE_SERVER_ERROR),  # File read error
-    (6, 6, True, True, True, False, True, CODE_SERVER_ERROR),  # DB error
+@pytest.mark.parametrize("file_uuid, user_id, file_found, owner, has_permission, file_read_error, db_error, expected_status", [
+    (uuid.uuid4(), 1, True, True, True, False, False, CODE_SUCCESS),  # Owner, success
+    (uuid.uuid4(), 2, True, False, True, False, False, CODE_SUCCESS),  # Shared, success
+    (uuid.uuid4(), 3, True, False, False, False, False, CODE_FORBIDDEN),  # No permission
+    (uuid.uuid4(), 4, False, False, False, False, False, CODE_NOT_FOUND),  # File not found
+    (uuid.uuid4(), 5, True, True, True, True, False, CODE_SERVER_ERROR),  # File read error
+    (uuid.uuid4(), 6, True, True, True, False, True, CODE_SERVER_ERROR),  # DB error
 ])
-def test_get_file_by_id(file_id, user_id, file_found, owner, has_permission, file_read_error, db_error, expected_status, mock_db, app_ctx, mocker):
+def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission, file_read_error, db_error, expected_status, mock_db, app_ctx, mocker):
     if db_error:
         mocker.patch('server.utils.file.get_session', side_effect=Exception("DB error"))
     else:
         file_obj = MagicMock()
-        file_obj.id = file_id
+        file_obj.uuid = file_uuid
         file_obj.owner_id = user_id if owner else user_id + 100
         file_obj.name = "file.txt"
-        file_obj.path = f"/tmp/{file_id}.txt"
+        file_obj.path = f"/tmp/{file_uuid}.txt"
         file_obj.metadata = MagicMock(size=123, format='txt')
         file_obj.uploaded_at = None
-        # .get()
-        mock_db.query().get.return_value = file_obj if file_found else None
-        # Permissions
+
+        # Set up the file query mock
+        file_query = MagicMock()
+        file_query.filter_by().first.return_value = file_obj if file_found else None
+        
+        # Set up the permissions query mock
+        perm_query = MagicMock()
         if not file_found:
-            pass
+            perm_query.filter_by().first.return_value = None
         elif owner:
-            mock_db.query().filter_by().all.return_value = [MagicMock(user_id=1, encryption_key='key')]  # owner gets keys
+            perm_query.filter_by().all.return_value = [MagicMock(user_id=1, encryption_key='key')]
         elif has_permission:
-            mock_db.query().filter_by().first.return_value = MagicMock()
+            perm_query.filter_by().first.return_value = MagicMock()
         else:
-            mock_db.query().filter_by().first.return_value = None
+            perm_query.filter_by().first.return_value = None
+
+        # Make query() return different mocks based on the query
+        def query_side_effect(*args, **kwargs):
+            if args[0].__name__ == 'Files':
+                return file_query
+            return perm_query
+        
+        mock_db.query.side_effect = query_side_effect
         mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
+
         # Patch open
         if file_found and (owner or has_permission) and not file_read_error:
             m = mock_open(read_data=b"encrypted")
             mocker.patch("builtins.open", m)
         elif file_found and (owner or has_permission) and file_read_error:
             mocker.patch("builtins.open", side_effect=Exception("read error"))
-    response = get_file_by_id(file_id, user_id)
+    response = get_file_by_uuid(str(file_uuid), user_id)
     if expected_status == CODE_SUCCESS:
         data = response.get_json()
         assert 'encrypted_file' in data
@@ -143,28 +165,28 @@ def test_get_file_by_id(file_id, user_id, file_found, owner, has_permission, fil
             assert response[1] == expected_status
         assert 'error' in response[0].get_json()
 
-@pytest.mark.parametrize("file_id, user_id, file_found, owner, file_delete_error, db_error, expected_status", [
-    (1, 1, True, True, False, False, CODE_SUCCESS),  # Success
-    (2, 2, True, False, False, False, CODE_FORBIDDEN),  # Not owner
-    (3, 3, False, False, False, False, CODE_NOT_FOUND),  # File not found
-    (4, 4, True, True, True, False, CODE_SERVER_ERROR),  # File delete error
-    (5, 5, True, True, False, True, CODE_SERVER_ERROR),  # DB error
+@pytest.mark.parametrize("file_uuid, user_id, file_found, owner, file_delete_error, db_error, expected_status", [
+    (uuid.uuid4(), 1, True, True, False, False, CODE_SUCCESS),  # Success
+    (uuid.uuid4(), 2, True, False, False, False, CODE_FORBIDDEN),  # Not owner
+    (uuid.uuid4(), 3, False, False, False, False, CODE_NOT_FOUND),  # File not found
+    (uuid.uuid4(), 4, True, True, True, False, CODE_SERVER_ERROR),  # File delete error
+    (uuid.uuid4(), 5, True, True, False, True, CODE_SERVER_ERROR),  # DB error
 ])
-def test_delete_file_by_id(file_id, user_id, file_found, owner, file_delete_error, db_error, expected_status, mock_db, app_ctx, mocker):
+def test_delete_file_by_uuid(file_uuid, user_id, file_found, owner, file_delete_error, db_error, expected_status, mock_db, app_ctx, mocker):
     if db_error:
         mocker.patch('server.utils.file.get_session', side_effect=Exception("DB error"))
     else:
         file_obj = MagicMock()
-        file_obj.id = file_id
+        file_obj.uuid = file_uuid
         file_obj.owner_id = user_id if owner else user_id + 100
-        file_obj.path = f"/tmp/{file_id}.txt"
-        mock_db.query().get.return_value = file_obj if file_found else None
+        file_obj.path = f"/tmp/{file_uuid}.txt"
+        mock_db.query().filter_by().first.return_value = file_obj if file_found else None
         mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
         if file_found and owner and file_delete_error:
             mocker.patch("os.remove", side_effect=Exception("delete error"))
         elif file_found and owner:
             mocker.patch("os.remove", return_value=None)
-    response = delete_file_by_id(file_id, user_id)
+    response = delete_file_by_uuid(str(file_uuid), user_id)
     if isinstance(response, tuple):
         data, status = response
         assert status == expected_status

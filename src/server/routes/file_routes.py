@@ -1,11 +1,12 @@
 from flask import Blueprint, jsonify, request
 from server.models.tables import Files, FilePermissions, Users, FileMetadata  
 from server.utils.auth import get_current_user
-from server.utils.file import upload_file_to_db, get_user_files, get_file_by_id, delete_file_by_id
+from server.utils.file import upload_file_to_db, get_user_files, get_file_by_uuid, delete_file_by_uuid
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime, UTC
 import logging
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,12 @@ def upload_file():
     - metadata: JSON object containing:
         - size: File size in bytes
         - format: File format/extension
+    - uuid: (optional) UUID of the file to update
 
     Returns:
     {
         "message": "File uploaded successfully",
-        "file_id": <file_id>
+        "uuid": <uuid>
     }
     """
     logger.debug(f"Received file upload request")
@@ -36,6 +38,17 @@ def upload_file():
     try:
         current_user = get_current_user()
         
+        # Get UUID parameter
+        file_uuid = request.form.get('uuid')
+        
+        # Validate UUID format if provided
+        if file_uuid:
+            try:
+                file_uuid = uuid.UUID(file_uuid)
+            except ValueError:
+                logger.warning(f"Invalid UUID format provided: {file_uuid}")
+                return jsonify({'error': 'Invalid UUID format'}), 400
+        
         # Save the file to disk
         file = request.files['encrypted_file']
         sanitized_filename = secure_filename(file.filename)
@@ -43,7 +56,7 @@ def upload_file():
         file_path = os.path.join('uploads', filename)
         file.save(file_path)
 
-        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata)
+        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid)
 
     except Exception as e:
         # Clean up file if database operation fails
@@ -63,7 +76,7 @@ def list_files():
     {
         "owned_files": [
             {
-                "id": <file_id>,
+                "uuid": <uuid>,
                 "filename": <filename>,
                 "file_size": <size>,
                 "format": <format>,
@@ -73,7 +86,7 @@ def list_files():
         ],
         "shared_files": [
             {
-                "id": <file_id>,
+                "uuid": <uuid>,
                 "filename": <filename>,
                 "file_size": <size>,
                 "format": <format>,
@@ -92,12 +105,12 @@ def list_files():
         logger.error(f"Error listing files: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@files_bp.route('/<file_id>', methods=['GET'])
-def get_file(file_id):
-    """Get a specific file by ID.
+@files_bp.route('/<file_uuid>', methods=['GET'])
+def get_file(file_uuid):
+    """Get a specific file by UUID.
     
     Args:
-        file_id: The ID of the requested file
+        file_uuid: The UUID of the requested file
 
     Returns:
     {
@@ -107,32 +120,32 @@ def get_file(file_id):
         }
     }
     """
-    logger.debug(f"Received request to get file with ID: {file_id}")
+    logger.debug(f"Received request to get file with UUID: {file_uuid}")
 
     try:
         current_user = get_current_user()
-        return get_file_by_id(file_id, current_user.user_id)
+        return get_file_by_uuid(file_uuid, current_user.user_id)
     except Exception as e:
-        logger.error(f"Error retrieving file {file_id}: {str(e)}")
+        logger.error(f"Error retrieving file {file_uuid}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@files_bp.route('/<file_id>', methods=['DELETE'])
-def delete_file(file_id):
-    """Delete a specific file by ID.
+@files_bp.route('/<file_uuid>', methods=['DELETE'])
+def delete_file(file_uuid):
+    """Delete a specific file by UUID.
     
     Args:
-        file_id: The ID of the file to delete
+        file_uuid: The UUID of the file to delete
 
     Returns:
     {
         "message": "File deleted successfully"
     }
     """
-    logger.debug(f"Received request to delete file with ID: {file_id}")
+    logger.debug(f"Received request to delete file with UUID: {file_uuid}")
 
     try:
         current_user = get_current_user()
-        return delete_file_by_id(file_id, current_user.user_id)
+        return delete_file_by_uuid(file_uuid, current_user.user_id)
     except Exception as e:
-        logger.error(f"Error deleting file {file_id}: {str(e)}")
+        logger.error(f"Error deleting file {file_uuid}: {str(e)}")
         return jsonify({'error': str(e)}), 500

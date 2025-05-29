@@ -1,6 +1,7 @@
-from sqlalchemy import CheckConstraint, Column, Integer, String, BLOB, ForeignKey, DateTime, DECIMAL, VARBINARY
+from sqlalchemy import CheckConstraint, Column, Integer, String, BLOB, ForeignKey, DateTime, DECIMAL, VARBINARY, UUID
 from sqlalchemy.orm import relationship, declarative_base
 from datetime import datetime, UTC
+import uuid
 
 Base = declarative_base()
 
@@ -53,6 +54,7 @@ class Files(Base):
     __tablename__ = 'files'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(UUID, unique=True, nullable=False, default=uuid.uuid4, index=True)
     name = Column(String(255), nullable=False)
     path = Column(String(512), nullable=False)
     uploaded_at = Column(DateTime, nullable=False, index=True)
