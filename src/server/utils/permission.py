@@ -25,7 +25,7 @@ def get_user_public_key(user_id: int) -> dict:
         logger.info(f"User {user_id} retrieved their public key successfully")
         return jsonify({
             'public_key': user.public_key
-        })
+        }), 200
 
     except Exception as e:
         logger.error(f"Error retrieving public key for user {user_id}: {str(e)}")
@@ -127,3 +127,4 @@ def remove_file_permission(file_id: int, user_id: int, owner_id: int) -> dict:
         except Exception as e:
             db.rollback()
             logger.error(f"Error removing permission for file {file_id} and user {user_id}: {str(e)}")
+            return jsonify({'error': str(e)}), 500

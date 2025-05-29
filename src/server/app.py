@@ -51,14 +51,13 @@ def create_app():
     
     return app
 
-# Create the app instance
-try:
-    setup_db()
-except Exception as e:
-    logger.critical(f"Failed to setup database: {e}")
-    exit(EXIT_ERROR)
-
 app = create_app()
 
 if __name__ == '__main__':
+    try:
+        setup_db()
+    except Exception as e:
+        logger.critical(f"Failed to setup database: {e}")
+        exit(EXIT_ERROR)
+
     app.run(debug=True) 
