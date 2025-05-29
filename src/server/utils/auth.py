@@ -62,8 +62,8 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         return jsonify({"error": "Missing required fields"}), 400
     
     try:
-        # Decode the base64 public key
-        decoded_public_key = base64.b64decode(public_key)
+        # Validate that the public key is a valid base64 string
+        base64.b64decode(public_key)
     except Exception as e:
         logger.warning(f"Sign up failed for user {username}: Invalid public key format - {str(e)}")
         return jsonify({"error": "Invalid public key format - must be base64 encoded"}), 400
@@ -76,7 +76,7 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
             return jsonify({"error": "Username already exists"}), 409
         
         # Cond 2: The public key already exists -> should be unique
-        existing_public_key = db.query(Users).filter_by(public_key=decoded_public_key).first()
+        existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
         if existing_public_key:
             logger.warning(f"Sign up failed for user {username}: Public key already exists")
             return jsonify({"error": "Public key already exists"}), 409
@@ -85,7 +85,7 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         new_user = Users(
             username=username,
             password=password,
-            public_key=decoded_public_key,
+            public_key=public_key,
             salt=salt,
             created_at=datetime.now(),
             updated_at=datetime.now()

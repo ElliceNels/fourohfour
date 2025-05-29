@@ -193,7 +193,7 @@ def test_change_username_cases(token, new_username, user_exists, token_error, us
         # Invalid user (user not found)
         ("token", None, False, CODE_NOT_FOUND, "User not found", None, None),
         # Success
-        ("token", None, True, CODE_SUCCESS, None, "user", b"pk"),
+        ("token", None, True, CODE_SUCCESS, None, "user", "pk"),
     ]
 )
 def test_get_current_user_cases(token, token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key, mock_db, app_ctx, mocker):
@@ -213,7 +213,7 @@ def test_get_current_user_cases(token, token_error, user_exists, expected_status
         # Don't patch DB for token error
         pass
     elif user_exists:
-        user = Users(id=1, username="user", password="pw", public_key=b"pk", salt=b"salt", created_at="now", updated_at="now")
+        user = Users(id=1, username="user", password="pw", public_key="pk", salt=b"salt", created_at="now", updated_at="now")
         mock_db.query().filter_by().first.return_value = user
         mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     else:
