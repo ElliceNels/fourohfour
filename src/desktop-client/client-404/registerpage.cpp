@@ -118,7 +118,7 @@ void RegisterPage::onCreateAccountClicked()
     string* saltPtr = &sSalt;
 
 
-    if (sendCredentials(sAccountName, hashed, pubKey, sSalt == "ERROR")) {
+    if ((sendCredentials(sAccountName, hashed, pubKey, sSalt) == "ERROR")) {
         QMessageBox::warning(this, "Error", "Error creating account, please try again later");
         return;
     }
