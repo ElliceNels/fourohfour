@@ -57,6 +57,7 @@ Assuming this is your first time running the app:
 1. Install MySQL:
    - Download MySQL Installer from: https://dev.mysql.com/downloads/installer/
 	   - Our team is using version 8.0.42
+   - Choose either of the two installers
    - Run installer, choose "Developer Default" or "Server only"
    - Set root password during installation
    - Keep default port (3306)
