@@ -13,7 +13,7 @@ class Users(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(100), nullable=False)
     salt = Column(BLOB, nullable=False)
-    public_key = Column(String(2048), nullable=False, unique=True)
+    public_key = Column(String(191), nullable=False, unique=True)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 
@@ -54,7 +54,7 @@ class Files(Base):
     __tablename__ = 'files'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    uuid = Column(UUID, unique=True, nullable=False, default=uuid.uuid4, index=True)
+    uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
     name = Column(String(255), nullable=False)
     path = Column(String(512), nullable=False)
     uploaded_at = Column(DateTime, nullable=False, index=True)

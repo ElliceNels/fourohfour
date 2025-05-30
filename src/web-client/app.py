@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash, url_for
+from flask import Flask, render_template, request, redirect, flash, url_for, session
 from signup import validate_registration, manage_registration
 
 app = Flask(__name__)
@@ -7,10 +7,6 @@ app.secret_key = 'your_secret_key'
 @app.route('/')
 def title_page():
     return render_template('title.html')
-
-@app.route('/login')
-def login():
-    return render_template('login.html')
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -29,6 +25,39 @@ def signup():
     
 
     return render_template('signup.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        return redirect(url_for('main_menu'))
+    return render_template('login.html')
+
+@app.route('/mainmenu')
+def main_menu():
+    return render_template('mainmenu.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+@app.route('/upload_file')
+def upload_file():
+    return "Upload File Page"
+
+@app.route('/view_files')
+def view_files():
+    return "View Files Page"
+
+@app.route('/verify_user')
+def verify_user():
+    return "Verify User Page"
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    if request.method == 'POST':
+        pass
+    return render_template('resetpassword.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
