@@ -66,6 +66,8 @@ set(UTILS_SOURCES
     utils/securevector.h
     utils/securevector.cpp
     utils/securebufferutils.h
+    utils/request_utils.h
+    utils/request_utils.cpp
 )
 
 set(CORE_SOURCES
