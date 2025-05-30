@@ -36,12 +36,16 @@ def create_permission():
             return jsonify({'error': f'{field} is required'}), 400
 
     try:
-        current_user = get_current_user()
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id'] 
         return create_file_permission(
             data['file_id'],
             data['user_id'],
             data['key_for_recipient'],
-            current_user.user_id
+            user_id
         )
     except Exception as e:
         logger.error(f"Error creating file permission: {str(e)}")
@@ -76,11 +80,16 @@ def remove_permission():
             return jsonify({'error': f'{field} is required'}), 400
 
     try:
-        current_user = get_current_user()
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id'] 
+
         return remove_file_permission(
             data['file_id'],
             data['user_id'],
-            current_user.user_id
+            user_id
         )
     except Exception as e:
         logger.error(f"Error removing file permission: {str(e)}")
