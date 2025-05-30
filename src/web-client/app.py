@@ -41,23 +41,21 @@ def logout():
 
 @app.route('/upload_file')
 def upload_file():
-    # Your upload file logic
     return "Upload File Page"
 
 @app.route('/view_files')
 def view_files():
-    # Your view files logic
     return "View Files Page"
 
 @app.route('/verify_user')
 def verify_user():
-    # Your verify user logic
     return "Verify User Page"
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
-    # You can render a reset password page or just a placeholder for now
-    return "Reset Password Page"
+    if request.method == 'POST':
+        pass
+    return render_template('resetpassword.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
