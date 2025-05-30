@@ -4,16 +4,40 @@ html, body {
     padding: 0;
     background: #fff;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+}
+
+body {
+    min-height: 100vh;
+    min-width: 100vw;
+    overflow-x: hidden;
 }
 
 .header {
-    position: absolute;
-    top: 32px;
-    left: 32px;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
     font-size: 1.7rem;
     font-weight: 500;
     letter-spacing: 0.5px;
+    box-sizing: border-box;
     z-index: 10;
+    position: relative;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .logo-primary {
@@ -26,13 +50,38 @@ html, body {
     font-weight: 400;
 }
 
+.logout-form,
+.reset-form {
+    margin: 0;
+}
+
+.btn.logout-btn,
+.btn.reset-btn {
+    background: #e53935;
+    color: #fff;
+    border-radius: 4px;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background 0.2s;
+}
+
+.btn.logout-btn:hover,
+.btn.reset-btn:hover {
+    background: #b71c1c;
+}
+
 .center-viewport {
-    min-height: 100vh;
+    min-height: calc(100vh - 70px);
     width: 100vw;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
 }
 
 .hero {
@@ -69,13 +118,13 @@ html, body {
 }
 
 .btn.big-btn {
-    min-width: 180px;
-    min-height: 50px;
+    min-width: 260px;
+    min-height: 56px;
     background: #21a1ff;
     color: #fff;
     border: none;
     border-radius: 3px;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 500;
     box-shadow: 2px 2px 0 0 #222;
     cursor: pointer;
@@ -85,6 +134,7 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 12px;
 }
 
 .btn.big-btn:hover {
@@ -184,4 +234,47 @@ input[type="text"]:focus, input[type="password"]:focus {
 
 .form-footer a:hover {
     text-decoration: underline;
+}
+.reset-container {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reset-form-main {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 10px;
+}
+
+.reset-form-main .form-group {
+    width: 100%;
+}
+
+.reset-form-main input[type="password"], 
+.reset-form-main input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    font-size: 1.1rem;
+    border: 1.5px solid #ccc;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 0;
+}
+
+.reset-form-main input[type="password"]:focus, 
+.reset-form-main input[type="text"]:focus {
+    border-color: #2196F3;
+}
+
+.reset-form-main .btn.big-btn {
+    width: 100%;
+    margin-top: 24px;
 }
