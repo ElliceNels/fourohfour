@@ -62,8 +62,9 @@ void LoginPage::onLoginButtonClicked()
     cout << "Password: " << sPassword << endl;
 
     string hashed;
+    string passwordSalt = "qWwVoi8lxzvsDIbadlBklw=="; //getSaltFromServer(sUsername);
 
-    hash_password(password.toStdString(), hashed);
+    deterministic_hash_password(password.toStdString(), passwordSalt, hashed);
 
     if (sendCredentials(sUsername, hashed) == "ERROR") {
         QMessageBox::warning(this, "Authentication Failed", "Incorrent username or password. Please try again");
