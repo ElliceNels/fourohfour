@@ -68,6 +68,7 @@ set(UTILS_SOURCES
     utils/securebufferutils.h
     utils/request_utils.h
     utils/request_utils.cpp
+    utils/custom_deleter.h
 )
 
 set(CORE_SOURCES

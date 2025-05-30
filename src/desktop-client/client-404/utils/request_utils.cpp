@@ -66,7 +66,7 @@ void RequestUtils::clearRefreshToken() {
 void RequestUtils::addRefreshTokenHeader() {
     if (m_refreshToken) {
         string refreshHeader = REFRESH_TOKEN_HEADER + *m_refreshToken;
-        m_headers = curl_slist_append(m_headers, refreshHeader.c_str());
+        m_headers.reset(curl_slist_append(m_headers.release(), refreshHeader.c_str()));
         // Zero out the memory for security
         clearRefreshToken();
     }
@@ -115,42 +115,36 @@ bool RequestUtils::refreshAccessToken() {
     return success;
 }
 
-// Destructor
+// Destructor - no longer needs manual cleanup
 RequestUtils::~RequestUtils() {
-    if (m_headers) {
-        curl_slist_free_all(m_headers);
-    }
-    if (m_curl) {
-        curl_easy_cleanup(m_curl);
-    }
     clearBearerToken();
     clearRefreshToken();
+    // Smart pointers will handle cleanup of m_curl and m_headers
 }
 
 // Set up CURL with secure defaults
 void RequestUtils::setupCurl() {
-    curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, ENABLED);    // Allow redirects to be followed automatically
-    curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, MAX_REDIRECTS);   // Limit redirects to 5 to prevent redirect loops
-    curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, TIMEOUT_SECONDS);   // Set 30 second timeout for entire request
-    curl_easy_setopt(m_curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);  // Use TLS 1.3 for stronger encryption
-    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, ENABLED);    // Verify the authenticity of the SSL certificate
-    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT); // Verify the SSL cert matches the hostname
-    curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback); // Set callback for handling response data
-    curl_easy_setopt(m_curl, CURLOPT_DOH_URL, DNS_URL_DOH.c_str()); // Use DNS over HTTPS for secure hostname resolution
-    curl_easy_setopt(m_curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https"); // Only allow redirects to HTTP/HTTPS protocols
+    curl_easy_setopt(m_curl.get(), CURLOPT_FOLLOWLOCATION, ENABLED);    // Allow redirects to be followed automatically
+    curl_easy_setopt(m_curl.get(), CURLOPT_MAXREDIRS, MAX_REDIRECTS);   // Limit redirects to 5 to prevent redirect loops
+    curl_easy_setopt(m_curl.get(), CURLOPT_TIMEOUT, TIMEOUT_SECONDS);   // Set 30 second timeout for entire request
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);  // Use TLS 1.3 for stronger encryption
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, ENABLED);    // Verify the authenticity of the SSL certificate
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT); // Verify the SSL cert matches the hostname
+    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback); // Set callback for handling response data
+    curl_easy_setopt(m_curl.get(), CURLOPT_DOH_URL, DNS_URL_DOH.c_str()); // Use DNS over HTTPS for secure hostname resolution
+    curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https"); // Only allow redirects to HTTP/HTTPS protocols
 }
 
 // Reset headers
 void RequestUtils::resetHeaders() {
-    if (m_headers) {
-        curl_slist_free_all(m_headers);
-        m_headers = nullptr;
-    }
-    m_headers = curl_slist_append(m_headers, CONTENT_TYPE_JSON.c_str());
-    m_headers = curl_slist_append(m_headers, ACCEPT_JSON.c_str());
+    // Release old list and create a new one
+    m_headers.reset(nullptr);
+    m_headers.reset(curl_slist_append(nullptr, CONTENT_TYPE_JSON.c_str()));
+    m_headers.reset(curl_slist_append(m_headers.release(), ACCEPT_JSON.c_str()));
+    
     if (m_bearerToken) {
         string auth = AUTH_BEARER_PREFIX + *m_bearerToken;
-        m_headers = curl_slist_append(m_headers, auth.c_str());
+        m_headers.reset(curl_slist_append(m_headers.release(), auth.c_str()));
         sodium_memzero(auth.data(), auth.size());
     }
 }
@@ -213,7 +207,7 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
     string responseData;
 
     // Reset CURL handle
-    curl_easy_reset(m_curl);
+    curl_easy_reset(m_curl.get());
     setupCurl();
 
     // Construct full URL using QUrl
@@ -233,25 +227,25 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
     finalUrl = validateHttpsUrl(finalUrl);
 
     // Set CURL options
-    curl_easy_setopt(m_curl, CURLOPT_URL, finalUrl.c_str());
-    curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, &responseData);
-    curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, m_headers);
+    curl_easy_setopt(m_curl.get(), CURLOPT_URL, finalUrl.c_str());
+    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEDATA, &responseData);
+    curl_easy_setopt(m_curl.get(), CURLOPT_HTTPHEADER, m_headers.get());
 
     // Configure method and body
     string jsonData;
     if (method == HttpMethod::GET) {
-        curl_easy_setopt(m_curl, CURLOPT_HTTPGET, 1L);
+        curl_easy_setopt(m_curl.get(), CURLOPT_HTTPGET, 1L);
     } else {
         if (method == HttpMethod::POST) {
-            curl_easy_setopt(m_curl, CURLOPT_POST, 1L);
+            curl_easy_setopt(m_curl.get(), CURLOPT_POST, 1L);
         } else {
-            curl_easy_setopt(m_curl, CURLOPT_CUSTOMREQUEST, httpMethodToString(method).c_str());
+            curl_easy_setopt(m_curl.get(), CURLOPT_CUSTOMREQUEST, httpMethodToString(method).c_str());
         }
 
         if (!data.isEmpty()) {
             jsonData = jsonToString(data);
-            curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, jsonData.c_str());
-            curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, jsonData.length());
+            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDS, jsonData.c_str());
+            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDSIZE, jsonData.length());
         }
     }
 
@@ -260,7 +254,7 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
     int retryCount = 0;
     CURLcode res;
     do {
-        res = curl_easy_perform(m_curl);
+        res = curl_easy_perform(m_curl.get());
         if (res == CURLE_OK) {
             break;
         }
@@ -279,13 +273,13 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
     }
 
     // Get status code
-    curl_easy_getinfo(m_curl, CURLINFO_RESPONSE_CODE, &response.statusCode);
+    curl_easy_getinfo(m_curl.get(), CURLINFO_RESPONSE_CODE, &response.statusCode);
     response.success = (response.statusCode >= 200 && response.statusCode < 300);
     response.rawData = std::move(responseData);
 
     // Get content type
     char* contentType = nullptr;
-    curl_easy_getinfo(m_curl, CURLINFO_CONTENT_TYPE, &contentType);
+    curl_easy_getinfo(m_curl.get(), CURLINFO_CONTENT_TYPE, &contentType);
 
     // Parse JSON if content type is application/json
     if (contentType && strstr(contentType, "application/json") && !response.rawData.empty()) {

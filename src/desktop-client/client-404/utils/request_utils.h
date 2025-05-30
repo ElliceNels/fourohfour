@@ -16,7 +16,9 @@
 #include <optional>
 #include <sodium.h>
 #include <mutex>
-#include <atomic>  
+#include <atomic>
+#include <memory> 
+#include "custom_deleter.h" 
 
 using namespace std;
 
@@ -66,9 +68,9 @@ private:
     static bool s_globalInitialized;
     static std::mutex s_initMutex;
 
-    // Instance members
-    CURL* m_curl = nullptr;
-    struct curl_slist* m_headers = nullptr;
+    // Instance members - using smart pointers with custom deleters
+    std::unique_ptr<CURL, custom_deleters::CurlDeleter> m_curl;
+    std::unique_ptr<struct curl_slist, custom_deleters::CurlSListDeleter> m_headers;
     string m_baseUrl;
     optional<string> m_bearerToken;
     optional<string> m_refreshToken;
