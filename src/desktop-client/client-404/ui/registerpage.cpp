@@ -154,6 +154,21 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
+
+/**
+ * @brief Sends a sign-up request to the server with the provided user credentials and cryptographic data.
+ *
+ * This method constructs a JSON payload containing the username, hashed password, public key, and salt,
+ * then sends it to the server's sign-up endpoint. If the registration is successful, it extracts the
+ * access and refresh tokens from the server response and stores them in the LoginSessionManager.
+ * In case of failure, it displays an error message to the user.
+ *
+ * @param username The username to register.
+ * @param hashedPassword The hashed password of the user.
+ * @param publicKey The user's public key for cryptographic operations.
+ * @param salt The salt used for password hashing.
+ * @return true if registration is successful and tokens are saved; false otherwise.
+ */
 bool RegisterPage::sendSignUpRequest(const QString& username, const QString& hashedPassword, 
                                     const QString& publicKey, const QString& salt)
 {
