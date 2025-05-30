@@ -13,7 +13,7 @@ const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 200;
 const int fileSizeLabelWidth = 60;
 const int fileOwnerLabelWidth = 100;
-const QString serverPath = "http://localhost:5000";
+const QString serverPath = "http://gobbler.info:4004";
 //http://gobbler.info:4004
 //http://localhost:5000
 const QString loginEndpoint = serverPath + "/login";
