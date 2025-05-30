@@ -83,8 +83,18 @@ private:
     std::string jsonToString(const QJsonObject& json);
     std::string validateHttpsUrl(const std::string& url);
     std::string httpMethodToString(HttpMethod method);
+    
+    // Helper methods for request handling
+    std::string buildRequestUrl(const std::string& url, const QJsonObject& params);
+    void configureRequestMethod(HttpMethod method, const QJsonObject& data);
+    CURLcode performRequestWithRetry(std::string& responseData);
+    void processResponse(Response& response, const std::string& responseData);
+    bool handleAuthenticationError(Response& response, const std::string& url, HttpMethod method, 
+                                  const QJsonObject& data, const QJsonObject& params);
+    
+    // Main request method
     Response makeRequest(const std::string& url, HttpMethod method,
                          const QJsonObject& data, const QJsonObject& params);
 };
 
-#endif 
+#endif

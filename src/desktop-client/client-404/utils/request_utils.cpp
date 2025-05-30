@@ -149,7 +149,12 @@ void RequestUtils::resetHeaders() {
     }
 }
 
-// Set bearer token
+/**
+ * @brief Sets the bearer token for authentication
+ * 
+ * @param token The bearer token string to use for authorization
+ * @throws invalid_argument if token is empty
+ */
 void RequestUtils::setBearerToken(const string& token) {
     if (token.empty()) {
         throw invalid_argument("Bearer token cannot be empty");
@@ -158,7 +163,9 @@ void RequestUtils::setBearerToken(const string& token) {
     resetHeaders();
 }
 
-// Clear bearer token
+/**
+ * @brief Clears the current bearer token and securely wipes it from memory
+ */
 void RequestUtils::clearBearerToken() {
     if (m_bearerToken) {
         sodium_memzero(m_bearerToken->data(), m_bearerToken->size());
@@ -167,7 +174,15 @@ void RequestUtils::clearBearerToken() {
     resetHeaders();
 }
 
-// Write callback for response data
+/**
+ * @brief Callback function for libcurl to write received data
+ * 
+ * @param contents Pointer to the received data
+ * @param size Size of each data element
+ * @param nmemb Number of data elements
+ * @param userp User pointer (where to store the data)
+ * @return Size of processed data
+ */
 size_t RequestUtils::writeCallback(void* contents, size_t size, size_t nmemb, void* userp) {
     size_t realSize = size * nmemb;
     auto* response = static_cast<string*>(userp);
@@ -200,17 +215,15 @@ string RequestUtils::httpMethodToString(HttpMethod method) {
     }
 }
 
-// Core request method
-RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod method,
-                                                const QJsonObject& data, const QJsonObject& params) {
-    Response response{0, QJsonDocument(), "", false, ""};
-    string responseData;
-
-    // Reset CURL handle
-    curl_easy_reset(m_curl.get());
-    setupCurl();
-
-    // Construct full URL using QUrl
+/**
+ * @brief Builds a complete URL from base URL, relative URL and query parameters
+ * 
+ * @param url The relative URL path
+ * @param params Query parameters as a QJsonObject
+ * @return Complete HTTPS URL as string
+ * @throws runtime_error if the URL is not HTTPS
+ */
+string RequestUtils::buildRequestUrl(const string& url, const QJsonObject& params) {
     QUrl baseUrl(QString::fromStdString(m_baseUrl));
     QUrl relativeUrl(QString::fromStdString(url));
     QUrl fullUrl = baseUrl.resolved(relativeUrl);
@@ -222,17 +235,19 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         }
         fullUrl.setQuery(query);
     }
+    
+    return validateHttpsUrl(fullUrl.toString().toStdString());
+}
 
-    string finalUrl = fullUrl.toString().toStdString();
-    finalUrl = validateHttpsUrl(finalUrl);
-
-    // Set CURL options
-    curl_easy_setopt(m_curl.get(), CURLOPT_URL, finalUrl.c_str());
-    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEDATA, &responseData);
-    curl_easy_setopt(m_curl.get(), CURLOPT_HTTPHEADER, m_headers.get());
-
-    // Configure method and body
+/**
+ * @brief Configures the HTTP method and request body for the current request
+ * 
+ * @param method HTTP method to use (GET, POST, DELETE_, etc.)
+ * @param data Request body data as QJsonObject (for non-GET requests)
+ */
+void RequestUtils::configureRequestMethod(HttpMethod method, const QJsonObject& data) {
     string jsonData;
+    
     if (method == HttpMethod::GET) {
         curl_easy_setopt(m_curl.get(), CURLOPT_HTTPGET, 1L);
     } else {
@@ -248,11 +263,19 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
             curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDSIZE, jsonData.length());
         }
     }
+}
 
-    // Perform request with retry logic
+/**
+ * @brief Performs the HTTP request with automatic retry for timeout and connection errors
+ * 
+ * @param responseData Reference to string where response data will be stored
+ * @return CURLcode result of the operation
+ */
+CURLcode RequestUtils::performRequestWithRetry(string& responseData) {
     const int maxRetries = 3;
     int retryCount = 0;
     CURLcode res;
+    
     do {
         res = curl_easy_perform(m_curl.get());
         if (res == CURLE_OK) {
@@ -264,18 +287,21 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         }
         this_thread::sleep_for(chrono::seconds(1));
     } while (res == CURLE_OPERATION_TIMEDOUT || res == CURLE_COULDNT_CONNECT);
+    
+    return res;
+}
 
-    if (res != CURLE_OK) {
-        cout << "CURL error: " << curl_easy_strerror(res) << endl;
-        response.success = false;
-        response.errorMessage = curl_easy_strerror(res);
-        return response;
-    }
-
+/**
+ * @brief Processes HTTP response data, extracts status code, parses JSON, and handles errors
+ * 
+ * @param response Reference to Response object to populate
+ * @param responseData Raw response data as string
+ */
+void RequestUtils::processResponse(Response& response, const string& responseData) {
     // Get status code
     curl_easy_getinfo(m_curl.get(), CURLINFO_RESPONSE_CODE, &response.statusCode);
     response.success = (response.statusCode >= 200 && response.statusCode < 300);
-    response.rawData = std::move(responseData);
+    response.rawData = responseData;
 
     // Get content type
     char* contentType = nullptr;
@@ -309,14 +335,78 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         }
         cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage << endl;
     }
+}
 
+/**
+ * @brief Handles authentication errors by attempting token refresh when needed
+ * 
+ * @param response Reference to the current Response object
+ * @param url Original request URL
+ * @param method Original HTTP method
+ * @param data Original request data
+ * @param params Original request parameters
+ * @return true if authentication was refreshed and request retried, false otherwise
+ */
+bool RequestUtils::handleAuthenticationError(Response& response, const string& url, HttpMethod method, 
+                                           const QJsonObject& data, const QJsonObject& params) {
     // Handle token expiration (status code 401)
     if (response.statusCode == 401 && m_refreshToken && !m_tokenRefreshInProgress.load() && 
         url != REFRESH_TOKEN_ENDPOINT) {
         if (refreshAccessToken()) {
-            return makeRequest(url, method, data, params);
+            response = makeRequest(url, method, data, params);
+            return true;
         }
     }
+    return false;
+}
+
+/**
+ * @brief Core request method that handles all HTTP requests
+ * 
+ * This method orchestrates the entire HTTP request process:
+ * 1. Prepares the request (URL, headers, method)
+ * 2. Executes the request with retry logic
+ * 3. Processes the response
+ * 4. Handles authentication errors
+ * 
+ * @param url The API endpoint URL (relative to base URL)
+ * @param method HTTP method to use
+ * @param data Request body for POST/PUT/DELETE requests
+ * @param params Query parameters for GET requests
+ * @return Response object containing status, data and error information
+ */
+RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod method,
+                                                const QJsonObject& data, const QJsonObject& params) {
+    Response response{0, QJsonDocument(), "", false, ""};
+    string responseData;
+
+    // Reset CURL handle
+    curl_easy_reset(m_curl.get());
+    setupCurl();
+
+    // Build full URL with query parameters
+    string finalUrl = buildRequestUrl(url, params);
+    curl_easy_setopt(m_curl.get(), CURLOPT_URL, finalUrl.c_str());
+    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEDATA, &responseData);
+    curl_easy_setopt(m_curl.get(), CURLOPT_HTTPHEADER, m_headers.get());
+
+    // Configure HTTP method and request body
+    configureRequestMethod(method, data);
+
+    // Execute the request with retry logic
+    CURLcode res = performRequestWithRetry(responseData);
+    if (res != CURLE_OK) {
+        cout << "CURL error: " << curl_easy_strerror(res) << endl;
+        response.success = false;
+        response.errorMessage = curl_easy_strerror(res);
+        return response;
+    }
+
+    // Process response
+    processResponse(response, responseData);
+
+    // Handle authentication errors
+    handleAuthenticationError(response, url, method, data, params);
 
     return response;
 }
