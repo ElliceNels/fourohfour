@@ -61,17 +61,29 @@ def test_user():
 def signed_up_user(client, test_user):
     """Sign up a user and return the user data and tokens."""
     response = client.post("/sign_up", json=test_user)
-    assert response.status_code == 201
+    if response.status_code != 201:
+        raise RuntimeError(f"Failed to sign up user: {response.json}")
     data = response.json
-    return {"user": test_user, "access_token": data["access_token"], "refresh_token": data["refresh_token"]}
+    return {
+        "user": test_user,
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "response": response
+    }
 
 @pytest.fixture
 def logged_in_user(client, signed_up_user):
     """Log in the signed-up user and return login tokens."""
     response = client.post("/login", json=signed_up_user["user"])
-    assert response.status_code == 200
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to log in user: {response.json}")
     data = response.json
-    return {"user": signed_up_user["user"], "access_token": data["access_token"], "refresh_token": data["refresh_token"]}
+    return {
+        "user": signed_up_user["user"],
+        "access_token": data["access_token"],
+        "refresh_token": data["refresh_token"],
+        "response": response
+    }
 
 @pytest.fixture
 def test_file_data():
@@ -89,14 +101,16 @@ def stored_file_data(logged_in_user, test_file_data, client):
         "Content-Type": "multipart/form-data"
     }
     response = client.post("/api/files/upload", headers=headers, data=test_file_data)
-    assert response.status_code == 201
+    if response.status_code != 201:
+        raise RuntimeError(f"Failed to upload file: {response.json}")
     data = response.json
     return {
         "file_uuid": data["file_uuid"],
         "file_path": data["file_path"],
         "file_size": data["file_size"],
         "format": data["format"],
-        "filename": data["filename"]
+        "filename": data["filename"],
+        "response": response
     }
 
 def test_file_upload(client, logged_in_user):
