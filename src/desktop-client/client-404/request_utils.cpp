@@ -129,15 +129,15 @@ RequestUtils::~RequestUtils() {
 
 // Set up CURL with secure defaults
 void RequestUtils::setupCurl() {
-    curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, ENABLED);
-    curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, MAX_REDIRECTS);
-    curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, TIMEOUT_SECONDS);
-    curl_easy_setopt(m_curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
-    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, ENABLED);
-    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT);
-    curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback);
-    curl_easy_setopt(m_curl, CURLOPT_DOH_URL, DNS_URL_DOH.c_str());
-    curl_easy_setopt(m_curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+    curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, ENABLED);    // Allow redirects to be followed automatically
+    curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, MAX_REDIRECTS);   // Limit redirects to 5 to prevent redirect loops
+    curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, TIMEOUT_SECONDS);   // Set 30 second timeout for entire request
+    curl_easy_setopt(m_curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);  // Use TLS 1.3 for stronger encryption
+    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, ENABLED);    // Verify the authenticity of the SSL certificate
+    curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT); // Verify the SSL cert matches the hostname
+    curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback); // Set callback for handling response data
+    curl_easy_setopt(m_curl, CURLOPT_DOH_URL, DNS_URL_DOH.c_str()); // Use DNS over HTTPS for secure hostname resolution
+    curl_easy_setopt(m_curl, CURLOPT_REDIR_PROTOCOLS_STR, "http,https"); // Only allow redirects to HTTP/HTTPS protocols
 }
 
 // Reset headers
