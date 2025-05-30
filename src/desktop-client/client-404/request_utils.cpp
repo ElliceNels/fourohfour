@@ -51,7 +51,7 @@ void RequestUtils::setRefreshToken(const string& token) {
     if (token.empty()) {
         throw invalid_argument("Refresh token cannot be empty");
     }
-    m_refreshToken = token.empty() ? nullopt : make_optional<string>(token);
+    m_refreshToken = token;
 }
 
 // Clear refresh token
