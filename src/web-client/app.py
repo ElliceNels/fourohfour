@@ -68,7 +68,7 @@ def view_files():
 
 @app.route('/verify_user')
 def verify_user():
-    return "Verify User Page"
+    return render_template("verifyuser.html")
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():

@@ -433,3 +433,69 @@ input[type="text"]:focus, input[type="password"]:focus {
     border: 1px solid #e0e0e0;
     border-top: none;
 }
+.verify-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.verify-instructions {
+    color: #757575;
+    font-size: 1.15rem;
+    text-align: center;
+    margin-bottom: 36px;
+    margin-top: 18px;
+    max-width: 600px;
+}
+
+.verify-row {
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.verify-label {
+    font-weight: 600;
+    color: #2196F3;
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.verify-output {
+    width: 100%;
+    background: #fafafa;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 16px 18px;
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+}
+
+.btn.select-btn {
+    width: 100%;
+    background: #21a1ff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 1.25rem;
+    font-weight: 500;
+    padding: 16px 0;
+    margin-top: 10px;
+    margin-bottom: 0;
+    box-shadow: 2px 2px 0 0 #222;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: block;
+    text-align: center;
+}
+
+.btn.select-btn:hover {
+    background: #1976D2;
+    box-shadow: 4px 4px 0 0 #222;
+}
