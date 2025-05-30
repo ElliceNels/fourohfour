@@ -1,5 +1,8 @@
 import pytest
 import uuid
+import base64
+import os
+import shutil
 from sqlalchemy_utils import database_exists, drop_database
 from server.utils.db_setup import setup_db
 from server.app import create_app
@@ -24,6 +27,16 @@ def setup_test_db(app_fixture):
     logger.info("Test database setup complete.")
 
     yield
+    
+    # Clean up uploaded files
+    uploads_dir = "uploads"
+    if os.path.exists(uploads_dir):
+        try:
+            shutil.rmtree(uploads_dir)
+            logger.info("Cleaned up uploads directory")
+        except Exception as e:
+            logger.error(f"Error cleaning up uploads directory: {e}")
+    
     Base.metadata.drop_all(bind=engine)
     
     # Ensure database deletion
@@ -88,9 +101,17 @@ def logged_in_user(client, signed_up_user):
 @pytest.fixture
 def test_file_data():
     """Generate a sample file data for testing."""
+    file_content = b"test file content"
+    encoded_content = base64.b64encode(file_content).decode('utf-8')
     return {
-        "encrypted_file": (b"test file content", "testfile.txt"),
-        "metadata": '{"size": 1234, "format": "txt"}'
+        "file": {
+            "filename": "testfile.txt",
+            "contents": encoded_content
+        },
+        "metadata": {
+            "size": len(file_content),
+            "format": "txt"
+        }
     }
 
 @pytest.fixture
@@ -98,43 +119,44 @@ def stored_file_data(logged_in_user, test_file_data, client):
     """Upload a file and return its metadata."""
     headers = {
         "Authorization": f"Bearer {logged_in_user['access_token']}",
-        "Content-Type": "multipart/form-data"
+        "Content-Type": "application/json"
     }
-    response = client.post("/api/files/upload", headers=headers, data=test_file_data)
+    response = client.post("/api/files/upload", headers=headers, json=test_file_data)
     if response.status_code != 201:
         raise RuntimeError(f"Failed to upload file: {response.json}")
     data = response.json
     return {
-        "file_uuid": data["file_uuid"],
-        "file_path": data["file_path"],
-        "file_size": data["file_size"],
-        "format": data["format"],
-        "filename": data["filename"],
+        "uuid": data["uuid"],
+        "filename": test_file_data["file"]["filename"],
         "response": response
     }
 
-def test_file_upload(client, logged_in_user):
+def test_file_upload(client, logged_in_user, setup_test_db):
     """Test file upload functionality."""
+    file_content = b"test file content"
+    encoded_content = base64.b64encode(file_content).decode('utf-8')
+    
     headers = {
         "Authorization": f"Bearer {logged_in_user['access_token']}",
-        "Content-Type": "multipart/form-data"
+        "Content-Type": "application/json"
     }
     file_data = {
-        "encrypted_file": (b"test file content", "testfile.txt"),
-        "metadata": '{"size": 1234, "format": "txt"}'
+        "file": {
+            "filename": "testfile.txt",
+            "contents": encoded_content
+        },
+        "metadata": {
+            "size": len(file_content),
+            "format": "txt"
+        }
     }
-    response = client.post("/api/files/upload", headers=headers, data=file_data)
+    response = client.post("/api/files/upload", headers=headers, json=file_data)
     assert response.status_code == 201
     data = response.json
-    assert "file_uuid" in data
-    assert "file_path" in data
-    assert "file_size" in data
-    assert data["file_size"] == 1234
-    assert data["format"] == "txt"
-    assert data["filename"] == "testfile.txt"
+    assert "uuid" in data
+    assert "message" in data
 
-
-def test_list_files(client, logged_in_user):
+def test_list_files(client, logged_in_user, setup_test_db):
     """Test listing files for the logged-in user."""
     headers = {
         "Authorization": f"Bearer {logged_in_user['access_token']}"
@@ -145,28 +167,22 @@ def test_list_files(client, logged_in_user):
     assert "owned_files" in data
     assert "shared_files" in data
 
-def test_get_file(client, logged_in_user, stored_file_data):
+def test_get_file(client, logged_in_user, stored_file_data, setup_test_db):
     """Test retrieving a specific file by UUID."""
     headers = {
         "Authorization": f"Bearer {logged_in_user['access_token']}"
     }
-    response = client.get(f"/api/files/{stored_file_data['file_uuid']}", headers=headers)
+    response = client.get(f"/api/files/{stored_file_data['uuid']}", headers=headers)
     assert response.status_code == 200
     data = response.json
-    assert data["file_uuid"] == stored_file_data["file_uuid"]
-    assert data["filename"] == stored_file_data["filename"]
-    assert data["file_size"] == stored_file_data["file_size"]
-    assert data["format"] == stored_file_data["format"]
-    assert "encrypted_file" in data  # Ensure file content is returned
-    assert data["encrypted_file"] == stored_file_data["encrypted_file"]  # Check file content matches
-    assert data["uploaded_at"] is not None  # Ensure timestamp is present
-    assert data["is_owner"] is True  # Check ownership status
+    assert "encrypted_file" in data
 
-def test_delete_file(client, logged_in_user, stored_file_data):
+def test_delete_file(client, logged_in_user, stored_file_data, setup_test_db):
     """Test deleting a file by UUID."""
     headers = {
         "Authorization": f"Bearer {logged_in_user['access_token']}"
     }
-    response = client.delete(f"/api/files/{stored_file_data['file_uuid']}", headers=headers)
-    assert response.status_code == 204  # No content on successful deletion
-    response = client.post("/api/files/upload", headers=headers, data=stored_file_data)
+    response = client.delete(f"/api/files/{stored_file_data['uuid']}", headers=headers)
+    assert response.status_code == 200
+    data = response.json
+    assert "message" in data

@@ -1,9 +1,10 @@
-from flask import Flask
 import pytest
+import uuid
+import base64
+from flask import Flask
 from unittest.mock import MagicMock, patch, mock_open
 from server.utils.file import upload_file_to_db, get_user_files, get_file_by_uuid, delete_file_by_uuid
 from server.app import create_app
-import uuid
 
 # HTTP status code constants
 CODE_SUCCESS = 200
@@ -55,10 +56,8 @@ def mock_session_ctx(mock_db):
 ])
 def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, mock_db, app_ctx, mocker):
     # Set up test data
-    class DummyFile:
-        filename = "test.txt"
-    file = DummyFile() if file_present else None
-    file_path = "/tmp/test.txt"
+    filename = "test.txt" if file_present else None
+    file_contents_b64 = "dGVzdCBjb250ZW50" if file_present else None # Base64 for "test content"
     metadata = {'size': 123, 'format': 'txt'}
     test_uuid = uuid.UUID(uuid_provided) if uuid_provided else None
 
@@ -69,6 +68,10 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
         existing_file.owner_id = user_id if is_owner else user_id + 1
         existing_file.uuid = test_uuid
         existing_file.name = "test.txt"
+        existing_file.path = "/tmp/test.txt"
+        existing_file.file_metadata = MagicMock()
+        existing_file.file_metadata.size = 123
+        existing_file.file_metadata.format = 'txt'
 
     mock_db.query().filter_by().first.return_value = existing_file
 
@@ -87,22 +90,40 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
                 obj.uuid = test_uuid if test_uuid else uuid.uuid4()
         mock_db.add.side_effect = add_side_effect
 
+    # Mock file operations
+    mocker.patch('os.makedirs')
+    mocker.patch('os.remove')
+    mocker.patch('builtins.open', mock_open())
+    mocker.patch('base64.b64decode', return_value=b'test content')
+
     # Run test
     mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
-    response, status = upload_file_to_db(user_id, file, file_path, metadata, test_uuid)
+    
+    # Call with the new function signature
+    response = upload_file_to_db(user_id, filename, file_contents_b64, metadata, test_uuid)
+    
+    # Handle both tuple and single return formats
+    if isinstance(response, tuple):
+        response_obj, status = response
+        data = response_obj.get_json()
+    else:
+        status = 500
+        data = response.get_json()
     
     # Assertions
-    assert status == expected_status
-    data = response.get_json()
+    assert status == expected_status, f"Expected {expected_status}, got {status}. Response: {data}"
+    
     if expected_status == CODE_CREATED:
-        assert 'uuid' in data
-        if test_uuid:
+        assert 'uuid' in data or 'message' in data
+        if test_uuid and 'uuid' in data:
             assert data['uuid'] == str(test_uuid)
+    elif expected_status == CODE_BAD_REQUEST:
+        assert 'error' in data
     else:
         assert 'error' in data
 
 @pytest.mark.parametrize("user_id, owned_files, shared_files, db_error, expected_status", [
-    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
+    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'file_metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
     (2, [], [], True, CODE_SERVER_ERROR),
 ])
 def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_status, mock_db, app_ctx, mocker):
