@@ -13,7 +13,7 @@ class Users(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(String(100), nullable=False)
     salt = Column(BLOB, nullable=False)
-    public_key = Column(String(2048), nullable=False, unique=True)
+    public_key = Column(String(191), nullable=False, unique=True)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 

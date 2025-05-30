@@ -92,10 +92,11 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         )
 
         db.add(new_user)
+        db.flush()  # Ensure new_user.id is available
+        access_token, refresh_token = generate_token(new_user.id)
         db.commit()
     logger.info(f"User {username} signed up successfully")
 
-    access_token, refresh_token = generate_token(new_user.id)
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token
