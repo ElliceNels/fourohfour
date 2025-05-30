@@ -130,12 +130,32 @@ void RequestUtils::setupCurl() {
     curl_easy_setopt(m_curl.get(), CURLOPT_FOLLOWLOCATION, ENABLED);    // Allow redirects to be followed automatically
     curl_easy_setopt(m_curl.get(), CURLOPT_MAXREDIRS, MAX_REDIRECTS);   // Limit redirects to 5 to prevent redirect loops
     curl_easy_setopt(m_curl.get(), CURLOPT_TIMEOUT, TIMEOUT_SECONDS);   // Set 30 second timeout for entire request
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);  // Use TLS 1.3 for stronger encryption
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, ENABLED);    // Verify the authenticity of the SSL certificate
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT); // Verify the SSL cert matches the hostname
+    
+    // PRODUCTION: TLS 1.3 for stronger encryption
+    // curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+    // DEVELOPMENT: Allow any SSL version for localhost development
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT);
+    
+    // PRODUCTION: Verify SSL certificate authenticity
+    // curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, ENABLED);
+    // DEVELOPMENT: Disable SSL cert verification for localhost
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);
+    
+    // PRODUCTION: Verify SSL cert matches hostname
+    // curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT);
+    // DEVELOPMENT: Disable hostname verification for localhost
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
+    
     curl_easy_setopt(m_curl.get(), CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback); // Set callback for handling response data
-    curl_easy_setopt(m_curl.get(), CURLOPT_DOH_URL, DNS_URL_DOH.c_str()); // Use DNS over HTTPS for secure hostname resolution
-    curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https"); // Only allow redirects to HTTP/HTTPS protocols
+    
+    // PRODUCTION: Use DNS over HTTPS for secure hostname resolution
+    // curl_easy_setopt(m_curl.get(), CURLOPT_DOH_URL, DNS_URL_DOH.c_str());
+    // DEVELOPMENT: Use standard DNS resolution
+    
+    // PRODUCTION: Only allow redirects to HTTP/HTTPS protocols
+    // curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
+    // DEVELOPMENT: Allow all redirect protocols
+    curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "all");
 }
 
 // Reset headers
@@ -199,12 +219,20 @@ string RequestUtils::jsonToString(const QJsonObject& json) {
     return doc.toJson(QJsonDocument::Compact).toStdString();
 }
 
-// Validate HTTPS URL
+// Validate URL (Development version - allows both HTTP and HTTPS)
 string RequestUtils::validateHttpsUrl(const string& url) {
     QUrl qurl(QString::fromStdString(url));
-    if (qurl.scheme() != "https") {
-        throw runtime_error("Only HTTPS URLs are allowed: " + url);
+    
+    // PRODUCTION: Enforce HTTPS only
+    // if (qurl.scheme() != "https") {
+    //     throw runtime_error("Only HTTPS URLs are allowed: " + url);
+    // }
+    
+    // DEVELOPMENT: Allow both HTTP and HTTPS
+    if (qurl.scheme() != "https" && qurl.scheme() != "http") {
+        throw runtime_error("Only HTTP and HTTPS URLs are allowed: " + url);
     }
+    
     return url;
 }
 

@@ -3,6 +3,7 @@
 
 #include <QString>
 #include "utils/securevector.h"
+#include "utils/request_utils.h"
 
 class LoginSessionManager {
 
@@ -12,6 +13,9 @@ public:
     void setSession(const QString& username, const unsigned char* masterKey, size_t keyLength);
     const QString getUsername() const;
     const SecureVector getMasterKey() const;
+    void setTokens(const QString& accessToken, const QString& refreshToken);
+    void setBaseUrl(const QString& baseUrl);
+    RequestUtils::Response post(const std::string& url, const QJsonObject& data = QJsonObject());
     void clearSession();
 
 private:
@@ -25,6 +29,7 @@ private:
 
     QString m_username;
     SecureVector m_masterKey;
+    RequestUtils m_requestUtils;
 };
 
 #endif

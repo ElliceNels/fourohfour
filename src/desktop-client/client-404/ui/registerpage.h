@@ -22,7 +22,6 @@ public:
 private slots:
     void onCreateAccountClicked();
     void onShowPasswordClicked();
-    void sendCredentials(string name, string email, string password, string publicKey, string salt);
 
 private:
     Ui::RegisterPage *ui;
@@ -30,6 +29,11 @@ private:
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
     void setupConnections() override;
+
+    // Function to send sign-up request to the server
+    bool sendSignUpRequest(const QString& username, const QString& hashedPassword, 
+                                    const QString& publicKey, const QString& salt);
+
 
 signals:
     void goToLoginRequested();
