@@ -55,7 +55,7 @@ class Files(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=True)  # Can be null for files like .env
     path = Column(String(512), nullable=False)
     uploaded_at = Column(DateTime, nullable=False, index=True)
     owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
