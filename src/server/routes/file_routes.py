@@ -17,11 +17,17 @@ def upload_file():
     """Upload a new file to the system.
     
     Expected request:
-    - encrypted_file: The encrypted file data in request.files
-    - metadata: JSON object containing:
-        - size: File size in bytes
-        - format: File format/extension
-    - uuid: (optional) UUID of the file to update
+    {
+        "file": {
+            "filename": "name_of_file",
+            "contents": "base64_encoded_file_data",
+            "uuid" (optional) : "uuid_of_file_to_update"
+        },
+        "metadata": {
+            "size": 123,
+            "format": "txt"
+        }
+    }
 
     Returns:
     {
@@ -30,16 +36,28 @@ def upload_file():
     }
     """
     logger.debug(f"Received file upload request")
-
-    if 'encrypted_file' not in request.files:
-        logger.warning("Upload failed: No file provided")
-        return jsonify({'error': 'No file provided'}), 400
+    data = request.get_json()
+    if not data or 'file' not in data:
+        logger.warning("Upload failed: Invalid request format")
+        return jsonify({'error': 'Invalid request format'}), 400
+    
+    file_data = data['file']
+    if 'filename' not in file_data or 'contents' not in file_data:
+        logger.warning("Upload failed: Missing filename or contents")
+        return jsonify({'error': 'Missing filename or contents'}), 400
 
     try:
         current_user = get_current_user()
         
         # Get UUID parameter
-        file_uuid = request.form.get('uuid')
+        file_uuid = file_data.get('uuid')
+        # Get custom filename if provided, otherwise use the uploaded file's name
+        custom_filename = file_data.get('filename')
+        file = request.files['encrypted_file']
+        
+        # File is a Werkzeug type, it has a filename attribute which we can override
+        if custom_filename:
+            file.filename = custom_filename
         
         # Validate UUID format if provided
         if file_uuid:
@@ -50,10 +68,9 @@ def upload_file():
                 return jsonify({'error': 'Invalid UUID format'}), 400
         
         # Save the file to disk
-        file = request.files['encrypted_file']
-        sanitized_filename = secure_filename(file.filename)
-        filename = f"{current_user.user_id}_{sanitized_filename}"
-        file_path = os.path.join('uploads', filename)
+        sanitized_filename = secure_filename(file.filename) #sanitize to remove any unsafe characters
+        system_filename = f"{current_user.user_id}_{sanitized_filename}"
+        file_path = os.path.join('uploads', system_filename)
         file.save(file_path)
 
         return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid)
