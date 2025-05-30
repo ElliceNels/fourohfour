@@ -74,12 +74,12 @@ void RequestUtils::addRefreshTokenHeader() {
 
 // Attempt to refresh access token using refresh token
 bool RequestUtils::refreshAccessToken() {
-    if (!m_refreshToken || m_tokenRefreshInProgress) {
+    if (!m_refreshToken || m_tokenRefreshInProgress.load()) {
         return false;
     }
     
     // Set flag to prevent recursive token refresh
-    m_tokenRefreshInProgress = true;
+    m_tokenRefreshInProgress.store(true);
     
     // Create a request body with refresh token
     QJsonObject data;
