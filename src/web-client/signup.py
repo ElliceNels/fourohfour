@@ -41,7 +41,7 @@ def manage_registration(account_name, password):
     salt = generate_salt()
     raw_salt = decode_salt(salt)
 
-    derived_key = derive_key_from_password(hashed, raw_salt)
+    derived_key = derive_key_from_password(password, raw_salt)
 
     encrypt_and_save_key(priv_b64, derived_key, account_name)
 
