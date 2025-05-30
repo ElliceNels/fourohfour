@@ -3,6 +3,12 @@ import base64
 import os
 import argparse
 from pathlib import Path
+import logging
+from server.logger import setup_logger
+
+# Setup logger
+setup_logger()
+logger = logging.getLogger(__name__)
 
 """
 Script to generate secure secret keys for Flask and JWT authentication.
@@ -48,8 +54,8 @@ def update_env_file(key_name, secret_key, force=False):
     
     # Check if key exists and handle accordingly
     if not force and key_name in existing_vars:
-        print(f"\nWarning: {key_name} already exists in .env file.")
-        print("Use --force flag to replace existing key.")
+        logger.warning(f"{key_name} already exists in .env file.")
+        logger.info("Use --force flag to replace existing key.")
         return
     
     # Update the variable
@@ -60,7 +66,7 @@ def update_env_file(key_name, secret_key, force=False):
         for key, value in existing_vars.items():
             f.write(f"{key}={value}\n")
     
-    print(f"\nSuccessfully updated .env file with new {key_name}.")
+    logger.info(f"Successfully updated .env file with new {key_name}.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate secret keys for Flask and JWT')
