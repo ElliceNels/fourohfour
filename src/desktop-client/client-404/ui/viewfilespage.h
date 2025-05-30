@@ -2,7 +2,7 @@
 #define VIEWFILESPAGE_H
 
 #include <QWidget>
-#include "basepage.h"
+#include "ui/basepage.h"
 
 namespace Ui {
 class ViewFilesPage;

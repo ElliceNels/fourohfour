@@ -2,7 +2,7 @@
 #define LOGINSESSIONMANAGER_H
 
 #include <QString>
-#include "securevector.h"
+#include "utils/securevector.h"
 
 class LoginSessionManager {
 

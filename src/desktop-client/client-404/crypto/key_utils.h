@@ -3,7 +3,7 @@
 
 #include <QString>
 #include <QWidget>
-#include "encryptionhelper.h"
+#include "crypto/encryptionhelper.h"
 using namespace std;
 
 

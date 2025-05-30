@@ -3,7 +3,7 @@
 
 #include <sodium.h>
 // #include <vector>
-#include "securevector.h"
+#include "utils/securevector.h"
 
 using namespace std;
 

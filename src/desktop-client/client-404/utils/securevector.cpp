@@ -1,4 +1,4 @@
-#include "securevector.h"
+#include "utils/securevector.h"
 #include <sodium.h>
 #include <QDebug>
 

@@ -1,7 +1,7 @@
 #include "mainmenu.h"
-#include "ui_mainmenu.h"
+#include "ui/ui_mainmenu.h"
 #include <qstackedwidget.h>
-#include "loginsessionmanager.h"
+#include "core/loginsessionmanager.h"
 
 MainMenu::MainMenu(QWidget *parent)
     : BasePage(parent)

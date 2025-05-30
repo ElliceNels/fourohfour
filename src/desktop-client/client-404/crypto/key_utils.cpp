@@ -1,6 +1,6 @@
 #include "key_utils.h"
-#include "qjsondocument.h"
-#include "qjsonobject.h"
+#include <qjsondocument.h>
+#include <qjsonobject.h>
 #include <sodium.h>
 #include <QFileDialog>
 #include <QFile>
@@ -11,9 +11,9 @@
 #include <iostream>
 #include <vector>
 #include "constants.h"
-#include "loginsessionmanager.h"
-#include "securebufferutils.h"
-#include "securevector.h"
+#include "core/loginsessionmanager.h"
+#include "utils/securebufferutils.h"
+#include "utils/securevector.h"
 
 
 using namespace std;

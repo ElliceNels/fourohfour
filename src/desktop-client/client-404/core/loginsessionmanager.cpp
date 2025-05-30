@@ -1,9 +1,9 @@
-#include "LoginSessionManager.h"
+#include "core/loginsessionmanager.h"
 #include <qdebug.h>
 #include <sodium.h>
 #include <cstring>
 #include <QString>
-#include "securevector.h"
+#include "utils/securevector.h"
 
 LoginSessionManager::LoginSessionManager() {}
 

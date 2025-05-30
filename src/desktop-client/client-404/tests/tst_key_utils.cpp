@@ -1,5 +1,5 @@
-#include "tst_key_utils.h"
-#include "securebufferutils.h"
+#include "tests/tst_key_utils.h"
+#include "utils/securebufferutils.h"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QTemporaryFile>

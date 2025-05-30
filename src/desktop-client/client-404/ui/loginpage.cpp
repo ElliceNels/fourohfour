@@ -1,6 +1,6 @@
 #include "loginpage.h"
-#include "qwidget.h"
-#include "ui_loginpage.h"
+#include <qwidget.h>
+#include "ui/ui_loginpage.h"
 #include <iostream>
 #include <qstackedwidget.h>
 using namespace std;

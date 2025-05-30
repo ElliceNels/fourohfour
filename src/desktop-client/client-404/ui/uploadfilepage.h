@@ -2,8 +2,8 @@
 #define UPLOADFILEPAGE_H
 
 #include <QWidget>
-#include "basepage.h"
-#include "securevector.h"
+#include "ui/basepage.h"
+#include "utils/securevector.h"
 
 namespace Ui {
 class UploadFilePage;

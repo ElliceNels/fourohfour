@@ -1,4 +1,4 @@
-#include "password_utils.h"
+#include "utils/password_utils.h"
 #include <sodium.h>
 #include <QSet>
 #include <QStringList>

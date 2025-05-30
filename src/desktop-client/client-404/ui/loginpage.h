@@ -2,7 +2,7 @@
 #define LOGINPAGE_H
 
 #include <QWidget>
-#include "basepage.h"
+#include "ui/basepage.h"
 
 using namespace std;
 
