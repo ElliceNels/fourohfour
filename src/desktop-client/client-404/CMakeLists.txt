@@ -17,7 +17,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Test)
 set(SODIUM_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
 set(SODIUM_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libsodium.dll.a")
 
-# Set libcurl paths to local directories 
+# Set libcurl paths to local directories
 set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
 set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libcurl.dll.a")
 
@@ -134,12 +134,22 @@ include_directories(
     "${CMAKE_SOURCE_DIR}/../include"  # Also add this explicit path
 )
 
+# Add preprocessor definitions to prevent Windows byte conflicts
+add_definitions(
+    -DWIN32_LEAN_AND_MEAN
+    -DNOMINMAX
+    -DNO_MIN_MAX
+    -DNOCRYPT
+    -D_CRT_SECURE_NO_WARNINGS
+    -DNOGDI
+)
+
 # Link libraries for main application
 target_link_libraries(client-404 PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     ${SODIUM_LIBRARY}
-    ${CURL_LIBRARY}  
+    ${CURL_LIBRARY}
 )
 
 # Link libraries for test target
@@ -148,6 +158,7 @@ target_link_libraries(tst_key_utils PRIVATE
     Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::Widgets
     ${SODIUM_LIBRARY}
+    ${CURL_LIBRARY}
 )
 
 # Create source groups for IDE organization
