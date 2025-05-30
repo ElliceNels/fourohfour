@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Upload File - fourohfour Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .confirm-btn {
+            background: #43a047;
+        }
+        .confirm-btn:hover {
+            background: #2e7031;
+        }
+        .upload-instructions {
+            margin: 32px 0 24px 0;
+            text-align: center;
+            color: #444;
+            font-size: 1.1rem;
+        }
+        .upload-actions {
+            display: flex;
+            gap: 32px;
+            margin-top: 24px;
+            justify-content: center;
+        }
+    </style>
+    <script>
+        function updateFileInfo(input) {
+            if (input.files.length > 0) {
+                var file = input.files[0];
+                document.getElementById('file-name').value = file.name;
+                document.getElementById('file-type').value = file.name.lastIndexOf('.') !== -1 ? file.name.substring(file.name.lastIndexOf('.')) : '-';
+                document.getElementById('file-size').value = file.size + ' bytes';
+                document.getElementById('upload-details').style.display = 'block';
+                document.getElementById('upload-instructions').style.display = 'block';
+                document.getElementById('confirm-btn').style.display = 'inline-block';
+            }
+        }
+        function triggerBrowse() {
+            document.getElementById('file-input').click();
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <span class="logo-primary">fourohfour</span>
+            <span class="logo-secondary">Files</span>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('main_menu') }}" class="btn back-btn">Back</a>
+        </div>
+    </div>
+    <div class="center-viewport">
+        <div class="hero">
+            <h1 class="hero-title" style="margin-bottom: 60px;">
+                <span class="hero-primary">Upload a File</span>
+            </h1>
+        </div>
+        <form id="upload-form" method="POST" enctype="multipart/form-data" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+            <input type="file" id="file-input" name="file" style="display: none;" onchange="updateFileInfo(this)">
+            <div id="upload-details" class="upload-box" style="display:none;">
+                <div class="upload-row">
+                    <span class="upload-label">File Name:</span>
+                    <input class="upload-value" id="file-name" type="text" readonly value="-">
+                </div>
+                <div class="upload-row">
+                    <span class="upload-label">File Type:</span>
+                    <input class="upload-value" id="file-type" type="text" readonly value="-">
+                </div>
+                <div class="upload-row">
+                    <span class="upload-label">File Size:</span>
+                    <input class="upload-value" id="file-size" type="text" readonly value="-">
+                </div>
+            </div>
+            <div id="upload-instructions" class="upload-instructions" style="display:none;">
+                Confirm these details are correct and upload this file, or select another file.
+            </div>
+            <div class="upload-actions">
+                <button type="button" class="btn big-btn" onclick="triggerBrowse()">Browse Files</button>
+                <button type="submit" id="confirm-btn" class="btn big-btn confirm-btn" style="display:none;">Confirm Upload</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

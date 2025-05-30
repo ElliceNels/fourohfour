@@ -39,9 +39,28 @@ def logout():
     session.clear()
     return redirect(url_for('title_page'))
 
-@app.route('/upload_file')
+@app.route('/upload_file', methods=['GET', 'POST'])
 def upload_file():
-    return "Upload File Page"
+    if request.method == 'POST':
+        uploaded_file = request.files.get('file')
+        if uploaded_file and uploaded_file.filename:
+            file_name = uploaded_file.filename
+            file_type = uploaded_file.content_type
+            file_data = uploaded_file.read()
+            file_size = len(file_data)
+
+            return render_template(
+                'uploadfile.html',
+                uploaded=True,
+                file_name=file_name,
+                file_type=file_type,
+                file_size=file_size
+            )
+        else:
+            flash("No file selected!", "error")
+            return redirect(url_for('upload_file'))
+
+    return render_template('uploadfile.html', uploaded=False)
 
 @app.route('/view_files')
 def view_files():

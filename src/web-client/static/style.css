@@ -18,7 +18,7 @@ body {
     height: 70px;
     display: flex;
     align-items: center;
-    justify-content: space-between; /* <-- This line aligns right-side buttons */
+    justify-content: space-between;
     padding: 0 32px;
     font-size: 1.7rem;
     font-weight: 500;
@@ -140,6 +140,23 @@ body {
 .btn.big-btn:hover {
     background: #1976D2;
     box-shadow: 4px 4px 0 0 #222;
+}
+
+/* Green confirm upload button */
+.btn.big-btn.confirm-btn {
+    background: #43a047;
+}
+
+.btn.big-btn.confirm-btn:hover {
+    background: #2e7031;
+}
+
+/* Upload actions row */
+.upload-actions {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+    justify-content: center;
 }
 
 /* Login & Signup Form Styles */
@@ -277,4 +294,58 @@ input[type="text"]:focus, input[type="password"]:focus {
 .reset-form-main .btn.big-btn {
     width: 100%;
     margin-top: 24px;
+}
+.upload-box {
+    background: #f7f7f7;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    padding: 32px 32px 24px 32px;
+    margin: 0 auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.upload-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.upload-label {
+    font-weight: 600;
+    font-size: 1.15rem;
+    min-width: 120px;
+    color: #222;
+}
+
+.upload-value {
+    background: #fff;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    padding: 8px 16px;
+    font-size: 1.1rem;
+    min-width: 220px;
+    color: #444;
+}
+
+.btn.back-btn {
+    background: #757575;
+    color: #fff;
+    border-radius: 5px;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background 0.2s;
+    margin-left: 12px;
+}
+
+.btn.back-btn:hover {
+    background: #424242;
 }
