@@ -79,6 +79,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         securevector.h
         securevector.cpp
         securebufferutils.h
+        request_utils.h
+        request_utils.cpp
     )
 else()
     if(ANDROID)
