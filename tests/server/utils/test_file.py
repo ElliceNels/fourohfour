@@ -11,6 +11,7 @@ CODE_CREATED = 201
 CODE_BAD_REQUEST = 400
 CODE_FORBIDDEN = 403
 CODE_NOT_FOUND = 404
+CODE_CONFLICT = 409
 CODE_SERVER_ERROR = 500
 
 @pytest.fixture(scope="module")
@@ -36,18 +37,42 @@ def mock_session_ctx(mock_db):
             pass
     return Ctx()
 
-@pytest.mark.parametrize("user_id, file_present, db_error, expected_status", [
-    (1, True, False, CODE_CREATED),  # Success
-    (1, False, False, CODE_BAD_REQUEST),  # No file provided
-    (1, True, True, CODE_SERVER_ERROR),  # DB error
+@pytest.mark.parametrize("user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status", [
+    # Basic cases
+    (1, True, None, False, False, False, CODE_CREATED),  # New file upload
+    (1, False, None, False, False, False, CODE_BAD_REQUEST),  # No file provided
+    
+    # UUID update cases
+    (1, True, str(uuid.uuid4()), True, True, False, CODE_CREATED),  # Update existing file (owner)
+    (1, True, str(uuid.uuid4()), True, False, False, CODE_FORBIDDEN),  # Update existing file (not owner)
+    (1, True, str(uuid.uuid4()), False, False, False, CODE_NOT_FOUND),  # Update non-existing file
+    
+    # Duplicate filename cases
+    (1, True, None, True, False, False, CODE_CONFLICT),  # Duplicate filename
+    
+    # Error cases
+    (1, True, None, False, False, True, CODE_SERVER_ERROR),  # DB error
 ])
-def test_upload_file_to_db(user_id, file_present, db_error, expected_status, mock_db, app_ctx, mocker):
+def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, mock_db, app_ctx, mocker):
+    # Set up test data
     class DummyFile:
         filename = "test.txt"
     file = DummyFile() if file_present else None
     file_path = "/tmp/test.txt"
     metadata = {'size': 123, 'format': 'txt'}
-    test_uuid = uuid.uuid4()
+    test_uuid = uuid.UUID(uuid_provided) if uuid_provided else None
+
+    # Mock existing file query
+    existing_file = None
+    if file_exists:
+        existing_file = MagicMock()
+        existing_file.owner_id = user_id if is_owner else user_id + 1
+        existing_file.uuid = test_uuid
+        existing_file.name = "test.txt"
+
+    mock_db.query().filter_by().first.return_value = existing_file
+
+    # Mock DB operations
     if db_error:
         mock_db.add.side_effect = Exception("DB error")
     else:
@@ -55,20 +80,24 @@ def test_upload_file_to_db(user_id, file_present, db_error, expected_status, moc
         mock_db.flush.side_effect = None
         mock_db.commit.side_effect = None
         mock_db.rollback.side_effect = None
-        # Simulate new_file.id and uuid
         def add_side_effect(obj):
             if hasattr(obj, 'id'):
                 obj.id = 42
             if hasattr(obj, 'uuid'):
-                obj.uuid = test_uuid
+                obj.uuid = test_uuid if test_uuid else uuid.uuid4()
         mock_db.add.side_effect = add_side_effect
+
+    # Run test
     mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
-    response, status = upload_file_to_db(user_id, file, file_path, metadata)
+    response, status = upload_file_to_db(user_id, file, file_path, metadata, test_uuid)
+    
+    # Assertions
     assert status == expected_status
     data = response.get_json()
     if expected_status == CODE_CREATED:
         assert 'uuid' in data
-        assert data['uuid'] == str(test_uuid)
+        if test_uuid:
+            assert data['uuid'] == str(test_uuid)
     else:
         assert 'error' in data
 
