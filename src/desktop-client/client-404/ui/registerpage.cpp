@@ -1,7 +1,8 @@
 #include "registerpage.h"
-#include "ui_registerpage.h"
+#include "ui/registerpage.h"
+#include "ui/ui_registerpage.h"
 #include <QMessageBox>
-#include "password_utils.h"
+#include "utils/password_utils.h"
 #include <iostream>
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -9,7 +10,7 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <qstackedwidget.h>
-#include "key_utils.h"
+#include  "crypto/key_utils.h"
 #include "constants.h"
 using namespace std;
 

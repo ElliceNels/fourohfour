@@ -1,5 +1,5 @@
 #include "titlepage.h"
-#include "ui_titlepage.h"
+#include "ui/ui_titlepage.h"
 #include <QStackedWidget>
 
 TitlePage::TitlePage(QWidget *parent)

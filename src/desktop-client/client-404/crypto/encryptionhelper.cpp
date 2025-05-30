@@ -1,6 +1,6 @@
-#include "encryptionhelper.h"
+#include "crypto/encryptionhelper.h"
 #include <stdexcept>
-#include "securevector.h"
+#include "utils/securevector.h"
 
 using namespace std;
 

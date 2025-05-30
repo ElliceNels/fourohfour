@@ -1,16 +1,16 @@
 #include "uploadfilepage.h"
-#include "ui_uploadfilepage.h"
+#include "ui/ui_uploadfilepage.h"
 #include <qfileinfo.h>
 #include <QFileDialog>
-#include "encryptionhelper.h"
+#include "crypto/encryptionhelper.h"
 #include <QMessageBox>
 #include <QJsonObject>
 #include <qjsondocument.h>
 #include <qstackedwidget.h>
 #include "constants.h"
-#include "securevector.h"
-#include "securebufferutils.h"
-#include "loginsessionmanager.h"
+#include "utils/securevector.h"
+#include "utils/securebufferutils.h"
+#include "core/LoginSessionManager.h"
 #include <QUuid>
 
 using namespace std;

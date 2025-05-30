@@ -1,8 +1,8 @@
 #include "viewfilespage.h"
-#include "ui_viewfilespage.h"
+#include "ui/ui_viewfilespage.h"
 #include <qlistwidget.h>
 #include <qstackedwidget.h>
-#include "fileitemwidget.h"
+#include "ui/fileitemwidget.h"
 #include "constants.h"
 
 ViewFilesPage::ViewFilesPage(QWidget *parent)

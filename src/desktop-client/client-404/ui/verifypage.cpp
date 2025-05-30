@@ -1,5 +1,5 @@
 #include "verifypage.h"
-#include "ui_verifypage.h"
+#include "ui/ui_verifypage.h"
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QJsonDocument>

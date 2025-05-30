@@ -3,17 +3,17 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include "loginpage.h"
-#include "registerpage.h"
-#include "titlepage.h"
-#include "verifypage.h"
-#include "uploadfilepage.h"
-#include "mainmenu.h"
-#include "viewfilespage.h"
 #include <QFile>
 #include <QTextStream>
 #include <QFileDialog>
 #include <QMessageBox>
+#include "ui/loginpage.h"
+#include "ui/registerpage.h"
+#include "ui/titlepage.h"
+#include "ui/verifypage.h"
+#include "ui/uploadfilepage.h"
+#include "ui/mainmenu.h"
+#include "ui/viewfilespage.h"
 
 inline QStackedWidget& operator+(QStackedWidget& stack, QWidget* widget) {
     stack.addWidget(widget);

@@ -1,4 +1,4 @@
-#include "FileItemWidget.h"
+#include "fileitemwidget.h"
 #include <qlabel.h>
 #include <qpushbutton.h>
 #include "constants.h"
