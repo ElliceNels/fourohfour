@@ -75,7 +75,7 @@ def teardown_db(db_name: str, engine: Engine = None, remove_db: bool = False):
             try:
                 engine.dispose()  # Close connection before deletion
                 drop_database(engine.url, checkfirst=False)
-                logger.info(f"Database {config.database.db_name} dropped successfully.")
+                logger.info(f"Database {db_name} dropped successfully.")
             except Exception as e:
                 logger.error(f"Error dropping database {db_name}: {e}")
     except Exception as e:
