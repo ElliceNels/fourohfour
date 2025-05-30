@@ -220,3 +220,31 @@ def get_current_user():
     except JWTError as e:
         return jsonify({"error": e.message}), e.status
 
+
+
+@authentication_routes.route('/get_public_key', methods=['POST'])
+def get_public_key():
+    """Get public key route to retrieve the user's public key.
+
+    Expected JSON payload:
+    {
+        "username": "<username>"
+    }
+    
+    Expected response:
+    {
+        "public_key": "<public_key>"
+    }
+    """
+    logger.debug("Received request to get public key")
+
+    username = request.json.get('username')
+    if not username:
+        logger.warning("Get public key failed: Missing username")
+        return jsonify({"error": "Missing username"}), 400
+
+    try:
+        return auth.get_public_key(username=username) 
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+

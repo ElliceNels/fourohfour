@@ -258,3 +258,26 @@ def get_current_user() -> dict:
         "updated_at": user.updated_at
     }
     return user_info, 200
+
+def get_public_key(username: str) -> dict:
+    """Get public key route to retrieve the user's public key.
+
+    Args:
+        username (str): Username of the user whose public key is requested.
+
+    Returns:
+        dict: response containing the public key or error message.
+    """
+    
+    if not username:
+        logger.warning("Get public key failed: Missing required fields")
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
+        
+    if not user:
+        logger.warning(f"Get public key failed for user {username}: User not found")
+        return jsonify({"error": "User not found"}), 404
+    
+    return jsonify({"public_key": user.public_key}), 200
