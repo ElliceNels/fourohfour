@@ -8,18 +8,18 @@ import base64
 
 logger = logging.getLogger(__name__)
 
-def login(username: str, hash_password: bytes) -> dict:
+def login(username: str, password: bytes) -> dict:
     """Login route to authenticate users.
 
     Args:
         username (str): Username of the user.
-        hash_password (bytes): Hashed password of the user.
+        password (bytes): Password of the user.
 
     Returns:
         dict: response containing access and refresh tokens or error message.
     """
 
-    if not username or not hash_password:
+    if not username or not password:
         logger.warning("Login failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
@@ -32,8 +32,9 @@ def login(username: str, hash_password: bytes) -> dict:
         logger.warning(f"Login failed for user {username}: User not found")
         return jsonify({"error": "User not found"}), 404
     
-    # Cond 2: Password is incorrect for the given username
-    if user.password != hash_password:
+    # Cond 2: Password is incorrect for the given 
+    hashed_password = hash_password(password, user.salt)
+    if user.password != hashed_password:
         logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
@@ -84,7 +85,7 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         # Create a new user
         new_user = Users(
             username=username,
-            password=password,
+            password=hash_password(password, salt),
             public_key=public_key,
             salt=salt,
             created_at=datetime.now(),
@@ -129,18 +130,24 @@ def change_password(token: str, new_password: str) -> dict:
             logger.warning(f"Change password failed for user {user_id}: User not found")
             return jsonify({"error": "User not found"}), 404
         
-        # Cond 1: The new password is the same as the current one
-        if user.password == new_password:
-            logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
-            return jsonify({"error": "New password is the same as the current one"}), 400
-        
-        # Cond 2: The new password is not provided
+        # Cond 1: The new password is not provided
         if new_password == "" or new_password is None:
             logger.warning(f"Change password failed for user {user_id}: No new password provided")
             return jsonify({"error": "No new password provided"}), 400
 
+        if user.salt is None:
+            logger.warning(f"Change password failed for user {user_id}: User salt is missing")
+            return jsonify({"error": "User salt is missing"}), 400
+        
+        hashed_new_password = hash_password(new_password, user.salt)
+        
+        # Cond 2: The new password is the same as the current one
+        if user.password == hashed_new_password:
+            logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
+            return jsonify({"error": "New password is the same as the current one"}), 400
+
         # Update the password
-        user.password = new_password
+        user.password = hashed_new_password
         user.updated_at = datetime.now()
         db.commit()
         logger.info(f"User {user_id} changed password successfully")
@@ -281,3 +288,21 @@ def get_public_key(username: str) -> dict:
         return jsonify({"error": "User not found"}), 404
     
     return jsonify({"public_key": user.public_key}), 200
+
+def hash_password(password: str, salt: bytes) -> bytes:
+    """Hash the password with the provided salt.
+
+    Args:
+        password (str): The password to hash.
+        salt (bytes): The salt to use for hashing.
+
+    Returns:
+        bytes: The hashed password.
+    """
+
+    if not password or not salt:
+        raise ValueError("Password and salt must be provided")
+    
+    # To be updated with chosen hashing algorithm
+    import hashlib
+    return hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)

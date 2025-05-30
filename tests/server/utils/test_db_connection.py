@@ -5,6 +5,7 @@ from datetime import datetime, UTC, timedelta
 import uuid
 from sqlalchemy.exc import IntegrityError, DataError
 from server.config import config
+from server.utils.auth import hash_password
 from server.utils.db_setup import setup_db, get_session, teardown_db
 from server.models.tables import Users, Files, FilePermissions, FileMetadata
 
@@ -59,7 +60,7 @@ def create_user(session, username=None):
     logger.info(f"Creating test user: {username}")
     user = Users(
         username=username,
-        password="hashed_password",
+        password=hash_password("password", salt=b"salt"),
         salt=b"salt",
         public_key=f"public_key_{uuid.uuid4().hex[:8]}",
         created_at=datetime.now(UTC),
@@ -126,13 +127,14 @@ def test_update_user_password(db_session):
     logger.info("Testing password update")
     user = create_user(db_session)
     new_password = "new_password"
-    user.password = new_password
+    hashed_password = hash_password(new_password, salt=user.salt)
+    user.password = hashed_password
     user.updated_at = datetime.now(UTC) + timedelta(seconds=1)
     db_session.commit()
     logger.debug(f"Updated password for user: {user.username}")
 
-    updated = db_session.query(Users).filter_by(id=user.id).first()
-    assert updated.password == new_password
+    updated: Users = db_session.query(Users).filter_by(id=user.id).first()
+    assert updated.password == hashed_password
 
 def test_file_with_metadata(db_session):
     logger.info("Testing file creation with metadata")
@@ -246,7 +248,7 @@ def test_duplicate_public_keys_fail(db_session):
     public_key = "duplicate_key"
     user1 = Users(
         username="user1",
-        password="password",
+        password=hash_password("password", salt=b"salt"),
         salt=b"salt",
         public_key=public_key,
         created_at=datetime.now(UTC),
@@ -258,7 +260,7 @@ def test_duplicate_public_keys_fail(db_session):
     try:
         user2 = Users(
             username="user2",
-            password="password",
+            password=hash_password("password", salt=b"salt"),
             salt=b"salt",
             public_key=public_key,  # Same public key
             created_at=datetime.now(UTC),

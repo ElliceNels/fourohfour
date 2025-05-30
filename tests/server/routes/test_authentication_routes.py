@@ -45,7 +45,7 @@ def test_user():
     unique_public_key = base64.b64encode(random_bytes).decode()
     return {
         "username": unique_username,
-        "hashed_password": "test_password",
+        "password": "test_password",
         "public_key": unique_public_key,
         "salt": "test_salt"
     }
