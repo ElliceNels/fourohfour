@@ -5,7 +5,7 @@ from datetime import datetime, UTC, timedelta
 import uuid
 from sqlalchemy.exc import IntegrityError, DataError
 from server.config import config
-from server.utils.db_setup import setup_db, get_session
+from server.utils.db_setup import setup_db, get_session, teardown_db
 from server.models.tables import Users, Files, FilePermissions, FileMetadata
 
 logger = logging.getLogger(__name__)
@@ -17,15 +17,15 @@ def db_check():
     """Verify database connection and configuration.
     
     This fixture ensures the database is properly set up and connected
-    to the correct database before running tests.
-    """
+    to the correct database before running tests. It also tears down the DB after tests."""
     chosen_db = "conn_test_db"
-    setup_db(chosen_db)
+    engine = setup_db(chosen_db)
     with get_session() as session:
         db_name = session.execute(text("SELECT DATABASE()")).scalar()
         assert db_name == chosen_db
         logger.info(f"Connected to database: {db_name}")
-    return True
+    yield True
+    teardown_db(chosen_db, engine=engine, remove_db=True)
 
 @pytest.fixture(scope="function")
 def db_session(db_check):
