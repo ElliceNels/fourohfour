@@ -119,6 +119,8 @@ add_executable(tst_key_utils
     utils/securevector.h
     utils/securevector.cpp
     utils/securebufferutils.h
+    utils/request_utils.h
+    utils/request_utils.cpp
     crypto/encryptionhelper.h
     crypto/encryptionhelper.cpp
     core/loginsessionmanager.h

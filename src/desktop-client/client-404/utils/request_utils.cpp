@@ -54,6 +54,9 @@ void RequestUtils::setRefreshToken(const string& token) {
     m_refreshToken = token;
 }
 
+void RequestUtils::setBaseUrl(const std::string& baseUrl) {
+    m_baseUrl = baseUrl;
+}
 // Clear refresh token
 void RequestUtils::clearRefreshToken() {
     if (m_refreshToken) {
