@@ -5,48 +5,12 @@ from server.config import config
 from server.utils.db_setup import get_session
 from server.models.tables import TokenInvalidation
 
-def get_current_token() -> tuple[str | None, dict | None]:
-    """Extract and validate the JWT token from the Authorization header.
-    
-    Returns:
-        tuple: (token, error_info) where:
-            - token is the JWT token string or None if error
-            - error_info is None if successful, or a dict containing:
-                - response: The error response
-                - status: The HTTP status code
-    """
-    try:
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            return None, {"response": jsonify({"error": "Missing or malformed token"}), "status": 401}
-        
-        token = auth_header.split(' ')[1]
-        payload = decode_token(token)
-        if 'error' in payload:
-            return None, {"response": payload['error'], "status": payload['status']}
-            
-        return token, None
-    except RuntimeError:
-        # This happens when we're not in a request context
-        return None, {"response": jsonify({"error": "No request context available"}), "status": 500}
+class JWTError(Exception):
+    def __init__(self, message, status):
+        super().__init__(message)
+        self.message = message
+        self.status = status
 
-def get_user_id_from_token(token: str) -> tuple[int | None, dict | None]:
-    """Extract user ID from a JWT token.
-    
-    Args:
-        token (str): The JWT token to extract user ID from
-        
-    Returns:
-        tuple: (user_id, error_info) where:
-            - user_id is the user ID or None if error
-            - error_info is None if successful, or a dict containing:
-                - response: The error response
-                - status: The HTTP status code
-    """
-    payload = decode_token(token)
-    if 'error' in payload:
-        return None, {"response": payload['error'], "status": payload['status']}
-    return payload['user_id'], None
 
 def decode_token(token: str) -> dict:
     """Decode and validate a JWT token.
@@ -55,10 +19,12 @@ def decode_token(token: str) -> dict:
         token (str): The JWT token to decode
         
     Returns:
-        dict: The decoded token payload or error message
+        dict: The decoded token payload
+    
+    Raises:
+        JWTError: If the token is invalid, expired, or otherwise not usable
     """
     try:
-        # Decode the token first to get user_id and iat
         payload = jwt.decode(token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
@@ -66,17 +32,47 @@ def decode_token(token: str) -> dict:
             invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         
         if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
-            return {'error': jsonify({'error': 'Token has been invalidated'}), 'status': 401}
+            raise JWTError('Token has been invalidated', 401)
         
         # Ensure it's an access token
         if payload.get('type') != 'access':
-            return {'error': jsonify({'error': 'Invalid token type'}), 'status': 401}
+            raise JWTError('Invalid token type', 401)
 
         return payload
     except jwt.ExpiredSignatureError:
-        return {'error': jsonify({'error': 'Token has expired'}), 'status': 401}
+        raise JWTError('Token has expired', 401)
     except jwt.InvalidTokenError:
-        return {'error': jsonify({'error': 'Invalid token'}), 'status': 401}
+        raise JWTError('Invalid token', 401)
+
+def get_current_token() -> str:
+    """Extract and validate the JWT token from the Authorization header.
+    Returns:
+        str: The JWT token string
+    Raises:
+        JWTError: If the token is missing, malformed, or invalid
+    """
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            raise JWTError('Missing or malformed token', 401)
+        
+        token = auth_header.split(' ')[1]
+        decode_token(token)  # Will raise if invalid
+        return token
+    except RuntimeError:
+        raise JWTError('No request context available', 500)
+
+def get_user_id_from_token(token: str) -> int:
+    """Extract user ID from a JWT token.
+    Args:
+        token (str): The JWT token to extract user ID from
+    Returns:
+        int: The user ID
+    Raises:
+        JWTError: If the token is invalid or user_id is missing
+    """
+    payload = decode_token(token)
+    return payload['user_id']
 
 def generate_token(user_id: int) -> tuple[str, str]:
     """Generate access and refresh tokens for a user.
@@ -111,40 +107,34 @@ def generate_token(user_id: int) -> tuple[str, str]:
 
     return access_token, refresh_token
 
-def refresh_access_token(refresh_token: str) -> tuple[str | None, dict | None]:
+def refresh_access_token(refresh_token: str) -> str:
     """Generate a new access token using a refresh token.
-    
     Args:
         refresh_token (str): The refresh token to use
-        
     Returns:
-        tuple: (new_access_token, error_info) where:
-            - new_access_token is the new access token or None if error
-            - error_info is None if successful, or a dict containing:
-                - response: The error response
-                - status: The HTTP status code
+        str: The new access token
+    Raises:
+        JWTError: If the refresh token is invalid or expired
     """
     try:
-        # Verify it's a refresh token
         payload = jwt.decode(refresh_token, current_app.config['JWT_SECRET_KEY'], algorithms=['HS256'])
         if payload.get('type') != 'refresh':
-            return None, {"response": jsonify({'error': 'Invalid token type'}), "status": 401}
+            raise JWTError('Invalid token type', 401)
 
         # Check if token is invalidated by checking if its iat is before the earliest valid iat
         with get_session() as db:
             invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         
         if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
-            return None, {"response": jsonify({'error': 'Token has been invalidated'}), "status": 401}
-
+            raise JWTError('Token has been invalidated', 401)
         # Generate new access token
         new_access_token, _ = generate_token(payload['user_id'])
-        return new_access_token, None
+        return new_access_token
 
     except jwt.ExpiredSignatureError:
-        return None, {"response": jsonify({'error': 'Token has expired'}), "status": 401}
+        raise JWTError('Token has expired', 401)
     except jwt.InvalidTokenError:
-        return None, {"response": jsonify({'error': 'Invalid token'}), "status": 401}
+        raise JWTError('Invalid token', 401)
 
 def invalidate_token(token: str) -> bool:
     """Invalidate a JWT token by updating the earliest valid token issue date for the user.
