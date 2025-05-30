@@ -64,7 +64,7 @@ def upload_file():
 
 @app.route('/view_files')
 def view_files():
-    return "View Files Page"
+    return render_template('viewfiles.html', owned_files=[], shared_files=[])
 
 @app.route('/verify_user')
 def verify_user():

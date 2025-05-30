@@ -349,3 +349,87 @@ input[type="text"]:focus, input[type="password"]:focus {
 .btn.back-btn:hover {
     background: #424242;
 }
+
+/* --- View Files Page Styles --- */
+.files-container {
+    display: flex;
+    width: 90vw;
+    height: 70vh;
+    margin-top: 32px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.sidebar {
+    width: 220px;
+    background: #f7f7f7;
+    border-right: 1.5px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 32px;
+}
+.sidebar-btn {
+    padding: 18px 24px;
+    font-size: 1.1rem;
+    color: #222;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+}
+.sidebar-btn.active, .sidebar-btn:hover {
+    background: #e3f2fd;
+    color: #2196F3;
+    font-weight: 600;
+}
+.files-main {
+    flex: 1;
+    padding: 32px 32px 32px 32px;
+    display: flex;
+    flex-direction: column;
+}
+.files-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #424242;
+    margin-bottom: 24px;
+}
+.files-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fafafa;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.files-table th, .files-table td {
+    padding: 14px 18px;
+    text-align: left;
+}
+.files-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #222;
+}
+.files-table tr:not(:last-child) td {
+    border-bottom: 1px solid #e0e0e0;
+}
+.files-table td {
+    color: #444;
+}
+.files-table tr:last-child td {
+    border-bottom: none;
+}
+.files-table {
+    margin-bottom: 0;
+}
+.files-table-empty {
+    height: 200px;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+}
