@@ -3,9 +3,9 @@ import uuid
 import logging
 from flask.testing import FlaskClient
 from sqlalchemy_utils import database_exists, drop_database
-from server.utils.db_setup import setup_db
+from server.utils.db_setup import setup_db, get_session
 from server.app import create_app
-from server.models.tables import Base
+from server.models.tables import Base, Users, Files
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -149,9 +149,6 @@ def test_get_public_key(client, logged_in_user, second_logged_in_user, user_id, 
     """Test getting a user's public key with various scenarios."""
     # Handle the special "valid" case
     if user_id == "valid":
-        from server.utils.db_setup import get_session
-        from server.models.tables import Users
-        
         with get_session() as db:
             user = db.query(Users).filter_by(username=second_logged_in_user["user"]["username"]).first()
             user_id = user.id  # Changed from user.user_id to user.id
@@ -179,17 +176,13 @@ def test_get_public_key(client, logged_in_user, second_logged_in_user, user_id, 
 def test_create_permission(client, logged_in_user, second_logged_in_user, stored_file_data, scenario, expected_status, has_error):
     """Test creating file permissions with various scenarios."""
     # Get the second user's ID
-    from server.utils.db_setup import get_session
-    from server.models.tables import Users
-    
     with get_session() as db:
         user = db.query(Users).filter_by(username=second_logged_in_user["user"]["username"]).first()
-        user_id = user.id  # Changed from user.user_id to user.id
-        file_id = stored_file_data["file_uuid"]
+        user_id = user.id
     
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     permission_data = {
-        "file_id": file_id,
+        "file_id": stored_file_data["file_uuid"],  # Use UUID instead of internal ID
         "user_id": user_id,
         "key_for_recipient": "encrypted_key_for_recipient"
     }
@@ -216,20 +209,16 @@ def test_create_permission(client, logged_in_user, second_logged_in_user, stored
 def test_remove_permission(client, logged_in_user, second_logged_in_user, stored_file_data, scenario, expected_status, has_error):
     """Test removing file permissions with various scenarios."""
     # Get the second user's ID
-    from server.utils.db_setup import get_session
-    from server.models.tables import Users
-    
     with get_session() as db:
         user = db.query(Users).filter_by(username=second_logged_in_user["user"]["username"]).first()
-        user_id = user.id  # Changed from user.user_id to user.id
-        file_id = stored_file_data["file_uuid"]
+        user_id = user.id
     
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     
     if scenario == "success":
         # Create permission first
         permission_data = {
-            "file_id": file_id,
+            "file_id": stored_file_data["file_uuid"],  # Use UUID instead of internal ID
             "user_id": user_id,
             "key_for_recipient": "encrypted_key_for_recipient"
         }
@@ -238,7 +227,7 @@ def test_remove_permission(client, logged_in_user, second_logged_in_user, stored
     
     # Prepare removal data
     remove_data = {
-        "file_id": file_id,
+        "file_id": stored_file_data["file_uuid"],  # Use UUID instead of internal ID
         "user_id": user_id
     }
     
@@ -259,9 +248,6 @@ def test_remove_permission(client, logged_in_user, second_logged_in_user, stored
 ])
 def test_create_permission_missing_fields(client, logged_in_user, second_logged_in_user, stored_file_data, missing_field, expected_status):
     """Test creating permissions with missing required fields."""
-    from server.utils.db_setup import get_session
-    from server.models.tables import Users
-    
     with get_session() as db:
         user = db.query(Users).filter_by(username=second_logged_in_user["user"]["username"]).first()
         user_id = user.id  # Changed from user.user_id to user.id

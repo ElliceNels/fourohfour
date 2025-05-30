@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from server.utils.auth import get_current_user
 from server.utils.permission import create_file_permission, remove_file_permission
+from server.utils.db_setup import get_session
+from server.models.tables import Files
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,7 +15,7 @@ def create_permission():
     
     Expected JSON payload:
     {
-        "file_id": <file_id>,
+        "file_id": <file_uuid>,
         "user_id": <user_id>,
         "key_for_recipient": "<encrypted_symmetric_key>"
     }
@@ -40,7 +42,8 @@ def create_permission():
         if status_code != 200:
             return jsonify({'error': 'Authentication failed'}), status_code
 
-        user_id = current_user_info['user_id'] 
+        user_id = current_user_info['user_id']
+
         return create_file_permission(
             data['file_id'],
             data['user_id'],
@@ -57,7 +60,7 @@ def remove_permission():
     
     Expected JSON payload:
     {
-        "file_id": <file_id>,
+        "file_id": <file_uuid>,
         "user_id": <user_id>
     }
 
@@ -84,7 +87,7 @@ def remove_permission():
         if status_code != 200:
             return jsonify({'error': 'Authentication failed'}), status_code
 
-        user_id = current_user_info['user_id'] 
+        user_id = current_user_info['user_id']
 
         return remove_file_permission(
             data['file_id'],
