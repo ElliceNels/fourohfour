@@ -9,7 +9,7 @@ from nacl.bindings import (
 import nacl.utils
 from nacl import pwhash
 from encryption_helper import EncryptionHelper  
-from constants import BINARY_EXTENSION
+from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 
 def generate_sodium_keypair() -> tuple[str, str]:
     """
@@ -71,9 +71,13 @@ def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str
     combined_data = nonce + ciphertext
 
     #Save encrypted private key file
-    file_name = f"./keys_{username}{BINARY_EXTENSION}"
-    with open(file_name, 'wb') as f:
-        f.write(combined_data)
+    file_name = f"{KEYS_PATH}{username}{BINARY_EXTENSION}"
+    try:
+        with open(file_name, 'wb') as f:
+            f.write(combined_data)
+    except IOError as e:
+        print(f"Error saving encrypted key file: {str(e)}")
+        return False
 
     #Encrypt and save master key
     if not encrypt_and_save_master_key(key, derived_key, username):
@@ -98,10 +102,14 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
     encrypted_key = EncryptionHelper.encrypt(key_to_encrypt, derived_key, nonce)
     combined_data = nonce + encrypted_key
 
-    file_path = f"./masterKey_{username}{BINARY_EXTENSION}"
-    with open(file_path, 'wb') as f:
-        f.write(combined_data)
-    return True
+    file_path = f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}"
+    try:
+        with open(file_path, 'wb') as f:
+            f.write(combined_data)
+        return True
+    except IOError as e:
+        print(f"Error saving master key file: {str(e)}")
+        return False 
 
 def derive_key_from_password(password: str, salt: bytes, key_len: int = 32) -> bytes:
     """

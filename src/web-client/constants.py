@@ -1,5 +1,5 @@
-KEYS_PATH = "./keys"
-MASTER_KEY_PATH = "./master_keys"
+KEYS_PATH = "./encryptedKey_"
+MASTER_KEY_PATH = "./masterKey_"
 BINARY_EXTENSION = ".bin"
 JSON_EXTENSION = ".json"
 RESTRICTED_CHARS = set("!@#$%^&*()+=[]{}|\\;:'\",<>/?`~")
