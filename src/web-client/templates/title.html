@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fourohfour Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <span class="logo-primary">fourohfour</span><span class="logo-secondary"> Files</span>
+    </div>
+    <div class="center-viewport">
+        <div class="hero">
+            <h1 class="hero-title">
+                <span class="hero-primary">Store &amp; Share </span>
+                <span class="hero-secondary">Your Files</span>
+            </h1>
+            <p class="hero-subtitle">Securely access your data from anywhere, on any device.</p>
+        </div>
+        <div class="button-row">
+            <a href="{{ url_for('login') }}" class="btn big-btn">Log In</a>
+            <a href="{{ url_for('signup') }}" class="btn big-btn">Sign Up</a>
+        </div>
+    </div>
+</body>
+</html>

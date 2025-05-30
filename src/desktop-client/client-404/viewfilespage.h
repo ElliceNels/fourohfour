@@ -26,6 +26,7 @@ private:
     void initialisePageUi() override;
     void setupConnections() override;
 
+    void switchFileListPage(int pageIndex);
 
 signals:
     void goToMainMenuRequested();
