@@ -219,7 +219,7 @@ def change_username(token: str, new_username: str) -> dict:
 
     return jsonify({"message": "Username updated successfully"}), 200
 
-def get_current_user(token: str = None) -> dict:
+def get_current_user() -> dict:
     """Get the current user from the JWT token.
 
     Args:
@@ -235,12 +235,9 @@ def get_current_user(token: str = None) -> dict:
             - created_at: Account creation timestamp
             - updated_at: Last update timestamp
     """
-    try:
-        current_token = get_current_token(token)
-    except JWTError as e:
-        return {"error": str(e)}, e.status
     user_id = None
     try:
+        current_token = get_current_token()
         user_id = get_user_id_from_token(current_token)
     except JWTError as e:
         return {"error": str(e)}, e.status

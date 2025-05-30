@@ -181,17 +181,17 @@ def test_change_username_cases(token, new_username, user_exists, token_error, us
         assert "error" in data
 
 @pytest.mark.parametrize(
-    "token, token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key",
+    "token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key",
     [
         # Invalid token
-        ("badtoken", JWTError("Missing required fields", CODE_BAD_REQUEST), None, CODE_BAD_REQUEST, "Missing required fields", None, None),
+        (JWTError("Missing required fields", CODE_BAD_REQUEST), True, CODE_BAD_REQUEST, "Missing required fields", None, None),
         # Invalid user (user not found)
-        ("token", None, False, CODE_NOT_FOUND, "User not found", None, None),
+        (None, False, CODE_NOT_FOUND, "User not found", None, None),
         # Success
-        ("token", None, True, CODE_SUCCESS, None, "user", "pk"),
+        (None, True, CODE_SUCCESS, None, "user", "pk"),
     ]
 )
-def test_get_current_user_cases(token, token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key, mock_db, app_ctx, mocker):
+def test_get_current_user_cases(token_error, user_exists, expected_status, expected_error, expected_username, expected_public_key, mock_db, app_ctx, mocker):
     from server.utils.auth import get_current_user
 
     # Patch get_current_token
@@ -212,7 +212,7 @@ def test_get_current_user_cases(token, token_error, user_exists, expected_status
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None
-    resp, status = get_current_user(token)
+    resp, status = get_current_user()
     assert status == expected_status
     if expected_error:
         if hasattr(resp, 'get_json'):
