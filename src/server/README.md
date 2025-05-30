@@ -1,260 +1,257 @@
-# Secure File Sharing Server
 
-This is the server component of the secure file sharing platform. It provides the backend API for file operations, user authentication, and secure file sharing.
+# # Server Info
 
-## Setup
+## Overview
+The server is a Flask-based REST API that handles secure file sharing operations. It provides endpoints for user authentication, file management, and secure file sharing.
 
-1. Create a virtual environment:
-```bash
-python -m venv venv
-venv\Scripts\activate
+## File Structure
+```
+src/server/
+├── app.py              # Main application entry point
+├── config.py           # Configuration settings
+├── models/            # Database models
+│   ├── user.py        # User model and authentication
+│   └── file.py        # File and sharing models
+├── routes/            # API endpoints
+│   ├── auth.py        # Authentication routes
+│   └── files.py       # File management routes
+├── utils/             # Helper functions
+└── migrations/        # Database migration files
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+## Key Endpoints
+### Authentication
+- `POST /auth/register` - Register new user
+- `POST /auth/login` - User login
+- `POST /auth/logout` - User logout
+- `GET /auth/verify` - Verify JWT token
 
-3. Create a `.env` file in the server directory with the following variables:
-```
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=to-be-generated
-DB_USER=your-db-username
-DB_PASSWORD=your-db-password
-```
+### File Operations
+- `POST /files/upload` - Upload new file
+- `GET /files/list` - List user's files
+- `GET /files/<file_id>` - Get file details
+- `DELETE /files/<file_id>` - Delete file
+- `POST /files/<file_id>/share` - Share file with other users
+- `GET /files/shared` - List files shared with user
 
-4. Run the server:
-```bash
-# Development mode (Flask development server)
-python -m src.server.app
+### Security
+- All endpoints except registration and login require JWT authentication
+- File access is controlled through granular permissions
+- Files remain encrypted at rest
+- Secure file transfer using HTTPS when deployed on gobbler.info as that server already has certs
 
-# Production mode (Gunicorn)
-cd ~/db_test
-nohup gunicorn -w 4 -b 0.0.0.0:4004 src.server.app:app > gunicorn.log 2>&1 &
-```
+## Getting Started
+Assuming this is your first time running the app:
+ - Set up a virtual environment at the fourohfour directory using `python -m venv venv` and activate `venv/Scripts/activate`
+	 - Install dependencies `pip install -r requirements.txt`
+ - **Set up local database** *(see below)*
+ - Apply any pending **database migrations** *(see below)*
+ - [Optional] Set `JWT_SECRET_KEY` and `SECRET_KEY` using generated values *(see "Generating Secrets" below)*
+ -  Run from the `fourohfour` directory with `python -m src.server.app` 
+	 - You may need to set `$env:PYTHONPATH = "C:\Users\...\fourohfour\src"` *(<- powershell syntax)*
+    - Or using .env `PYTHONPATH = src`
+ - The app should now run at `localhost:5000` 
+	 - To diagnose issues see **Checking Logs** below
 
-# Deploying to Gobbler Server
+## Setting up Local Database
+1. Install MySQL:
+   - Download MySQL Installer from: https://dev.mysql.com/downloads/installer/
+	   - Our team is using version 8.0.42
+   - Choose either of the two installers
+   - Run installer, choose "Developer Default" or "Server only"
+   - Set root password during installation
+   - Keep default port (3306)
 
-## Copying Files to Server
-1. From your local machine, use scp to copy the server files. You may have to ssh in and create the directories you want to move the files to (probably on wsl):
+2. Add MySQL to PATH:
+   - Find MySQL installation (typically `C:\Program Files\MySQL\MySQL Server 8.0\bin`)
+   - Add to Windows PATH through System Properties
+
+3. Create MySQL User, either via command line or if prompted during setup via the GUI
+	- This user can have any username and password, just remember to set these values as environment variables before running as in development mode we have defualt environment variables `DB_USER = "db_user"` and `DB_PASSWORD = "db_password"`
+   ```sql
+   CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'db_password';
+   GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+   *note: the user and password is different for production 
+
+4. Create `.env` file in the fourohfour directory and add the values that you set above. 
+	- If you have set up mySQL with the default values db_user and db_password, this is optional but good practice:
+   ```
+   DB_USER=db_user
+   DB_PASSWORD=db_password
+   ```
+
+5. Now when you run the app, SQLAlchemy should create a database with the relevent tables automatically, and use this going forward.
+   - Database connection and integration testing use different databases
+
+## Generating Secrets
+The application requires two secret keys for security:
+1. `SECRET_KEY` - Used for Flask session security and CSRF protection
+2. `JWT_SECRET_KEY` - Used for signing and verifying JSON Web Tokens
+
+To generate these keys:
+
+1. Navigate to the server directory:
+   ```bash
+   cd src/server
+   ```
+
+2. Generate the keys using the provided script:
+   ```bash
+   # Generate Flask SECRET_KEY
+   python scripts/generate_secret_key.py --key SECRET_KEY
+
+   # Generate JWT_SECRET_KEY
+   python scripts/generate_secret_key.py --key JWT_SECRET_KEY
+   ```
+
+3. The script will automatically update your `.env` file with the new keys.
+
+To manually add these keys:
+1. Choose secure, random JWT and flask secret keys
+
+2. Add these values to your .env
+   ```
+   JWT_SECRET_KEY=your_key_here
+   SECRET_KEY=your_secret_key_here
+   ```
+
+Important Security Notes:
+- Keys are stored in the `.env` file and should never be hardcoded in the application
+- Keep keys consistent across server restarts
+- Use different keys for development and production
+- Never commit keys to version control
+- Changing keys will invalidate all existing sessions/tokens
+
+## Deploying to Gobbler.info
+1. Copy files to server:
    ```bash
    scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
    ```
 
-2. Set production environment variables on the server:
+2. Set production environment variables:
    ```bash
    export DB_ENVIRONMENT=production
    export DB_USER=fourohfour
    export DB_PASSWORD=fourohfour
    ```
 
-# Running Flask App on Gobbler Server
-
-## Starting the App
-1. SSH into the server:
+3. Start the application:
    ```bash
-   ssh -vvv -i ~/.ssh/id_rsa  jean@gobbler.info
-   ```
-
-2. Navigate to your app directory:
-   ```bash
-   cd ~/db_test/src/server
-   ```
-
-3. Start Flask with nohup (so it will continue after you kill your terminal):
-   ```bash
-   # Using Flask development server
-   nohup flask run --host=0.0.0.0 --port=4004 > flask.log 2>&1 &
-
-   # Using Gunicorn (recommended for production)
    cd ~/db_test
    nohup gunicorn -w 4 -b 0.0.0.0:4004 src.server.app:app > gunicorn.log 2>&1 &
    ```
 
-4. Verify it's running:
+## Apply Database Migrations
+1. Check current migration status:
    ```bash
-   ps aux | grep gunicorn
+   alembic current
    ```
-   You should see multiple processes:
-   - One master process
-   - Four worker processes (because of -w 4)
-   - One grep process (which you can ignore)
+
+2. View migration history:
+   ```bash
+   alembic history
+   ```
+
+3. Apply pending migrations:
+   ```bash
+   alembic upgrade head
+   ```
+
+4. Create new migration:
+   ```bash
+   alembic revision --autogenerate -m "description"
+   ```
 
 ## Checking Logs
-To see what's happening with your app:
-```bash
-# If using Flask development server
-tail -f flask.log
+### Local (Flask App)
+- Logs are output directly to the console when running in development mode
+- You can also check the actual log file `app/server/logs/app.log`
 
-# If using Gunicorn
+### On Gobbler (Gunicorn App)
+```bash
+# View Gunicorn logs
 tail -f gunicorn.log
+
+# Check if process is running
+ps aux | grep gunicorn
 ```
 
-## Stopping the App
-1. Find the process IDs (PIDs):
-   ```bash
-   ps aux | grep gunicorn
-   ```
-   Look for the lines containing `gunicorn` and note the PID numbers.
-
-2. Kill all gunicorn processes:
-   ```bash
-   pkill -9 gunicorn
-   ```
-
-3. Verify it's stopped:
-   ```bash
-   ps aux | grep gunicorn
-   ```
-   You should only see the grep process itself.
-
-## Troubleshooting
-- If the app isn't starting, check the logs:
-  ```bash
-  cat gunicorn.log
-  ```
-- If you can't kill the process, use force kill:
-  ```bash
-  pkill -9 gunicorn
-  ```
-- If port 4004 is already in use:
-  ```bash
-  sudo lsof -i :4004
-  ```
-  This will show what's using the port.
-
-# Database Setup Guide (THIS PART IS AI GENERATED ngl)
-
-## Development vs Production
-
-### Development Mode
-- Uses local MySQL database
-- Default credentials: `db_user`/`db_password`
-- Database and tables are created automatically on first run
-- Environment variable `DB_ENVIRONMENT` set to "development"
-
-### Production Mode
-- Connects to cloud MySQL database
-- Requires environment variables:
-  - `DB_USER`
-  - `DB_PASSWORD`
-  - `DB_ENVIRONMENT` set to "production"
-- Database and tables are created automatically if they don't exist
-
-## Local Development Setup
-
-### 1. Install MySQL
-1. Download MySQL Installer from: https://dev.mysql.com/downloads/installer/
-2. Run installer, choose "Developer Default" or "Server only"
-3. During installation:
-   - Set root password (remember this!)
-   - Keep default port (3306)
-
-### 2. Add MySQL to PATH
-1. Find MySQL installation (typically `C:\Program Files\MySQL\MySQL Server 8.0\bin`)
-2. Add to PATH:
-   - Press Windows + R
-   - Type "sysdm.cpl" and press Enter
-   - Go to "Advanced" tab
-   - Click "Environment Variables"
-   - Under "System Variables", find "Path"
-   - Click "Edit" → "New"
-   - Add MySQL bin directory path
-   - Click "OK" on all windows
-3. Restart your terminal
-
-### 3. Create MySQL User (Required)
-This step is necessary to create a MySQL user that the application will use. The username and password MUST match either:
-- The default values in the code (`db_user`/`db_password`)
-- Or the values you set in your `.env` file
-
-1. Open Command Prompt as Administrator
-2. Connect to MySQL:
-   ```bash
-   mysql -u root -p
-   ```
-3. Enter your root password
-4. Create the application user (use the same username/password that your application will use):
-   ```sql
-   CREATE USER 'db_user'@'localhost' IDENTIFIED BY 'db_password';
-   GRANT ALL PRIVILEGES ON *.* TO 'db_user'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
-
-### 4. Start the Application
-The database and tables will be created automatically on first run:
-```bash
-python src/server/app.py
-```
-
-## Production Deployment
-
-### 1. Set Environment Variables
-```bash
-export DB_USER=your_prod_user
-export DB_PASSWORD=your_prod_password
-export DB_ENVIRONMENT=production
-```
-
-### 2. Start Flask Application
-```bash
-python src/server/app.py
-```
-
-## Database Visualization with DBeaver
-
-### 1. Install DBeaver
-1. Download from: https://dbeaver.io/download/
-2. Run installer
-3. Launch DBeaver
-
-### 2. Connect to Database
-1. Click "New Database Connection" (plug icon with plus)
-2. Select "MySQL"
-3. Fill in connection details:
-   - Server Host: `127.0.0.1`
+## Viewing DB Contents
+### Local (Flask App)
+1. Install DBeaver from https://dbeaver.io/download/
+2. Create new MySQL connection:
+   - Host: `127.0.0.1`
    - Port: `3306`
    - Database: `fourohfour`
    - Username: `db_user`
    - Password: `db_password`
-4. Click "Test Connection"
-5. If successful, click "Finish"
+3. Database files are typically stored in:
+   - Windows: `C:\ProgramData\MySQL\MySQL Server 8.0\Data\fourohfour`
+   - Linux: `/var/lib/mysql/fourohfour`
+   - macOS: `/usr/local/mysql/data/fourohfour`
+   Note: These are default locations and may vary based on your MySQL installation
 
-### 3. View Tables
-1. In left panel, expand:
-   - Your connection
-   - "fourohfour" database
-   - "Tables"
-2. You'll see all tables:
-   - `users`
-   - `files`
-   - `file_permissions`
-   - `file_metadata`
-   - `token_invalidation`
+### On Gobbler (Gunicorn App)
+1. SSH into server:
+   ```bash
+   ssh -i ~/.ssh/id_rsa jean@gobbler.info
+   ```
+2. Connect to MySQL:
+   ```bash
+   mysql -u fourohfour -pfourohfour fourohfour
+   ```
+3. Select database and view tables:
+   ```sql
+   SHOW TABLES;
+   SELECT * FROM table_name;
+   ```
 
-### 4. View Table Contents
-- Right-click any table
-- Select "View Data"
+# Testing
 
-### 5. View Table Structure
-- Right-click any table
-- Select "View Table"
+### Prequisites
+- Ensure PyTest is installed
+- Ensure PYTHONPATH is set in your .env
+- Ensure you have a local MySQL server running
+- Ensure your pytest.ini file contains teh following:
+   ```
+   [pytest]
+   pythonpath = src
+   testpaths = tests
+   ```
+### Running Tests
 
-## Important Notes
-- Local database files are in `.gitignore`
-- Each developer needs their own local MySQL installation
-- Production database credentials should never be committed to git
-- Always use environment variables for production credentials
-- The database and tables are created automatically on first run
+1. From the `fourohfour` directory
+   ```bash
+   pytest
+   ```
+   If you would like to run a specific file:
+   ```
+   pytest file/path/from/tests/directory
+   ```
 
-## Troubleshooting
-1. If MySQL command not found:
-   - Verify PATH setup
-   - Restart terminal
-2. If connection fails:
-   - Check MySQL service is running
-   - Verify credentials
-   - Check port availability
-3. If tables not visible:
-   - Check connection settings in DBeaver
-   - Verify the application has run at least once
+# TroubleShooting
+1. Database Connection Issues:
+   - Verify MySQL service is running
+   - Check credentials in `.env` file
+   - Ensure MySQL is in PATH
+   - Check port availability (3306)
+
+2. Application Won't Start:
+   - Check virtual environment is activated
+   - Verify all dependencies are installed
+   - Check PYTHONPATH is set correctly
+   - Review error logs
+
+3. Migration Issues:
+   - Ensure database exists
+   - Check alembic version table
+   - Verify migration files are present
+   - Try downgrading and upgrading again
+
+4. Production Deployment Issues:
+   - Check Gunicorn logs
+   - Verify environment variables
+   - Ensure correct permissions
+   - Check port availability (4004)

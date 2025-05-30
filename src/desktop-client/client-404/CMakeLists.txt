@@ -17,25 +17,70 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network Test)
 set(SODIUM_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
 set(SODIUM_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libsodium.dll.a")
 
-# Set libcurl paths to local directories 
+# Set libcurl paths to local directories
 set(CURL_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/../include")
 set(CURL_LIBRARY "${CMAKE_SOURCE_DIR}/../lib/libcurl.dll.a")
 
+# Set source files by category
+set(UI_SOURCES
+    ui/mainwindow.cpp
+    ui/mainwindow.h
+    ui/mainwindow.ui
+    ui/registerpage.cpp
+    ui/registerpage.h
+    ui/registerpage.ui
+    ui/loginpage.cpp
+    ui/loginpage.h
+    ui/loginpage.ui
+    ui/titlepage.h
+    ui/titlepage.cpp
+    ui/titlepage.ui
+    ui/verifypage.h
+    ui/verifypage.cpp
+    ui/verifypage.ui
+    ui/uploadfilepage.h
+    ui/uploadfilepage.cpp
+    ui/uploadfilepage.ui
+    ui/mainmenu.h
+    ui/mainmenu.cpp
+    ui/mainmenu.ui
+    ui/fileitemwidget.h
+    ui/fileitemwidget.cpp
+    ui/viewfilespage.h
+    ui/viewfilespage.cpp
+    ui/viewfilespage.ui
+    ui/basepage.h
+    ui/basepage.cpp
+)
+
+set(CRYPTO_SOURCES
+    crypto/key_utils.cpp
+    crypto/key_utils.h
+    crypto/encryptionhelper.h
+    crypto/encryptionhelper.cpp
+)
+
+set(UTILS_SOURCES
+    utils/password_utils.cpp
+    utils/password_utils.h
+    utils/securevector.h
+    utils/securevector.cpp
+    utils/securebufferutils.h
+)
+
+set(CORE_SOURCES
+    core/loginsessionmanager.h
+    core/loginsessionmanager.cpp
+)
+
 set(PROJECT_SOURCES
     main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
-    password_utils.cpp
-    password_utils.h
-    registerpage.cpp
-    registerpage.h
-    registerpage.ui
-    key_utils.cpp
-    key_utils.h
-    loginpage.cpp
-    loginpage.h
-    loginpage.ui
+    pages.h
+    constants.h
+    ${UI_SOURCES}
+    ${CRYPTO_SOURCES}
+    ${UTILS_SOURCES}
+    ${CORE_SOURCES}
 )
 
 # Main application target
@@ -43,44 +88,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(client-404
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        password_utils.h
-        password_utils.h
-        password_utils.cpp
         resource.qrc
-        registerpage.ui
-        registerpage.ui
-        key_utils.h
-        key_utils.cpp
-        titlepage.h
-        titlepage.cpp
-        titlepage.ui
-        pages.h
-        verifypage.h
-        verifypage.cpp
-        verifypage.ui
-        uploadfilepage.h
-        uploadfilepage.cpp
-        uploadfilepage.ui
-        constants.h
-        encryptionhelper.h
-        encryptionhelper.cpp
-        mainmenu.h
-        mainmenu.cpp
-        mainmenu.ui
-        loginsessionmanager.h
-        loginsessionmanager.cpp
-        fileitemwidget.h
-        fileitemwidget.cpp
-        viewfilespage.h
-        viewfilespage.cpp
-        viewfilespage.ui
-        basepage.h
-        basepage.cpp
-        securevector.h
-        securevector.cpp
-        securebufferutils.h
-        request_utils.h
-        request_utils.cpp
     )
 else()
     if(ANDROID)
@@ -94,50 +102,71 @@ else()
     endif()
 endif()
 
+# Test source files
+set(TEST_SOURCES
+    tests/tst_key_utils.cpp
+    tests/tst_key_utils.h
+)
+
 # Test target
 add_executable(tst_key_utils
-    tst_key_utils.cpp
-    tst_key_utils.h
-    key_utils.cpp
-    key_utils.h
-    securevector.h
-    securevector.cpp
-    securebufferutils.h
-    encryptionhelper.h
-    encryptionhelper.cpp
-    loginsessionmanager.h
-    loginsessionmanager.cpp  # Added this file
+    ${TEST_SOURCES}
+    crypto/key_utils.cpp
+    crypto/key_utils.h
+    utils/securevector.h
+    utils/securevector.cpp
+    utils/securebufferutils.h
+    crypto/encryptionhelper.h
+    crypto/encryptionhelper.cpp
+    core/loginsessionmanager.h
+    core/loginsessionmanager.cpp
+)
+
+# Include directories for the whole project
+include_directories(
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/ui
+    ${CMAKE_SOURCE_DIR}/crypto
+    ${CMAKE_SOURCE_DIR}/utils
+    ${CMAKE_SOURCE_DIR}/core
+    ${SODIUM_INCLUDE_DIR}  # Add libsodium include directory globally
+    ${CURL_INCLUDE_DIR} #Add libcurrl include directory globally
+    "${CMAKE_SOURCE_DIR}/../include"  # Also add this explicit path
+)
+
+# Add preprocessor definitions to prevent Windows byte conflicts
+add_definitions(
+    -DWIN32_LEAN_AND_MEAN
+    -DNOMINMAX
+    -DNO_MIN_MAX
+    -DNOCRYPT
+    -D_CRT_SECURE_NO_WARNINGS
+    -DNOGDI
 )
 
 # Link libraries for main application
-target_include_directories(client-404 PRIVATE
-    "${CMAKE_SOURCE_DIR}/../include"
-    ${SODIUM_INCLUDE_DIR}
-)
-target_link_directories(client-404 PRIVATE
-    "${CMAKE_SOURCE_DIR}/../lib"
-)
 target_link_libraries(client-404 PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::Network
     ${SODIUM_LIBRARY}
-    ${CURL_LIBRARY}  
+    ${CURL_LIBRARY}
 )
 
 # Link libraries for test target
-target_include_directories(tst_key_utils PRIVATE
-    "${CMAKE_SOURCE_DIR}/../include"
-    ${SODIUM_INCLUDE_DIR}
-)
-target_link_directories(tst_key_utils PRIVATE
-    "${CMAKE_SOURCE_DIR}/../lib"
-)
 target_link_libraries(tst_key_utils PRIVATE
     Qt${QT_VERSION_MAJOR}::Core
     Qt${QT_VERSION_MAJOR}::Test
     Qt${QT_VERSION_MAJOR}::Widgets
     ${SODIUM_LIBRARY}
+    ${CURL_LIBRARY}
 )
+
+# Create source groups for IDE organization
+source_group("UI" FILES ${UI_SOURCES})
+source_group("Crypto" FILES ${CRYPTO_SOURCES})
+source_group("Utils" FILES ${UTILS_SOURCES})
+source_group("Core" FILES ${CORE_SOURCES})
+source_group("Tests" FILES ${TEST_SOURCES})
 
 # Enable testing
 enable_testing()

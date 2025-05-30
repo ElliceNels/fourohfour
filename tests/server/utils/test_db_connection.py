@@ -19,10 +19,11 @@ def db_check():
     This fixture ensures the database is properly set up and connected
     to the correct database before running tests.
     """
-    setup_db()
+    chosen_db = "conn_test_db"
+    setup_db(chosen_db)
     with get_session() as session:
         db_name = session.execute(text("SELECT DATABASE()")).scalar()
-        assert db_name == config.database.db_name
+        assert db_name == chosen_db
         logger.info(f"Connected to database: {db_name}")
     return True
 
