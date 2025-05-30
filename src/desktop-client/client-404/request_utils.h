@@ -16,6 +16,7 @@
 #include <optional>
 #include <sodium.h>
 #include <mutex>
+#include <atomic>  
 
 using namespace std;
 
@@ -71,7 +72,7 @@ private:
     string m_baseUrl;
     optional<string> m_bearerToken;
     optional<string> m_refreshToken;
-    bool m_tokenRefreshInProgress = false;
+    std::atomic<bool> m_tokenRefreshInProgress{false};  
 
     // Private utility methods
     void setupCurl();

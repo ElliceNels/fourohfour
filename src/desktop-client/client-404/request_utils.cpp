@@ -111,7 +111,7 @@ bool RequestUtils::refreshAccessToken() {
     }
     
     // Reset flag
-    m_tokenRefreshInProgress = false;
+    m_tokenRefreshInProgress.store(false);  
     return success;
 }
 
@@ -268,11 +268,11 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         if (retryCount >= maxRetries) {
             break;
         }
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        this_thread::sleep_for(chrono::seconds(1));
     } while (res == CURLE_OPERATION_TIMEDOUT || res == CURLE_COULDNT_CONNECT);
 
     if (res != CURLE_OK) {
-        std::cout << "CURL error: " << curl_easy_strerror(res) << std::endl;  // Use cout instead of cerr
+        cout << "CURL error: " << curl_easy_strerror(res) << endl;
         response.success = false;
         response.errorMessage = curl_easy_strerror(res);
         return response;
@@ -294,7 +294,7 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         if (parseError.error == QJsonParseError::NoError) {
             response.jsonData = jsonDoc;
         } else {
-            std::cout << "JSON parse error: " << parseError.errorString().toStdString() << std::endl;  // Use cout
+            cout << "JSON parse error: " << parseError.errorString().toStdString() << endl;
             response.errorMessage = "JSON parse error: " + parseError.errorString().toStdString();
         }
     }
@@ -308,16 +308,16 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
             } else if (jsonObj.contains("message")) {
                 response.errorMessage = jsonObj["message"].toString().toStdString();
             } else {
-                response.errorMessage = "HTTP error: " + std::to_string(response.statusCode);
+                response.errorMessage = "HTTP error: " + to_string(response.statusCode);
             }
         } else {
-            response.errorMessage = "HTTP error: " + std::to_string(response.statusCode);
+            response.errorMessage = "HTTP error: " + to_string(response.statusCode);
         }
-        std::cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage << std::endl;  // Use cout
+        cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage << endl;
     }
 
     // Handle token expiration (status code 401)
-    if (response.statusCode == 401 && m_refreshToken && !m_tokenRefreshInProgress && 
+    if (response.statusCode == 401 && m_refreshToken && !m_tokenRefreshInProgress.load() && 
         url != REFRESH_TOKEN_ENDPOINT) {
         if (refreshAccessToken()) {
             return makeRequest(url, method, data, params);
