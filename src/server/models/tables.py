@@ -54,7 +54,7 @@ class Files(Base):
     __tablename__ = 'files'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    uuid = Column(UUID, unique=True, nullable=False, default=uuid.uuid4, index=True)
+    uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
     name = Column(String(255), nullable=False)
     path = Column(String(512), nullable=False)
     uploaded_at = Column(DateTime, nullable=False, index=True)
