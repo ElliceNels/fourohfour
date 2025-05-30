@@ -1,11 +1,11 @@
 from server.config import config 
 from server.models.tables import Base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 import os
 import logging
 # Add sqlalchemy-utils for database existence check and creation
-from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy_utils import database_exists, create_database, drop_database
 
 logger = logging.getLogger(__name__)
 
@@ -54,3 +54,30 @@ def setup_db(name: str = None):
     global _Session
     _Session = sessionmaker(bind=engine)
     return engine
+
+# For teardown when needed, e.g., in tests or application shutdown
+def teardown_db(db_name: str, engine: Engine = None, remove_db: bool = False):
+    """Teardown the database connection and drop tables."""
+    global _Session
+
+    if _Session:
+        _Session.close_all()
+        _Session = None
+
+    try:
+        if not engine:
+            db_engine = f"mysql+pymysql://{os.getenv('DB_USER', 'db_user')}:{os.getenv('DB_PASSWORD', 'db_password')}@{config.database.db_host}:{config.database.db_port}/{db_name}"
+            engine = create_engine(db_engine)
+        Base.metadata.drop_all(engine)
+        logger.info(f"Database {db_name} at {config.database.db_host}:{config.database.db_port} disconnected and tables dropped.")
+        
+        if remove_db and database_exists(engine.url):
+            try:
+                engine.dispose()  # Close connection before deletion
+                drop_database(engine.url, checkfirst=False)
+                logger.info(f"Database {config.database.db_name} dropped successfully.")
+            except Exception as e:
+                logger.error(f"Error dropping database {db_name}: {e}")
+    except Exception as e:
+        logger.error(f"Failed db teardown {db_name}: {e}")
+        raise
