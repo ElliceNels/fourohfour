@@ -34,10 +34,10 @@ def login():
 def main_menu():
     return render_template('mainmenu.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('title_page'))
 
 @app.route('/upload_file')
 def upload_file():
