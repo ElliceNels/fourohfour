@@ -202,18 +202,19 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
             mocker.patch("builtins.open", m)
         elif file_found and (owner or has_permission) and file_read_error:
             mocker.patch("builtins.open", side_effect=Exception("read error"))
+    
     response = get_file_by_uuid(str(file_uuid), user_id)
+    
+
+    data, status = response
+    assert status == expected_status
     if expected_status == CODE_SUCCESS:
-        data = response.get_json()
+        data = data.get_json()
         assert 'encrypted_file' in data
         if owner:
             assert 'encrypted_keys' in data
     else:
-        if db_error:
-            assert response[1] == CODE_SERVER_ERROR
-        else:
-            assert response[1] == expected_status
-        assert 'error' in response[0].get_json()
+        assert 'error' in data.get_json()
 
 @pytest.mark.parametrize("file_uuid, user_id, file_found, owner, file_delete_error, db_error, expected_status", [
     (uuid.uuid4(), 1, True, True, False, False, CODE_SUCCESS),  # Success

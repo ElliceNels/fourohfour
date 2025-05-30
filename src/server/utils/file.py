@@ -188,7 +188,7 @@ def get_user_files(user_id: int) -> dict:
         return jsonify({
             'owned_files': owned_files_data,
             'shared_files': shared_files_data
-        })
+        }), 200
 
     except Exception as e:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
@@ -241,7 +241,7 @@ def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
                     perm.user_id: perm.encryption_key for perm in permissions
                 }
             logger.info(f"User {user_id} retrieved file {file_uuid} successfully")
-        return jsonify(response_data)
+        return jsonify(response_data), 200
 
     except Exception as e:
         logger.error(f"Error retrieving file {file_uuid} for user {user_id}: {str(e)}")
@@ -282,7 +282,7 @@ def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:
             db.delete(file)
             db.commit()
             logger.info(f"User {user_id} deleted file {file_uuid} successfully")
-            return jsonify({'message': 'File deleted successfully'})
+            return jsonify({'message': 'File deleted successfully'}), 200
     except Exception as e:
         logger.error(f"Error deleting file {file_uuid} for user {user_id}: {str(e)}")
         if db is not None:
