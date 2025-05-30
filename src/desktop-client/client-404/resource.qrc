@@ -1,5 +1,9 @@
 <RCC>
     <qresource prefix="/images">
-        <file>file_icon.png</file>
+        <file>images/file_icon.png</file>
+        <file>images/eye-bold.svg</file>
+        <file>images/share-fat-fill.svg</file>
+        <file>images/trash-fill.svg</file>
+        <file>images/download-simple-bold.svg</file>
     </qresource>
 </RCC>

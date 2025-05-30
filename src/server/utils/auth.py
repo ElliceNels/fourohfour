@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import jsonify, request
 from server.utils.db_setup import get_session
 from server.models.tables import Users
-from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token
+from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
 import logging
 import base64
 
@@ -62,8 +62,8 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         return jsonify({"error": "Missing required fields"}), 400
     
     try:
-        # Decode the base64 public key
-        decoded_public_key = base64.b64decode(public_key)
+        # Validate that the public key is a valid base64 string
+        base64.b64decode(public_key)
     except Exception as e:
         logger.warning(f"Sign up failed for user {username}: Invalid public key format - {str(e)}")
         return jsonify({"error": "Invalid public key format - must be base64 encoded"}), 400
@@ -76,7 +76,7 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
             return jsonify({"error": "Username already exists"}), 409
         
         # Cond 2: The public key already exists -> should be unique
-        existing_public_key = db.query(Users).filter_by(public_key=decoded_public_key).first()
+        existing_public_key = db.query(Users).filter_by(public_key=public_key).first()
         if existing_public_key:
             logger.warning(f"Sign up failed for user {username}: Public key already exists")
             return jsonify({"error": "Public key already exists"}), 409
@@ -85,17 +85,18 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         new_user = Users(
             username=username,
             password=password,
-            public_key=decoded_public_key,
+            public_key=public_key,
             salt=salt,
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
 
         db.add(new_user)
+        db.flush()  # Ensure new_user.id is available
+        access_token, refresh_token = generate_token(new_user.id)
         db.commit()
     logger.info(f"User {username} signed up successfully")
 
-    access_token, refresh_token = generate_token(new_user.id)
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token
@@ -116,9 +117,10 @@ def change_password(token: str, new_password: str) -> dict:
         logger.warning("Change password failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
-    user_id, error = get_user_id_from_token(token)
-    if error:
-        return error
+    try:
+        user_id = get_user_id_from_token(token)
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
 
     with get_session() as db:
         user: Users = db.query(Users).filter_by(id=user_id).first()
@@ -187,9 +189,10 @@ def change_username(token: str, new_username: str) -> dict:
         logger.warning("Change username failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
-    user_id, error = get_user_id_from_token(token)
-    if error:
-        return error
+    try:
+        user_id = get_user_id_from_token(token)
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
 
     with get_session() as db:
         user: Users = db.query(Users).filter_by(id=user_id).first()
@@ -216,7 +219,7 @@ def change_username(token: str, new_username: str) -> dict:
 
     return jsonify({"message": "Username updated successfully"}), 200
 
-def get_current_user(token: str) -> dict:
+def get_current_user() -> dict:
     """Get the current user from the JWT token.
 
     Args:
@@ -232,15 +235,12 @@ def get_current_user(token: str) -> dict:
             - created_at: Account creation timestamp
             - updated_at: Last update timestamp
     """
-    token, error = get_current_token()
-    if error:
-        logger.warning("Current user retrieval failed: Missing required fields")
-        return error['response'], error['status']
-
-    user_id, error = get_user_id_from_token(token)
-    if error:
-        return error['response'], error['status']
-
+    user_id = None
+    try:
+        current_token = get_current_token()
+        user_id = get_user_id_from_token(current_token)
+    except JWTError as e:
+        return {"error": str(e)}, e.status
     with get_session() as db:
         user: Users = db.query(Users).filter_by(id=user_id).first()
 

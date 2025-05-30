@@ -37,4 +37,3 @@ private:
 };
 
 #endif // RESETPASSWORDPAGE_H
-

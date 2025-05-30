@@ -22,7 +22,7 @@ ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
     BasePage(parent),
     ui(new Ui::ResetPasswordPage)
 {
-   qDebug() << "Constructing and setting up Password Reset Page";
+    qDebug() << "Constructing and setting up Password Reset Page";
 
 }
 
@@ -33,7 +33,7 @@ void ResetPasswordPage::preparePage(){
 }
 
 void ResetPasswordPage::initialisePageUi(){
-     ui->setupUi(this);
+    ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
     ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Password);

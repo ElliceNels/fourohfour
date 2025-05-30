@@ -19,10 +19,11 @@ def db_check():
     This fixture ensures the database is properly set up and connected
     to the correct database before running tests.
     """
-    setup_db()
+    chosen_db = "conn_test_db"
+    setup_db(chosen_db)
     with get_session() as session:
         db_name = session.execute(text("SELECT DATABASE()")).scalar()
-        assert db_name == config.database.db_name
+        assert db_name == chosen_db
         logger.info(f"Connected to database: {db_name}")
     return True
 
@@ -60,7 +61,7 @@ def create_user(session, username=None):
         username=username,
         password="hashed_password",
         salt=b"salt",
-        public_key=f"public_key_{uuid.uuid4().hex[:8]}".encode(),
+        public_key=f"public_key_{uuid.uuid4().hex[:8]}",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC)
     )
@@ -242,7 +243,7 @@ def test_duplicate_usernames_fail(db_session):
 
 def test_duplicate_public_keys_fail(db_session):
     """Test that creating users with duplicate public keys fails."""
-    public_key = b"duplicate_key"
+    public_key = "duplicate_key"
     user1 = Users(
         username="user1",
         password="password",

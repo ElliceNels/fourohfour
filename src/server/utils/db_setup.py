@@ -19,12 +19,11 @@ def get_session():
         setup_db()
     return _Session()
 
-def setup_db():
+def setup_db(name: str = None):
     """Setup the database connection and create tables."""
     # Get database credentials from environment variables
     DB_USER = os.getenv('DB_USER')
     DB_PASSWORD = os.getenv('DB_PASSWORD')
-    
     # Log if sensitive credentials are not set
     if DB_USER is None:
         logger.warning("DB_USER not set in environment, using default value: 'db_user'")
@@ -32,8 +31,10 @@ def setup_db():
     if DB_PASSWORD is None:
         logger.warning("DB_PASSWORD not set in environment, using default value: 'db_password'")
         DB_PASSWORD = 'db_password'
+    if not name:
+        name = config.database.db_name
 
-    db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{config.database.db_name}"    
+    db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{name}"    
     
     try:
         engine = create_engine(db_engine)
@@ -48,6 +49,8 @@ def setup_db():
         raise
 
     Base.metadata.create_all(engine)
+    logger.info(f"Database {config.database.db_name} at {config.database.db_host}:{config.database.db_port} connected.")
 
     global _Session
     _Session = sessionmaker(bind=engine)
+    return engine
