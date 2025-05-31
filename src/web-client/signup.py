@@ -33,17 +33,43 @@ def validate_registration(account_name, password, confirm_password):
     return True, "Account created successfully!"
 
 def manage_registration(account_name, password):
-    pub_b64, priv_b64 = generate_sodium_keypair()
-    save_keys_to_json_file(pub_b64, priv_b64, "./mykeys.json")
+    try:
+        #Generate keypair
+        try:
+            pub_b64, priv_b64 = generate_sodium_keypair()
+        except Exception as e:
+            return False, f"Failed to generate keypair: {str(e)}"
 
-    #hashed = hash_password(password)
+        #Save public key
+        try:
+            save_keys_to_json_file(pub_b64, priv_b64)
+        except Exception as e:
+            return False, f"Failed to save keys to file: {str(e)}"
 
-    salt = generate_salt()
-    raw_salt = decode_salt(salt)
+        #Generate and decode salt
+        try:
+            salt = generate_salt()
+            raw_salt = decode_salt(salt)
+        except Exception as e:
+            return False, f"Failed to generate or decode salt: {str(e)}"
 
-    derived_key = derive_key_from_password(password, raw_salt)
+        #Derive key from password
+        try:
+            derived_key = derive_key_from_password(password, raw_salt)
+        except Exception as e:
+            return False, f"Failed to derive key from password: {str(e)}"
 
-    encrypt_and_save_key(priv_b64, derived_key, account_name)
+        #Encrypt and save private key
+        try:
+            encrypt_and_save_key(priv_b64, derived_key, account_name)
+        except Exception as e:
+            return False, f"Failed to encrypt and save key: {str(e)}"
+
+        return True, "Registration completed successfully"
+
+    except Exception as e:
+        # Catch any unexpected errors
+        return False, f"Unexpected error during registration: {str(e)}"
 
 
 

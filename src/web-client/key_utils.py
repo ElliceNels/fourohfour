@@ -1,5 +1,8 @@
 import os
 import json
+import tkinter as tk
+from tkinter import filedialog
+from typing import Tuple, Optional
 import base64
 from nacl.public import PrivateKey
 from nacl.bindings import (
@@ -10,6 +13,7 @@ import nacl.utils
 from nacl import pwhash
 from encryption_helper import EncryptionHelper  
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
+import os
 
 def generate_sodium_keypair() -> tuple[str, str]:
     """
@@ -24,25 +28,60 @@ def generate_sodium_keypair() -> tuple[str, str]:
     private_b64 = base64.b64encode(bytes(private_key)).decode('utf-8')
     return public_b64, private_b64
 
-def save_keys_to_json_file(public_key_b64: str, private_key_b64: str, filename: str) -> bool:
+def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[bool, Optional[str]]:
     """
-    Save public and private keys (base64-encoded) to a JSON file.
+    Save public and private keys (base64-encoded) to a JSON file using a file dialog.
 
     Args:
         public_key_b64 (str): Base64-encoded public key.
         private_key_b64 (str): Base64-encoded private key.
-        filename (str): Path to the JSON file to save.
 
     Returns:
-        bool: True if successful, False otherwise.
+        Tuple[bool, Optional[str]]: A tuple containing:
+            - bool: True if successful, False if user cancelled or error occurred
+            - Optional[str]: The path where the file was saved, or None if failed
     """
-    data = {
-        "publicKey": public_key_b64,
-        "privateKey": private_key_b64
-    }
-    with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=2)
-    return True
+    try:
+        # Create and hide the root window
+        root = tk.Tk()
+        root.withdraw()  # This hides the main window
+
+        # Prepare the data to save
+        data = {
+            "publicKey": public_key_b64,
+            "privateKey": private_key_b64
+        }
+
+        # Open the file dialog
+        file_path = filedialog.asksaveasfilename(
+            title="Save Your Keys",  
+            defaultextension=".json", 
+            initialfile="keys.json",  
+            filetypes=[  
+                ("JSON files", "*.json"),
+                ("All files", "*.*")
+            ]
+        )
+
+        # If user cancels the dialog, file_path will be empty
+        if not file_path:
+            return False, None
+
+        # Save the file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2)
+
+        return True, file_path
+
+    except Exception as e:
+        return False, None
+
+    finally:
+        # Clean up
+        try:
+            root.destroy()
+        except:
+            pass
 
 def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str) -> bool:
     """
@@ -71,8 +110,7 @@ def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str
     combined_data = nonce + ciphertext
 
     #Save encrypted private key file
-    import os
-   file_name = os.path.join(KEYS_PATH, f"{username}{BINARY_EXTENSION}")
+    file_name = os.path.join(KEYS_PATH, f"{username}{BINARY_EXTENSION}")
     try:
         with open(file_name, 'wb') as f:
             f.write(combined_data)
