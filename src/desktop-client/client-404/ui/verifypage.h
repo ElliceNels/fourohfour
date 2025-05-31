@@ -24,9 +24,12 @@ private slots:
     void on_acceptButton_clicked();
     void on_rejectButton_clicked();
 
+    void on_findButton_clicked();
+
 private:
     Ui::VerifyPage *ui;
-    QByteArray otherPublicKey;  
+    QByteArray otherPublicKey;
+    QString username;
     QString generate_hash(QString usersPublicKey);
     QString fetch_public_key();
 
@@ -37,6 +40,7 @@ private:
     void switchPages(int pageIndex);
     void toggleUIElements(bool show);
     void setButtonsEnabled(bool enabled);
+    bool validateUsername(const QString& username);
 
 signals:
     void goToMainMenuRequested();

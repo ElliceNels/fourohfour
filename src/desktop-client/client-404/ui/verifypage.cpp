@@ -30,7 +30,6 @@ void VerifyPage::initialisePageUi(){
 void VerifyPage::setupConnections(){
     connect(this->ui->verify_backButton, &QPushButton::clicked,this, [this]() { switchPages(FIND_FRIEND_INDEX); });
     connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
-    connect(this->ui->findButton, &QPushButton::clicked, this, [this]() {switchPages(VERIFY_PUBLIC_KEY_INDEX);} );
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
@@ -109,7 +108,8 @@ void VerifyPage::on_verifyButton_clicked(){
     QString publicKey = this->fetch_public_key();
 
     if (publicKey.isEmpty()){
-        // No need to show an error message here, as the fetch_public_key already does that
+        // Clear data on failure to get public key
+        this->otherPublicKey.clear();
         return;
     }
 
@@ -117,6 +117,8 @@ void VerifyPage::on_verifyButton_clicked(){
 
     if (hash.isEmpty()){
         QMessageBox::warning(this, "Error", "Could not generate hash");
+        // Clear data on failure to generate hash
+        this->otherPublicKey.clear();
         return;
     }
 
@@ -135,9 +137,27 @@ void VerifyPage::on_acceptButton_clicked() {
     // TODO: Implement the logic to accept the friendship and store it locally
     setButtonsEnabled(false);
     QMessageBox::information(this, "Success", "Friendship accepted!");
+    
     emit goToMainMenuRequested(); 
     // internal switch to the find friend page
     switchPages(FIND_FRIEND_INDEX);
+}
+
+bool VerifyPage::validateUsername(const QString& username) {
+    // Check if the username is empty
+    if (username.trimmed().isEmpty()) {
+        QMessageBox::warning(this, "Validation Error", "Username cannot be empty.");
+        return false;
+    }
+
+    // Ensure username has the same validation as the one used in the registration page
+    if (RESTRICTED_CHARS_REGEX.match(username).hasMatch()) {
+        QMessageBox::warning(this, "Error", 
+            "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+        return false;
+    }
+
+    return true;
 }
 
 
@@ -148,6 +168,7 @@ void VerifyPage::toggleUIElements(bool show) {
         this->ui->acceptanceInfoLabel->show();
     } else {
         this->ui->displayLineEdit->clear(); 
+        this->ui->usernameLineEdit->clear();
         this->ui->acceptButton->hide();
         this->ui->rejectButton->hide();
         this->ui->acceptanceInfoLabel->hide();
@@ -164,7 +185,8 @@ void VerifyPage::setButtonsEnabled(bool enabled) {
 void VerifyPage::switchPages(int pageIndex) {
     ui->contentStackedWidget->setCurrentIndex(pageIndex);
     if (pageIndex == FIND_FRIEND_INDEX) {
-        this->otherPublicKey.clear();  // Simply clear the QByteArray
+        this->otherPublicKey.clear();  
+        this->username.clear();
         toggleUIElements(false); // Hide all UI elements
     }
     setButtonsEnabled(true);
@@ -176,3 +198,17 @@ VerifyPage::~VerifyPage()
     delete this->ui;
 
 }
+
+
+void VerifyPage::on_findButton_clicked()
+{
+   QString username = this->ui->usernameLineEdit->text();
+    if (validateUsername(username)) {
+        this->username = username;
+        QMessageBox::information(this, "Success", "Successfully found: " + username);
+        this->ui->usernameLineEdit->clear(); 
+        switchPages(VERIFY_PUBLIC_KEY_INDEX);
+    }
+    // Error messages are handled in validateUsername, so no need to show them here
+}
+
