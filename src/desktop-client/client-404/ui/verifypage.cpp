@@ -137,16 +137,16 @@ void VerifyPage::on_verifyButton_clicked(){
 
     if (!publicKey.isEmpty()) {
 
-    QString hash = this->generate_hash(publicKey);
+        QString hash = this->generate_hash(publicKey);
 
-    if (hash.isEmpty()){
-        QMessageBox::warning(this, "Error", "Could not generate hash");
-        return;
-    }
+        if (hash.isEmpty()){
+            QMessageBox::warning(this, "Error", "Could not generate hash");
+            return;
+        }
 
-    this->ui->displayLineEdit->setText(hash);
+        this->ui->displayLineEdit->setText(hash);
 
-    toggleUIElements(true); // Show the UI elements for acceptance/rejection
+        toggleUIElements(true); // Show the UI elements for acceptance/rejection
     }
 }
 
