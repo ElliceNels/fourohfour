@@ -71,7 +71,8 @@ def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str
     combined_data = nonce + ciphertext
 
     #Save encrypted private key file
-    file_name = f"{KEYS_PATH}{username}{BINARY_EXTENSION}"
+    import os
+   file_name = os.path.join(KEYS_PATH, f"{username}{BINARY_EXTENSION}")
     try:
         with open(file_name, 'wb') as f:
             f.write(combined_data)

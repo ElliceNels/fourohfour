@@ -19,10 +19,12 @@ def signup():
         if not valid:
             flash(message, "error")
         else:
-            manage_registration(account_name, password)
-            flash(message, "success")
-            return redirect(url_for('login'))
-    
+            registration_success, error_message = manage_registration(account_name, password)
+            if registration_success:
+                flash(message, "success")
+                return redirect(url_for('login'))
+            else:
+                flash(error_message, "error")
 
     return render_template('signup.html')
 
