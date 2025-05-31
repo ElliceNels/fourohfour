@@ -222,14 +222,12 @@ def get_current_user():
 
 
 
-@authentication_routes.route('/get_public_key', methods=['POST'])
+@authentication_routes.route('/get_public_key', methods=['GET'])
 def get_public_key():
     """Get public key route to retrieve the user's public key.
 
-    Expected JSON payload:
-    {
-        "username": "<username>"
-    }
+    Expected query parameter:
+        /get_public_key?username=<username>
     
     Expected response:
     {
@@ -238,7 +236,7 @@ def get_public_key():
     """
     logger.debug("Received request to get public key")
 
-    username = request.json.get('username')
+    username = request.args.get('username')
     if not username:
         logger.warning("Get public key failed: Missing username")
         return jsonify({"error": "Missing username"}), 400

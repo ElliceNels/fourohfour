@@ -123,8 +123,8 @@ def test_delete_account(client: FlaskClient, logged_in_user):
 def test_get_public_key(client: FlaskClient, logged_in_user):
     """Test getting public key."""
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
-    data = {"username": logged_in_user["user"]["username"]}
-    response = client.post("/get_public_key", json=data, headers=headers)
+    username = logged_in_user["user"]["username"]
+    response = client.get(f"/get_public_key?username={username}", headers=headers)
     assert response.status_code == 200
     assert "public_key" in response.json
     assert response.json["public_key"] == logged_in_user["user"]["public_key"]
