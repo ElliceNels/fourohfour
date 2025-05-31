@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #include <QString>
+#include <QRegularExpression>
 
 using namespace std;
 
@@ -44,7 +45,8 @@ const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
+const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");
+inline const QRegularExpression RESTRICTED_CHARS_REGEX("[" + QRegularExpression::escape(RESTRICTED_CHARS) + "]");
 
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;
