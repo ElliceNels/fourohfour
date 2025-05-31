@@ -43,6 +43,7 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");

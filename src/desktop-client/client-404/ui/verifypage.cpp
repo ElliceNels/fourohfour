@@ -9,6 +9,8 @@
 #include <sodium.h>
 #include "constants.h"
 #include <QTimer>
+#include "utils/request_utils.h"
+#include "loginsessionmanager.h"
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
@@ -36,7 +38,7 @@ void VerifyPage::set_other_public_key(const QByteArray &otherpk){
     this->otherPublicKey = otherpk; 
 }
 
-QString VerifyPage::fetch_public_key(){
+QString VerifyPage::fetch_local_public_key(){
     QString filePath = QFileDialog::getOpenFileName(this, "Open File", "", "JSON Files (*.json)");
 
     if (!filePath.isEmpty()) {
@@ -72,6 +74,39 @@ QString VerifyPage::fetch_public_key(){
     return QString();
 }
 
+bool VerifyPage::fetch_server_public_key(const QString& username){
+    // Create params for the GET request
+    QJsonObject params;
+    params["username"] = this->username;
+
+    // Make the GET request to retrieve the public key
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_PUBLIC_KEY_ENDPOINT, params);
+
+    if (response.success) {
+        QJsonObject jsonObject = response.jsonData.object();
+        if (jsonObject.contains("public_key")) {
+            // Extract public key from response
+            QString publicKey = jsonObject["public_key"].toString();
+            
+            // Store the public key for later use
+            this->otherPublicKey = publicKey.toUtf8();
+            
+            qDebug() << "Public key retrieved for user: " << this->otherPublicKey;
+            
+            QMessageBox::information(this, "Success", 
+                "Successfully retrieved public key for: " + this->username);
+            return true;
+        } else {
+            QMessageBox::warning(this, "Error", "Public key not found in response");
+        }
+    } else {
+       QMessageBox::critical(this, "Public Key Fetch Error", 
+        "Failed to fetch public key for user: " + username + "\nError: " + QString::fromStdString(response.errorMessage));
+        return false;
+    }
+    
+}
+
 QString VerifyPage::generate_hash(QString usersPublicKey){
     if (usersPublicKey.isEmpty() || this->otherPublicKey.isEmpty()) {
         return QString();
@@ -101,11 +136,8 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
 }
 
 void VerifyPage::on_verifyButton_clicked(){
-    // This is placeholder until we fetch the public key from the database
-    QByteArray placeholder_other_pk = QString("mZ3bW1x8F9j0XQeP7CqyLkA6wE9vFt9hRYKdJPngq+Q=").toUtf8();
-    set_other_public_key(placeholder_other_pk);
 
-    QString publicKey = this->fetch_public_key();
+    QString publicKey = this->fetch_local_public_key();
 
     if (publicKey.isEmpty()){
         // Clear data on failure to get public key
@@ -205,9 +237,13 @@ void VerifyPage::on_findButton_clicked()
    QString username = this->ui->usernameLineEdit->text();
     if (validateUsername(username)) {
         this->username = username;
-        QMessageBox::information(this, "Success", "Successfully found: " + username);
         this->ui->usernameLineEdit->clear(); 
-        switchPages(VERIFY_PUBLIC_KEY_INDEX);
+
+
+        if (fetch_server_public_key(this->username)) {
+              switchPages(VERIFY_PUBLIC_KEY_INDEX);
+        }
+        // Error messages are handled in fetch_server_public_key, so no need to show them here
     }
     // Error messages are handled in validateUsername, so no need to show them here
 }

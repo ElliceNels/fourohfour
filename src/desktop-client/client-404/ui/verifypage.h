@@ -31,7 +31,8 @@ private:
     QByteArray otherPublicKey;
     QString username;
     QString generate_hash(QString usersPublicKey);
-    QString fetch_public_key();
+    QString fetch_local_public_key();
+    bool fetch_server_public_key(const QString& username);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
