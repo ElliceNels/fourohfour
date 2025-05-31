@@ -9,12 +9,12 @@ import base64
 
 logger = logging.getLogger(__name__)
 
-def login(username: str, password: bytes) -> dict:
+def login(username: str, password: str) -> dict:
     """Login route to authenticate users.
 
     Args:
         username (str): Username of the user.
-        password (bytes): Password of the user.
+        password (str): Password of the user.
 
     Returns:
         dict: response containing access and refresh tokens or error message.
@@ -253,11 +253,9 @@ def get_current_user() -> dict:
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
-        "user_id": user.id,
         "username": user.username,
-        "password": user.password,
         "public_key": user.public_key,
-        "salt": user.salt,
+        "salt": base64.b64encode(user.salt).decode() if isinstance(user.salt, bytes) else user.salt,
         "created_at": user.created_at,
         "updated_at": user.updated_at
     }

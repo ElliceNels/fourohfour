@@ -203,7 +203,6 @@ def get_current_user():
     Expected response:
     {
         "username": "<username>",
-        "password": "<password>",
         "public_key": "<public_key>",
         "salt": "<salt>",
         "created_at": "<created_at>",
