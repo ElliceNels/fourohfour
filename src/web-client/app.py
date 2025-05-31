@@ -22,7 +22,6 @@ def signup():
             manage_registration(account_name, password)
             flash(message, "success")
             return redirect(url_for('login'))
-    
 
     return render_template('signup.html')
 
