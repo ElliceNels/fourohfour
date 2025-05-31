@@ -135,26 +135,19 @@ void VerifyPage::on_verifyButton_clicked(){
 
     QString publicKey = this->fetch_local_public_key();
 
-    if (publicKey.isEmpty()){
-        // Clear data on failure to get public key
-        this->otherPublicKey.clear();
-        this->otherUsername.clear();  
-        return;
-    }
+    if (!publicKey.isEmpty()) {
 
     QString hash = this->generate_hash(publicKey);
 
     if (hash.isEmpty()){
         QMessageBox::warning(this, "Error", "Could not generate hash");
-        // Clear data on failure to generate hash
-        this->otherPublicKey.clear();
-        this->otherUsername.clear();  
         return;
     }
 
     this->ui->displayLineEdit->setText(hash);
 
     toggleUIElements(true); // Show the UI elements for acceptance/rejection
+    }
 }
 
 void VerifyPage::on_rejectButton_clicked() {
