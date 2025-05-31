@@ -7,8 +7,12 @@
 using namespace std;
 
 constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
+const QString friendsPath = "/friends_";
+
+const QString jsonExtension = ".json";
 const QString binaryExtension = ".bin";
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;

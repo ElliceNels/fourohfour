@@ -22,15 +22,22 @@ private slots:
     void on_verifyButton_clicked();
     void on_acceptButton_clicked();
     void on_rejectButton_clicked();
-
     void on_findButton_clicked();
 
 private:
     Ui::VerifyPage *ui;
     QByteArray otherPublicKey;
+    QString otherUsername;  
     QString generate_hash(QString usersPublicKey);
     QString fetch_local_public_key();
     bool fetch_server_public_key(const QString& username);
+
+
+    bool saveFriendPairToJSON();
+    QString buildFriendStorageFilePath();
+    bool validateFriendData();
+    QJsonObject readFriendsJson(const QString& filepath);
+    bool writeFriendsJson(const QString& filepath, const QJsonObject& friendsData);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
