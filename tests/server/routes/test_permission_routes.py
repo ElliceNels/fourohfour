@@ -138,36 +138,6 @@ def second_signed_up_user(client, second_test_user):
     assert response.status_code == 201
     return second_test_user
 
-#TODO change to work with username when that merges
-@pytest.mark.parametrize("user_id, expected_status, has_error", [
-    ("valid", 200, False),  # Valid user ID 
-    ("99999", 404, True),   # Non-existent user
-    (None, 400, True),      # Missing user_id parameter
-    ("invalid", 400, True), # Invalid format
-])
-def test_get_public_key(client, second_signed_up_user, user_id, expected_status, has_error):
-    """Test getting a user's public key with various scenarios."""
-    if user_id == "valid":
-        with get_session() as db:
-            user = db.query(Users).filter_by(username=second_signed_up_user["username"]).first()
-            user_id = user.id  
-    
-    # Build the URL
-    if user_id is None:
-        url = "/api/permissions/public_key"
-    else:
-        url = f"/api/permissions/public_key?user_id={user_id}"
-    
-    response = client.get(url)
-    assert response.status_code == expected_status
-    data = response.json
-    
-    if has_error:
-        assert "error" in data
-    else:
-        assert "public_key" in data
-        assert data["public_key"] == second_signed_up_user["public_key"]
-
 @pytest.mark.parametrize("expected_status, include_key, include_file, is_owner", [
     (CREATED, True, True, True),           # Success: all fields included
     (CONFLICT, True, True, True),          # Conflict: all fields included

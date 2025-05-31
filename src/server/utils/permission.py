@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, owner_id: int) -> dict:
+def create_file_permission(file_uuid: str, user_id: int, key_for_recipient: str, owner_id: int) -> dict:
     """Create a new file permission for a user.
 
     Args:
@@ -42,7 +42,7 @@ def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, o
                 return jsonify({'error': 'Recipient user not found'}), 404
 
             # Check if permission already exists
-            logger.debug(f"Checking for existing permission - file_uuid: {file.uuid}, user_id: {user_id}")
+            logger.debug(f"Checking for existing permission - file_uuid: {file_uuid}, user_id: {user_id}")
             existing_permission = db.query(FilePermissions).filter_by(
                 file_id=file.id,
                 user_id=user_id
@@ -105,7 +105,7 @@ def remove_file_permission(file_uuid: str, user_id: int, owner_id: int) -> dict:
                 return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
             # Find and delete the permission
-            logger.debug(f"Looking for permission - file_uuid: {file.uuid}, user_id: {user_id}")
+            logger.debug(f"Looking for permission - file_uuid: {file_uuid}, user_id: {user_id}")
             permission = db.query(FilePermissions).filter_by(
                 file_id=file.id,
                 user_id=user_id
