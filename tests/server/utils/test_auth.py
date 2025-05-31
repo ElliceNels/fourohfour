@@ -224,3 +224,29 @@ def test_get_current_user_cases(token_error, user_exists, expected_status, expec
         assert resp["public_key"] == expected_public_key
     else:
         assert "error" in resp
+
+@pytest.mark.parametrize(
+    "username, expected_status, expected_public_key",
+    [
+        ("valid_user", CODE_SUCCESS, "cHViX2tleQ=="),  # Success
+        ("nonexistent_user", CODE_NOT_FOUND, None),  # User not found
+        (None, CODE_BAD_REQUEST, None),  # Missing username
+    ]
+)
+def test_get_public_key_cases(username, expected_status, expected_public_key, mock_db, app_ctx, mocker):
+    from server.utils.auth import get_public_key
+
+    if username:
+        user = Users(username=username, public_key="cHViX2tleQ==") if expected_status == CODE_SUCCESS else None
+        mock_db.query().filter_by().first.return_value = user
+    else:
+        mock_db.query().filter_by().first.return_value = None
+
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    response = get_public_key(username)
+    assert response[1] == expected_status
+    data = response[0].get_json()
+    if expected_status == CODE_SUCCESS:
+        assert data["public_key"] == expected_public_key
+    else:
+        assert "error" in data

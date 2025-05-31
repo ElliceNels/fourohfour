@@ -120,6 +120,15 @@ def test_delete_account(client: FlaskClient, logged_in_user):
     assert response.status_code == 200
     assert response.json["message"] == "Account deleted successfully"
 
+def test_get_public_key(client: FlaskClient, logged_in_user):
+    """Test getting public key."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    username = logged_in_user["user"]["username"]
+    response = client.get(f"/get_public_key?username={username}", headers=headers)
+    assert response.status_code == 200
+    assert "public_key" in response.json
+    assert response.json["public_key"] == logged_in_user["user"]["public_key"]
+
 def test_db_tables_exist(setup_test_db):
     """Ensure tables exist after setup."""
     from server.models.tables import Users

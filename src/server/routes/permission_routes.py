@@ -1,39 +1,11 @@
 from flask import Blueprint, jsonify, request
 from server.utils.auth import get_current_user
-from server.utils.permission import get_user_public_key, create_file_permission, remove_file_permission
+from server.utils.permission import create_file_permission, remove_file_permission
 import logging
 
 logger = logging.getLogger(__name__)
 
 permission_bp = Blueprint('permissions', __name__, url_prefix='/api/permissions')
-
-@permission_bp.route('/public_key', methods=['GET'])
-def get_public_key():
-    """Get the public key of a user.
-    
-    Query Parameters:
-        user_id: The ID of the user whose public key is requested
-
-    Returns:
-    {
-        "public_key": "<user_public_key>"
-    }
-    """
-    logger.debug("Received request to get user public key")
-
-    user_id = request.args.get('user_id')
-    if not user_id:
-        logger.warning("user_id is required")
-        return jsonify({'error': 'user_id is required'}), 400
-
-    try:
-        return get_user_public_key(int(user_id))
-    except ValueError:
-        logger.warning("Invalid user_id format")
-        return jsonify({'error': 'Invalid user_id format'}), 400
-    except Exception as e:
-        logger.error(f"Error retrieving public key: {str(e)}")
-        return jsonify({'error': str(e)}), 500
 
 @permission_bp.route('', methods=['POST'])
 def create_permission():
