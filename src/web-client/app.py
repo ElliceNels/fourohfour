@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session
 from signup import validate_registration
+from uploadfile import validate_file_size, validate_file_type
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -43,11 +44,28 @@ def logout():
 def upload_file():
     if request.method == 'POST':
         uploaded_file = request.files.get('file')
-        if uploaded_file and uploaded_file.filename:
+        
+        if not uploaded_file or not uploaded_file.filename:
+            flash("No file selected!", "error")
+            return redirect(url_for('upload_file'))
+
+        try:
             file_name = uploaded_file.filename
             file_type = uploaded_file.content_type
             file_data = uploaded_file.read()
             file_size = len(file_data)
+
+            # Validate file size
+            size_valid, size_error = validate_file_size(file_size)
+            if not size_valid:
+                flash(size_error, "error")
+                return redirect(url_for('upload_file'))
+
+            # Validate file type
+            type_valid, type_error = validate_file_type(file_name)
+            if not type_valid:
+                flash(type_error, "error")
+                return redirect(url_for('upload_file'))
 
             return render_template(
                 'uploadfile.html',
@@ -56,8 +74,9 @@ def upload_file():
                 file_type=file_type,
                 file_size=file_size
             )
-        else:
-            flash("No file selected!", "error")
+
+        except Exception as e:
+            flash(f"Error processing file: {str(e)}", "error")
             return redirect(url_for('upload_file'))
 
     return render_template('uploadfile.html', uploaded=False)

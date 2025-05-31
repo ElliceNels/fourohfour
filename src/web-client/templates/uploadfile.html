@@ -36,9 +36,8 @@
                 const confirmBtn = document.getElementById('confirm-btn');
 
                 fileName.value = file.name;
-                fileType.value = file.name.lastIndexOf('.') !== -1 
-                    ? file.name.substring(file.name.lastIndexOf('.')) 
-                    : '-';
+                // Use MIME type instead of file extension
+                fileType.value = file.type || '-';
                 fileSize.value = `${file.size} bytes`;
                 
                 uploadDetails.style.display = 'block';
