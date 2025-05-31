@@ -15,7 +15,7 @@ def create_permission():
     
     Expected JSON payload:
     {
-        "file_id": <file_uuid>,
+        "file_uuid": <file_uuid>,
         "user_id": <user_id>,
         "key_for_recipient": "<encrypted_symmetric_key>"
     }
@@ -31,7 +31,7 @@ def create_permission():
         logger.warning("No data provided")
         return jsonify({'error': 'No data provided'}), 400
 
-    required_fields = ['file_id', 'user_id', 'key_for_recipient']
+    required_fields = ['file_uuid', 'user_id', 'key_for_recipient']
     for field in required_fields:
         if field not in data:
             logger.warning(f"{field} is required")
@@ -45,7 +45,7 @@ def create_permission():
         user_id = current_user_info['user_id']
 
         return create_file_permission(
-            data['file_id'],
+            data['file_uuid'],
             data['user_id'],
             data['key_for_recipient'],
             user_id
@@ -60,7 +60,7 @@ def remove_permission():
     
     Expected JSON payload:
     {
-        "file_id": <file_uuid>,
+        "file_uuid": <file_uuid>,
         "user_id": <user_id>
     }
 
@@ -76,7 +76,7 @@ def remove_permission():
         logger.warning("No data provided")
         return jsonify({'error': 'No data provided'}), 400
 
-    required_fields = ['file_id', 'user_id']
+    required_fields = ['file_uuid', 'user_id']
     for field in required_fields:
         if field not in data:
             logger.warning(f"{field} is required")
@@ -90,7 +90,7 @@ def remove_permission():
         user_id = current_user_info['user_id']
 
         return remove_file_permission(
-            data['file_id'],
+            data['file_uuid'],
             data['user_id'],
             user_id
         )
