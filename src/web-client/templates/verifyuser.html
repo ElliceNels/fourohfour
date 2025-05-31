@@ -7,7 +7,6 @@
     <script>
         function updateHashOutput() {
             var userKey = document.getElementById('user-key-input');
-            var otherKey = document.getElementById('other-key-input');
             var output = document.getElementById('hash-output');
             if (!userKey.files.length && !otherKey.files.length) {
                 output.value = "No key file selected...";
@@ -36,16 +35,12 @@
                 </h1>
             </div>
             <div class="verify-instructions">
-                Please upload your public key file and the other person's public key file to generate a hash of both keys and verify each other's identity.
+                Please upload your public key file to generate a hash of both your and your friends keys to verify each other's identity.
             </div>
             <form class="verify-form" method="POST" enctype="multipart/form-data" style="width:100%;display:flex;flex-direction:column;align-items:center;">
                 <div class="verify-row" style="margin-bottom: 10px;">
                     <label class="verify-label" for="user-key-input">Your Public Key File:</label>
                     <input type="file" id="user-key-input" name="user_key" accept=".pem,.txt,.pub" onchange="updateHashOutput()" style="margin-bottom: 10px;">
-                </div>
-                <div class="verify-row" style="margin-bottom: 24px;">
-                    <label class="verify-label" for="other-key-input">Other Person's Public Key File:</label>
-                    <input type="file" id="other-key-input" name="other_key" accept=".pem,.txt,.pub" onchange="updateHashOutput()" style="margin-bottom: 10px;">
                 </div>
                 <div class="verify-row">
                     <label class="verify-label" for="hash-output">Hash Output:</label>
