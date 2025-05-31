@@ -21,16 +21,22 @@ public:
 
 private slots:
     void on_verifyButton_clicked();
+    void on_acceptButton_clicked();
+    void on_rejectButton_clicked();
 
 private:
     Ui::VerifyPage *ui;
-    QByteArray *otherPublicKey;
+    QByteArray otherPublicKey;  
     QString generate_hash(QString usersPublicKey);
     QString fetch_public_key();
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
     void setupConnections() override;
+
+    void switchPages(int pageIndex);
+    void toggleUIElements(bool show);
+    void setButtonsEnabled(bool enabled);
 
 signals:
     void goToMainMenuRequested();

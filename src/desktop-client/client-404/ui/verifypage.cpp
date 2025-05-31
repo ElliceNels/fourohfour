@@ -5,12 +5,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <qstackedwidget.h>
+#include <QThread>
 #include <sodium.h>
+#include "constants.h"
+#include <QTimer>
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
     ,ui(new Ui::VerifyPage)
-    ,otherPublicKey(nullptr)
 {
     qDebug() << "Constructing and setting up Verify Page";
 }
@@ -22,17 +24,17 @@ void VerifyPage::preparePage(){
 
 void VerifyPage::initialisePageUi(){
     this->ui->setupUi(this);
+    toggleUIElements(false); // Hide all certain ui  elements initially
 }
 
 void VerifyPage::setupConnections(){
-    connect(this->ui->backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
+    connect(this->ui->verify_backButton, &QPushButton::clicked,this, [this]() { switchPages(FIND_FRIEND_INDEX); });
+    connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
+    connect(this->ui->findButton, &QPushButton::clicked, this, [this]() {switchPages(VERIFY_PUBLIC_KEY_INDEX);} );
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
-    if (this->otherPublicKey != nullptr) {
-        delete this->otherPublicKey;  // delete old value to avoid leak
-    }
-    this->otherPublicKey = new QByteArray(otherpk);
+    this->otherPublicKey = otherpk; 
 }
 
 QString VerifyPage::fetch_public_key(){
@@ -72,7 +74,7 @@ QString VerifyPage::fetch_public_key(){
 }
 
 QString VerifyPage::generate_hash(QString usersPublicKey){
-    if (usersPublicKey.isEmpty() || this->otherPublicKey == nullptr ||  this->otherPublicKey->isEmpty()) {
+    if (usersPublicKey.isEmpty() || this->otherPublicKey.isEmpty()) {
         return QString();
     }
 
@@ -80,10 +82,10 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
 
     // Ensures there is a consistent order of concatenation cross device
     QByteArray concatenated;
-    if (encodedUserPK < (*this->otherPublicKey)) {
-        concatenated = encodedUserPK + (*this->otherPublicKey);
+    if (encodedUserPK < this->otherPublicKey) {
+        concatenated = encodedUserPK + this->otherPublicKey;
     } else {
-        concatenated = (*this->otherPublicKey) + encodedUserPK;
+        concatenated = this->otherPublicKey + encodedUserPK;
     }
 
     // Hash the combination of keys
@@ -107,7 +109,7 @@ void VerifyPage::on_verifyButton_clicked(){
     QString publicKey = this->fetch_public_key();
 
     if (publicKey.isEmpty()){
-        QMessageBox::warning(this, "Error", "Could not retrieve public key");
+        // No need to show an error message here, as the fetch_public_key already does that
         return;
     }
 
@@ -119,11 +121,58 @@ void VerifyPage::on_verifyButton_clicked(){
     }
 
     this->ui->displayLineEdit->setText(hash);
+
+    toggleUIElements(true); // Show the UI elements for acceptance/rejection
+}
+
+void VerifyPage::on_rejectButton_clicked() {
+    setButtonsEnabled(false);
+    QMessageBox::information(this, "Rejected", "Friendship rejected!");
+    switchPages(FIND_FRIEND_INDEX);
+}
+
+void VerifyPage::on_acceptButton_clicked() {
+    // TODO: Implement the logic to accept the friendship and store it locally
+    setButtonsEnabled(false);
+    QMessageBox::information(this, "Success", "Friendship accepted!");
+    emit goToMainMenuRequested(); 
+    // internal switch to the find friend page
+    switchPages(FIND_FRIEND_INDEX);
+}
+
+
+void VerifyPage::toggleUIElements(bool show) {
+    if (show){
+        this->ui->acceptButton->show();
+        this->ui->rejectButton->show();
+        this->ui->acceptanceInfoLabel->show();
+    } else {
+        this->ui->displayLineEdit->clear(); 
+        this->ui->acceptButton->hide();
+        this->ui->rejectButton->hide();
+        this->ui->acceptanceInfoLabel->hide();
+    }
+  
+}
+
+void VerifyPage::setButtonsEnabled(bool enabled) {
+    this->ui->verifyButton->setEnabled(enabled);
+    this->ui->acceptButton->setEnabled(enabled);
+    this->ui->rejectButton->setEnabled(enabled);
+}
+
+void VerifyPage::switchPages(int pageIndex) {
+    ui->contentStackedWidget->setCurrentIndex(pageIndex);
+    if (pageIndex == FIND_FRIEND_INDEX) {
+        this->otherPublicKey.clear();  // Simply clear the QByteArray
+        toggleUIElements(false); // Hide all UI elements
+    }
+    setButtonsEnabled(true);
 }
 
 VerifyPage::~VerifyPage()
 {
     qDebug() << "Destroying Verify Page";
     delete this->ui;
-    delete otherPublicKey;  // clean up pointer to avoid memory leak
+
 }

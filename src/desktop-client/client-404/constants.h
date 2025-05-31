@@ -56,6 +56,9 @@ constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;
 
+const int FIND_FRIEND_INDEX = 0;
+const int VERIFY_PUBLIC_KEY_INDEX = 1;
+
 namespace Styles {
 const QString CentralWidget = R"(
             background-color: rgb(255, 255, 255);
@@ -99,6 +102,18 @@ const QString SelectedSidebarButton = R"(
 const QString UnselectedSidebarButton = R"(
     background-color: transparent; 
     color: #424242;
+)";
+
+const QString SuccessMessage = R"(
+    color: #4CAF50; 
+    font-weight: bold;
+    font-size: 14px;
+)";
+
+const QString ErrorMessage = R"(
+    color: #F44336; 
+    font-weight: bold;
+    font-size: 14px;
 )";
 }
 
