@@ -36,7 +36,7 @@ def manage_registration(account_name, password):
     pub_b64, priv_b64 = generate_sodium_keypair()
     save_keys_to_json_file(pub_b64, priv_b64, "./mykeys.json")
 
-    hashed = hash_password(password)
+    #hashed = hash_password(password)
 
     salt = generate_salt()
     raw_salt = decode_salt(salt)
