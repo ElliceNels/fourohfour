@@ -183,5 +183,3 @@ bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultNa
     }
     return false;
 }
-
-

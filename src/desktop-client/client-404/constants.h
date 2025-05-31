@@ -9,9 +9,16 @@ constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
 const QString binaryExtension = ".bin";
+const int MAX_LOGIN_ATTEMPTS = 5;
+const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
 const int fileSizeLabelWidth = 60;
+const QString serverPath = "http://gobbler.info:4004";
+//http://gobbler.info:4004
+//http://localhost:5000
+const QString loginEndpoint = serverPath + "/login";
+const QString registerEndpoint = serverPath + "/sign_up";
 const int fileOwnerLabelWidth = 200;
 
 const QString previewIconPath = ":/images/eye-bold.svg";
@@ -94,7 +101,5 @@ const QString UnselectedSidebarButton = R"(
     color: #424242;
 )";
 }
-
-
 
 #endif // CONSTANTS_H

@@ -2,7 +2,10 @@
 #define LOGINPAGE_H
 
 #include <QWidget>
+#include <QMap>
+#include <QDateTime>
 #include "ui/basepage.h"
+
 
 using namespace std;
 
@@ -26,6 +29,10 @@ private slots:
 
 private:
     Ui::LoginPage *ui;
+    QMap<QString, QList<QDateTime>> loginAttempts;  // IP -> list of attempt timestamps
+    bool isRateLimited(const QString& ip);
+    void recordLoginAttempt(const QString& ip);
+    QString getClientIP();
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;

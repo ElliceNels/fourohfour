@@ -92,4 +92,3 @@ SecureVector::iterator SecureVector::begin() {
 SecureVector::iterator SecureVector::end() {
     return data_.end();
 }
-

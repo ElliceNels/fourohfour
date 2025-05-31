@@ -26,6 +26,26 @@ string verify_password(const string& hashed, const string& password) {
     }
 }
 
+bool deterministic_hash_password(const string& password, const string& salt, string& hashed) {
+    // Define a reasonable output length for the hash (e.g., 32 bytes)
+    const size_t hash_len = 32;  // or any other length you prefer
+    unsigned char hash[hash_len];
+
+    if (crypto_pwhash(
+            hash, hash_len,  // Use our defined length
+            password.c_str(), password.size(),
+            (const unsigned char*)salt.c_str(),
+            crypto_pwhash_OPSLIMIT_INTERACTIVE,
+            crypto_pwhash_MEMLIMIT_INTERACTIVE,
+            crypto_pwhash_ALG_DEFAULT) != 0) {
+        return false; // out of memory
+    }
+
+    // Convert the hash to a string (you might want to use base64 or hex encoding)
+    hashed = string(reinterpret_cast<char*>(hash), hash_len);
+    return true;
+}
+
 
 QSet<QString> loadDictionaryWords(const QString& filePath) {
     QSet<QString> words;

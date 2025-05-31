@@ -94,10 +94,10 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
-    //Hash password
-    string hashed;
-
-    hash_password(password.toStdString(), hashed);
+    //Salt generation
+    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
+    string sSalt =  salt.toStdString();
+    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
 
 
 
@@ -109,16 +109,15 @@ void RegisterPage::onCreateAccountClicked()
     }
 
 
-
-    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
-    string pubKey = password.toStdString();
-    string sSalt = salt.toStdString();
+    string pubKey = pubKeyBase64.toStdString();
     string* saltPtr = &sSalt;
+
+
+
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
@@ -128,13 +127,10 @@ void RegisterPage::onCreateAccountClicked()
 
     //Debug prints
     cout << sAccountName << endl;
-    cout << hashed << endl;
-    cout << pubKeyBase64.toStdString() << endl;
-    cout << privKeyBase64.toStdString() << endl;
     cout << "Salt: " << *saltPtr << endl;
 
 
-    if (sendSignUpRequest(accountName, QString::fromStdString(hashed), pubKeyBase64, salt)) {
+    if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
     QMessageBox::information(this, "Success", "Account created and logged in!");
     emit goToMainMenuRequested();
     }
