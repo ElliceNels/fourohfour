@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Public Key - fourohfour Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+        function updateHashOutput() {
+            const userKey = document.getElementById('user-key-input');
+            const output = document.getElementById('hash-output');
+            
+            if (!userKey.files.length) {
+                output.value = "No key file selected...";
+            } else {
+                output.value = "Ready to generate hash";
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <span class="logo-primary">fourohfour</span>
+            <span class="logo-secondary">Files</span>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('main_menu') }}" class="btn back-btn">Back</a>
+        </div>
+    </div>
+    <div class="center-viewport">
+        <div class="verify-container">
+            <div class="hero">
+                <h1 class="hero-title">
+                    <span class="hero-secondary">Verify</span>
+                    <span class="hero-primary">Public Key</span>
+                </h1>
+            </div>
+            <div class="verify-instructions">
+                Please upload your public key file to generate a hash of both your and your friends keys to verify each other's identity.
+            </div>
+            <form class="verify-form" method="POST" enctype="multipart/form-data" style="width:100%;display:flex;flex-direction:column;align-items:center;">
+                <div class="verify-row" style="margin-bottom: 10px;">
+                    <label class="verify-label" for="user-key-input">Your Public Key File:</label>
+                    <input type="file" id="user-key-input" name="user_key" accept=".pem,.txt,.pub" onchange="updateHashOutput()" style="margin-bottom: 10px;">
+                </div>
+                <div class="verify-row">
+                    <label class="verify-label" for="hash-output">Hash Output:</label>
+                    <input id="hash-output" class="verify-output" type="text" readonly value="No key file selected...">
+                </div>
+                <button type="submit" class="btn select-btn">Generate Hash</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

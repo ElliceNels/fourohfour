@@ -1,3 +1,4 @@
+import base64
 from flask import Blueprint, jsonify, request
 from server.models.tables import Files, FilePermissions, Users, FileMetadata  
 from server.utils.auth import get_current_user
@@ -17,11 +18,17 @@ def upload_file():
     """Upload a new file to the system.
     
     Expected request:
-    - encrypted_file: The encrypted file data in request.files
-    - metadata: JSON object containing:
-        - size: File size in bytes
-        - format: File format/extension
-    - uuid: (optional) UUID of the file to update
+    {
+        "file": {
+            "filename": "name_of_file",
+            "contents": "base64_encoded_file_data",
+            "uuid" (optional) : "uuid_of_file_to_update"
+        },
+        "metadata": {
+            "size": 123,
+            "format": "txt"
+        }
+    }
 
     Returns:
     {
@@ -30,41 +37,43 @@ def upload_file():
     }
     """
     logger.debug(f"Received file upload request")
-
-    if 'encrypted_file' not in request.files:
-        logger.warning("Upload failed: No file provided")
-        return jsonify({'error': 'No file provided'}), 400
+    data = request.get_json()
+    if not data or 'file' not in data:
+        logger.warning("Upload failed: Invalid request format")
+        return jsonify({'error': 'Invalid request format'}), 400
+    
+    file_data = data['file']
+    if 'filename' not in file_data or 'contents' not in file_data:
+        logger.warning("Upload failed: Missing filename or contents")
+        return jsonify({'error': 'Missing filename or contents'}), 400
 
     try:
-        current_user = get_current_user()
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id']        
+
         
-        # Get UUID parameter
-        file_uuid = request.form.get('uuid')
-        
-        # Validate UUID format if provided
+        # Get UUID parameter and validate if provided
+        file_uuid = file_data.get('uuid')
         if file_uuid:
             try:
                 file_uuid = uuid.UUID(file_uuid)
             except ValueError:
                 logger.warning(f"Invalid UUID format provided: {file_uuid}")
                 return jsonify({'error': 'Invalid UUID format'}), 400
-        
-        # Save the file to disk
-        file = request.files['encrypted_file']
-        sanitized_filename = secure_filename(file.filename)
-        filename = f"{current_user.user_id}_{sanitized_filename}"
-        file_path = os.path.join('uploads', filename)
-        file.save(file_path)
 
-        return upload_file_to_db(current_user.user_id, file, file_path, request.metadata, file_uuid)
+        # Pass everything to upload_file_to_db & let it handle the rest of the login
+        return upload_file_to_db(
+            user_id=user_id,
+            filename=file_data['filename'],
+            file_contents_b64=file_data['contents'],
+            metadata=data['metadata'],
+            file_uuid=file_uuid
+        )
 
     except Exception as e:
-        # Clean up file if database operation fails
-        if 'file_path' in locals():
-            try:
-                os.remove(file_path)
-            except:
-                pass
         logger.error(f"Error uploading file: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
@@ -99,8 +108,12 @@ def list_files():
     logger.debug("Received request to list files")
 
     try:
-        current_user = get_current_user()
-        return get_user_files(current_user.user_id)
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id'] 
+        return get_user_files(user_id)
     except Exception as e:
         logger.error(f"Error listing files: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -123,8 +136,12 @@ def get_file(file_uuid):
     logger.debug(f"Received request to get file with UUID: {file_uuid}")
 
     try:
-        current_user = get_current_user()
-        return get_file_by_uuid(file_uuid, current_user.user_id)
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id'] 
+        return get_file_by_uuid(file_uuid, user_id)
     except Exception as e:
         logger.error(f"Error retrieving file {file_uuid}: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -144,8 +161,12 @@ def delete_file(file_uuid):
     logger.debug(f"Received request to delete file with UUID: {file_uuid}")
 
     try:
-        current_user = get_current_user()
-        return delete_file_by_uuid(file_uuid, current_user.user_id)
+        current_user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        user_id = current_user_info['user_id'] 
+        return delete_file_by_uuid(file_uuid, user_id)
     except Exception as e:
         logger.error(f"Error deleting file {file_uuid}: {str(e)}")
         return jsonify({'error': str(e)}), 500

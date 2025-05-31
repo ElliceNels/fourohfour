@@ -6,24 +6,26 @@ import uuid
 from server.models.tables import Files, FilePermissions, FileMetadata
 from server.utils.db_setup import get_session
 import logging
+from werkzeug.utils import secure_filename
 
 logger = logging.getLogger(__name__)
 
-def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_uuid: uuid.UUID = None) -> dict:
-    """Upload a file to the database and disk storage.
+def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metadata: dict, file_uuid: uuid.UUID = None) -> dict:
+    """Upload a file to the database and disk storage."""
+    
+    # Add validation for missing file FIRST, before any other operations
+    if not filename or not file_contents_b64:
+        logger.warning("Upload failed: Missing filename or file contents")
+        return jsonify({'error': 'Missing filename or file contents'}), 400
+    
+    # Decode base64 contents
+    try:
+        import base64
+        file_contents = base64.b64decode(file_contents_b64)
+    except Exception as e:
+        logger.error(f"Error decoding base64 file contents: {str(e)}")
+        return jsonify({'error': 'Invalid base64 file contents'}), 400
 
-    Args:
-        user_id (int): ID of the user uploading the file
-        file: The file object from request.files
-        file_path (str): Path where the file will be stored
-        metadata (dict): Dictionary containing file metadata (size, format)
-        file_uuid (uuid.UUID, optional): UUID of the file to update. If provided and file exists, it will be overwritten.
-
-    Returns:
-        dict: Response containing success message and UUID
-    """
-    if file is None:
-        return jsonify({'error': 'No file provided'}), 400
     with get_session() as db:
         try:
             # Check if file with UUID exists
@@ -43,8 +45,17 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                         logger.error(f"Error deleting old file {existing_file.path}: {str(e)}")
                         return jsonify({'error': 'Error deleting old file'}), 500
                     
-                    # Update existing file
-                    existing_file.name = file.filename
+                    # Create new file path and save
+                    sanitized_filename = secure_filename(filename)
+                    system_filename = f"{user_id}_{sanitized_filename}"
+                    file_path = os.path.join('uploads', system_filename)
+                    
+                    os.makedirs('uploads', exist_ok=True)
+                    with open(file_path, 'wb') as f:
+                        f.write(file_contents)
+                    
+                    # Update existing file record
+                    existing_file.name = filename
                     existing_file.path = file_path
                     existing_file.uploaded_at = datetime.now(UTC)
                     
@@ -63,32 +74,41 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
                         db.add(file_metadata)
                     
                     db.commit()
-                    logger.info(f"File {file.filename} updated successfully by user {user_id}")
+                    logger.info(f"File {filename} updated successfully by user {user_id}")
                     return jsonify({
                         'message': 'File updated successfully',
                         'uuid': str(existing_file.uuid)
-                    }), 200
+                    }), 201
                 else:
                     logger.warning(f"File with UUID {file_uuid} not found for overwrite")
                     return jsonify({'error': 'File not found to overwrite'}), 404
-            else:
-                # Check if user already has a file with the same name
-                existing_file = db.query(Files).filter_by(
-                    owner_id=user_id,
-                    name=file.filename
-                ).first()
-                
-                if existing_file:
-                    logger.warning(f"User {user_id} attempted to upload file with existing name: {file.filename}")
-                    return jsonify({
-                        'error': 'File with this name already exists',
-                        'uuid': str(existing_file.uuid)
-                    }), 409
+
+            # Check if user already has a file with the same name
+            existing_file = db.query(Files).filter_by(
+                owner_id=user_id,
+                name=filename
+            ).first()
+            
+            if existing_file:
+                logger.warning(f"User {user_id} attempted to upload file with existing name: {filename}")
+                return jsonify({
+                    'error': 'File with this name already exists',
+                    'uuid': str(existing_file.uuid)
+                }), 409
+
+            # Create file path and save to disk ONLY after validation passes
+            sanitized_filename = secure_filename(filename)
+            system_filename = f"{user_id}_{sanitized_filename}"
+            file_path = os.path.join('uploads', system_filename)
+            
+            os.makedirs('uploads', exist_ok=True)
+            with open(file_path, 'wb') as f:
+                f.write(file_contents)
 
             # Create new file entry
             new_file = Files(
                 owner_id=user_id,
-                name=file.filename,
+                name=filename,
                 path=file_path,
                 uploaded_at=datetime.now(UTC),
                 uuid=file_uuid or uuid.uuid4()
@@ -106,7 +126,7 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
             db.add(file_metadata)
             
             db.commit()
-            logger.info(f"File {file.filename} uploaded successfully by user {user_id}")
+            logger.info(f"File {filename} uploaded successfully by user {user_id}")
             return jsonify({
                 'message': 'File uploaded successfully',
                 'uuid': str(new_file.uuid)
@@ -114,7 +134,13 @@ def upload_file_to_db(user_id: int, file, file_path: str, metadata: dict, file_u
 
         except Exception as e:
             db.rollback()
-            logger.error(f"Error uploading file {getattr(file, 'filename', 'unknown')}: {str(e)}")
+            # Clean up file if it was created
+            if 'file_path' in locals():
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
+            logger.error(f"Error uploading file {filename}: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
 def get_user_files(user_id: int) -> dict:
@@ -133,8 +159,8 @@ def get_user_files(user_id: int) -> dict:
             owned_files_data = [{
                 'uuid': str(file.uuid),
                 'filename': file.name,
-                'file_size': file.metadata.size if file.metadata else None,
-                'format': file.metadata.format if file.metadata else None,
+                'file_size': file.file_metadata.size if file.file_metadata else None,  
+                'format': file.file_metadata.format if file.file_metadata else None,   
                 'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None,
                 'is_owner': True
             } for file in owned_files]
@@ -162,7 +188,7 @@ def get_user_files(user_id: int) -> dict:
         return jsonify({
             'owned_files': owned_files_data,
             'shared_files': shared_files_data
-        })
+        }), 200
 
     except Exception as e:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
@@ -215,7 +241,7 @@ def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
                     perm.user_id: perm.encryption_key for perm in permissions
                 }
             logger.info(f"User {user_id} retrieved file {file_uuid} successfully")
-        return jsonify(response_data)
+        return jsonify(response_data), 200
 
     except Exception as e:
         logger.error(f"Error retrieving file {file_uuid} for user {user_id}: {str(e)}")
@@ -256,7 +282,7 @@ def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:
             db.delete(file)
             db.commit()
             logger.info(f"User {user_id} deleted file {file_uuid} successfully")
-            return jsonify({'message': 'File deleted successfully'})
+            return jsonify({'message': 'File deleted successfully'}), 200
     except Exception as e:
         logger.error(f"Error deleting file {file_uuid} for user {user_id}: {str(e)}")
         if db is not None:
