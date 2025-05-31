@@ -6,31 +6,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def get_user_public_key(user_id: int) -> dict:
-    """Get the public key of a user.
-
-    Args:
-        user_id (int): ID of the user whose public key is requested
-
-    Returns:
-        dict: Response containing the user's public key or error message
-    """
-    try:
-        with get_session() as db:
-            user = db.query(Users).get(user_id)
-        if not user:
-            logger.warning(f"User with ID {user_id} not found")
-            return jsonify({'error': 'User not found'}), 404
-
-        logger.info(f"User {user_id} retrieved their public key successfully")
-        return jsonify({
-            'public_key': user.public_key
-        }), 200
-
-    except Exception as e:
-        logger.error(f"Error retrieving public key for user {user_id}: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
 def create_file_permission(file_id: int, user_id: int, key_for_recipient: str, owner_id: int) -> dict:
     """Create a new file permission for a user.
 
