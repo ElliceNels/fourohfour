@@ -34,10 +34,6 @@ void VerifyPage::setupConnections(){
     connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
 }
 
-void VerifyPage::set_other_public_key(const QByteArray &otherpk){
-    this->otherPublicKey = otherpk; 
-}
-
 QString VerifyPage::fetch_local_public_key(){
     QString filePath = QFileDialog::getOpenFileName(this, "Open File", "", "JSON Files (*.json)");
 
@@ -77,7 +73,7 @@ QString VerifyPage::fetch_local_public_key(){
 bool VerifyPage::fetch_server_public_key(const QString& username){
     // Create params for the GET request
     QJsonObject params;
-    params["username"] = this->username;
+    params["username"] = username;
 
     // Make the GET request to retrieve the public key
     RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_PUBLIC_KEY_ENDPOINT, params);
@@ -94,7 +90,7 @@ bool VerifyPage::fetch_server_public_key(const QString& username){
             qDebug() << "Public key retrieved for user: " << this->otherPublicKey;
             
             QMessageBox::information(this, "Success", 
-                "Successfully retrieved public key for: " + this->username);
+                "Successfully retrieved public key for: " + username);
             return true;
         } else {
             QMessageBox::warning(this, "Error", "Public key not found in response");
@@ -102,9 +98,9 @@ bool VerifyPage::fetch_server_public_key(const QString& username){
     } else {
        QMessageBox::critical(this, "Public Key Fetch Error", 
         "Failed to fetch public key for user: " + username + "\nError: " + QString::fromStdString(response.errorMessage));
-        return false;
     }
     
+    return false; // Return false if the public key was not found or request failed
 }
 
 QString VerifyPage::generate_hash(QString usersPublicKey){
@@ -218,7 +214,6 @@ void VerifyPage::switchPages(int pageIndex) {
     ui->contentStackedWidget->setCurrentIndex(pageIndex);
     if (pageIndex == FIND_FRIEND_INDEX) {
         this->otherPublicKey.clear();  
-        this->username.clear();
         toggleUIElements(false); // Hide all UI elements
     }
     setButtonsEnabled(true);
@@ -236,11 +231,10 @@ void VerifyPage::on_findButton_clicked()
 {
    QString username = this->ui->usernameLineEdit->text();
     if (validateUsername(username)) {
-        this->username = username;
         this->ui->usernameLineEdit->clear(); 
 
 
-        if (fetch_server_public_key(this->username)) {
+        if (fetch_server_public_key(username)) {
               switchPages(VERIFY_PUBLIC_KEY_INDEX);
         }
         // Error messages are handled in fetch_server_public_key, so no need to show them here
