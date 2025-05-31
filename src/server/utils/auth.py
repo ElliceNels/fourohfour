@@ -103,18 +103,19 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         "refresh_token": refresh_token
     }), 201
 
-def change_password(token: str, new_password: str) -> dict:
-    """Change password route to update user password.
+def change_password(token: str, new_password: str, salt: bytes) -> dict:
+    """Change password route to update user password and salt.
 
     Args:
         token (str): valid, active JWT token.
         new_password (str): new password for the user.
+        salt (bytes): new salt for the user (must be bytes).
 
     Returns:
         dict: response containing success message or error message.
     """
     
-    if not token or not new_password:
+    if not token or not new_password or not salt:
         logger.warning("Change password failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
@@ -141,12 +142,11 @@ def change_password(token: str, new_password: str) -> dict:
             return jsonify({"error": "New password is the same as the current one"}), 400
 
         hashed_new_password = hash_password(new_password)
-        
-        # Update the password
         user.password = hashed_new_password
+        user.salt = salt
         user.updated_at = datetime.now()
         db.commit()
-        logger.info(f"User {user_id} changed password successfully")
+        logger.info(f"User {user_id} changed password and salt successfully")
     return jsonify({"message": "Password updated successfully"}), 200
 
 def delete_account(username: str) -> dict:
