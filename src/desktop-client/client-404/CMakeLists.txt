@@ -62,8 +62,6 @@ set(UTILS_SOURCES
     utils/securevector.h
     utils/securevector.cpp
     utils/securebufferutils.h
-    utils/utils.cpp
-    utils/utils.h
 )
 
 set(CORE_SOURCES
@@ -87,7 +85,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resource.qrc
-        utils/password_utils.cpp utils/password_utils.h utils/securebufferutils.h utils/securevector.cpp utils/securevector.h utils/utils.cpp utils/utils.h
+        utils/password_utils.cpp utils/password_utils.h utils/securebufferutils.h utils/securevector.cpp utils/securevector.h
     )
 else()
     if(ANDROID)

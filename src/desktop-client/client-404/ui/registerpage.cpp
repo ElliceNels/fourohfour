@@ -12,7 +12,6 @@
 #include <qstackedwidget.h>
 #include  "crypto/key_utils.h"
 #include "constants.h"
-#include "utils.h"
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
@@ -92,13 +91,10 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
-    //Hash password
-    string hashed;
+    //Salt generation
     QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    string sSalt = "qWwVoi8lxzvsDIbadlBklw=="; //salt.toStdString();
+    string sSalt =  salt.toStdString();
     QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
-
-    deterministic_hash_password(password.toStdString(), sSalt, hashed);
 
 
 
@@ -118,10 +114,6 @@ void RegisterPage::onCreateAccountClicked()
     string* saltPtr = &sSalt;
 
 
-    if ((sendCredentials(sAccountName, hashed, pubKey, sSalt) == "ERROR")) {
-        QMessageBox::warning(this, "Error", "Error creating account, please try again later");
-        return;
-    }
 
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
@@ -132,9 +124,6 @@ void RegisterPage::onCreateAccountClicked()
 
     //Debug prints
     cout << sAccountName << endl;
-    cout << hashed << endl;
-    cout << pubKeyBase64.toStdString() << endl;
-    cout << privKeyBase64.toStdString() << endl;
     cout << "Salt: " << *saltPtr << endl;
 
 
@@ -157,21 +146,6 @@ void RegisterPage::onShowPasswordClicked()
         this->ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
         this->ui->showPasswordButton->setText("Show");
     }
-}
-
-string RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
-{
-    QJsonObject json;
-    json["username"] = QString::fromStdString(name);
-    json["hashed_password"] = QString::fromStdString(password);
-    json["salt"] = QString::fromStdString(salt);
-    QString base64PublicKey = QString::fromStdString(publicKey).toUtf8().toBase64();
-    json["public_key"] = base64PublicKey;
-
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
-
-    return sendData(jsonData, this, registerEndpoint);
 }
 
 

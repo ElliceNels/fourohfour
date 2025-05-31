@@ -14,7 +14,6 @@
 #include <qstackedwidget.h>
 #include <QHostInfo>
 #include "constants.h"
-#include "utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -57,23 +56,6 @@ void LoginPage::onLoginButtonClicked()
     string sUsername = username.toStdString();
     string sPassword = password.toStdString();
 
-    //Debug prints
-    cout << "Username: " << sUsername << endl;
-    cout << "Password: " << sPassword << endl;
-
-    string hashed;
-    string passwordSalt = "qWwVoi8lxzvsDIbadlBklw=="; //getSaltFromServer(sUsername);
-
-    deterministic_hash_password(password.toStdString(), passwordSalt, hashed);
-
-    if (sendCredentials(sUsername, hashed) == "ERROR") {
-        QMessageBox::warning(this, "Authentication Failed", "Incorrent username or password. Please try again");
-        return;
-    }
-
-    // Debug prints
-    cout << "Username: " << username.toStdString() << endl;
-    cout << "Password: " << password.toStdString() << endl;
 
 
     // Switch to main menu after login
@@ -91,17 +73,6 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
-string LoginPage::sendCredentials(string name, string password)
-{
-    QJsonObject json;
-    json["username"] = QString::fromStdString(name);
-    json["hashed_password"] = QString::fromStdString(password);
-
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
-
-    return sendData(jsonData, this, loginEndpoint);
-}
 
 bool LoginPage::isRateLimited(const QString& ip)
 {
