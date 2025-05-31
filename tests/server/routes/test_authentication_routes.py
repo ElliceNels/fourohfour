@@ -3,7 +3,7 @@ import uuid
 import logging
 from flask.testing import FlaskClient
 from sqlalchemy_utils import database_exists, drop_database
-from server.utils.db_setup import setup_db
+from server.utils.db_setup import setup_db, teardown_db
 from server.app import create_app
 from server.models.tables import Base
 
@@ -22,22 +22,12 @@ def app_fixture():
 @pytest.fixture(scope="session")
 def setup_test_db(app_fixture):
     """Set up test database before running tests."""
-    engine = setup_db("test_database")
-    Base.metadata.create_all(bind=engine)
+    db_name = "test_database"
+    engine = setup_db(db_name)
     logger.info("Test database setup complete.")
-
     yield
-    Base.metadata.drop_all(bind=engine)
-    
-    # Ensure database deletion
-    if database_exists(engine.url):
-        try:
-            engine.dispose()  # Close connection before deletion
-            drop_database(engine.url, checkfirst=False)
-        except Exception as e:
-            logger.error(f"Error dropping test database: {e}")
 
-    logger.info("Test database teardown complete.")
+    teardown_db(db_name, engine=engine, remove_db=True)
 
 @pytest.fixture
 def client(app_fixture):
