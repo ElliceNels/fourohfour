@@ -1,6 +1,6 @@
 from server.config import config 
 from server.models.tables import Base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, close_all_sessions
 from sqlalchemy import Engine, create_engine
 import os
 import logging
@@ -61,7 +61,8 @@ def teardown_db(db_name: str, engine: Engine = None, remove_db: bool = False):
     global _Session
 
     if _Session:
-        _Session.close_all()
+        # Close all sessions if any are open
+        close_all_sessions()
         _Session = None
 
     try:
