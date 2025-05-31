@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session
 from signup import validate_registration
+from login import manage_login
 from uploadfile import validate_file_size, validate_file_type
 
 app = Flask(__name__)
@@ -28,7 +29,13 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        return redirect(url_for('main_menu'))
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if manage_login(password, username):
+            return redirect(url_for('main_menu'))
+        else:
+            error = "Login failed. Please check your credentials."
+            return render_template('login.html', error=error)
     return render_template('login.html')
 
 @app.route('/mainmenu')
