@@ -5,7 +5,10 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <qstackedwidget.h>
+#include <QThread>
 #include <sodium.h>
+#include "constants.h"
+#include <QTimer>
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
@@ -22,10 +25,15 @@ void VerifyPage::preparePage(){
 
 void VerifyPage::initialisePageUi(){
     this->ui->setupUi(this);
+    toggleUIElements(false); // Hide all certain ui  elements initially
 }
 
 void VerifyPage::setupConnections(){
-    connect(this->ui->backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
+    connect(this->ui->verify_backButton, &QPushButton::clicked,this, [this]() { switchPages(FIND_FRIEND_INDEX); });
+    connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
+    connect(this->ui->findButton, &QPushButton::clicked, this, [this]() {switchPages(VERIFY_PUBLIC_KEY_INDEX);} );
+    connect(this->ui->rejectButton, &QPushButton::clicked, this, [this]() {on_rejectButton_clicked(); });
+    connect(this->ui->acceptButton, &QPushButton::clicked, this, [this]() {on_acceptButton_clicked(); });
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
@@ -107,7 +115,7 @@ void VerifyPage::on_verifyButton_clicked(){
     QString publicKey = this->fetch_public_key();
 
     if (publicKey.isEmpty()){
-        QMessageBox::warning(this, "Error", "Could not retrieve public key");
+        // No need to show an error message here, as the fetch_public_key already does that
         return;
     }
 
@@ -119,11 +127,97 @@ void VerifyPage::on_verifyButton_clicked(){
     }
 
     this->ui->displayLineEdit->setText(hash);
+
+    toggleUIElements(true); // Show the UI elements for acceptance/rejection
+}
+
+void VerifyPage::on_rejectButton_clicked() {
+    setButtonsEnabled(false);
+    showFriendshipStatus(false);
+}
+
+void VerifyPage::on_acceptButton_clicked() {
+    // TODO: Implement the logic to accept the friendship and store it locally
+    setButtonsEnabled(false);
+    showFriendshipStatus(true);
+}
+
+void VerifyPage::showFriendshipStatus(bool accepted) {
+    // Set message and color based on acceptance status
+    if (accepted) {
+        this->ui->acceptanceResultLabel->setText("Friendship accepted!");
+        this->ui->acceptanceResultLabel->setStyleSheet(Styles::SuccessMessage);
+    } else {
+        this->ui->acceptanceResultLabel->setText("Friendship rejected!");
+        this->ui->acceptanceResultLabel->setStyleSheet(Styles::ErrorMessage);
+    }
+    
+    // Show the label
+    this->ui->acceptanceResultLabel->show();
+    
+    // Disable all buttons to prevent multiple clicks during animation
+    // Use QTimer instead of sleep to avoid blocking UI thread
+    QTimer* timer = new QTimer(this);
+    timer->setSingleShot(true);
+    
+    // Connect the timer to perform navigation after timeout
+    connect(timer, &QTimer::timeout, this, [this, accepted, timer]() {
+        if (accepted) {
+            // For acceptance, go to main menu
+            emit this->goToMainMenuRequested();
+            switchPages(FIND_FRIEND_INDEX);
+        } else {
+            // For rejection, go back to find friend page
+            switchPages(FIND_FRIEND_INDEX);
+        }
+        // Clean up the timer
+        timer->deleteLater();
+    });
+    
+    // Start the timer for 1.5 seconds (1500 ms)
+    timer->start(1500);
+}
+
+void VerifyPage::publicKeyCleanup() {
+    if (this->otherPublicKey != nullptr) {
+        delete this->otherPublicKey;  // delete old value to avoid leak
+        this->otherPublicKey = nullptr; // set to nullptr to avoid dangling pointer
+    }
+}
+
+void VerifyPage::toggleUIElements(bool show) {
+    if (show){
+        this->ui->acceptButton->show();
+        this->ui->rejectButton->show();
+        this->ui->acceptanceInfoLabel->show();
+    } else {
+        this->ui->displayLineEdit->setText("No key file selected...");
+        this->ui->acceptButton->hide();
+        this->ui->rejectButton->hide();
+        this->ui->acceptanceInfoLabel->hide();
+        this->ui->acceptanceResultLabel->hide();
+    }
+  
+}
+
+void VerifyPage::setButtonsEnabled(bool enabled) {
+    this->ui->verifyButton->setEnabled(enabled);
+    this->ui->acceptButton->setEnabled(enabled);
+    this->ui->rejectButton->setEnabled(enabled);
+}
+
+void VerifyPage::switchPages(int pageIndex) {
+    ui->contentStackedWidget->setCurrentIndex(pageIndex);
+    if (pageIndex == FIND_FRIEND_INDEX) {
+        this->publicKeyCleanup(); 
+        toggleUIElements(false); // Hide all UI elements
+    }
+    setButtonsEnabled(true);
 }
 
 VerifyPage::~VerifyPage()
 {
     qDebug() << "Destroying Verify Page";
     delete this->ui;
-    delete otherPublicKey;  // clean up pointer to avoid memory leak
+    this->publicKeyCleanup(); 
 }
