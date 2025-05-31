@@ -199,7 +199,6 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& has
                              QString::fromStdString(response.errorMessage));
         return false;
     }
->>>>>>> b53827477257a2a31f1e47f21a24b29c3487780f
 }
 
 

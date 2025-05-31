@@ -22,8 +22,8 @@ public:
 private slots:
     void onUpdatePasswordClicked();
     void onShowPasswordClicked();
-    void sendCredentials(string password, string salt);
-    void fetchAndStoreSalt();
+    bool sendResetPasswordRequest(const QString password, const QString newSalt);
+    bool getSaltRequest();
 
 private:
     Ui::ResetPasswordPage *ui;

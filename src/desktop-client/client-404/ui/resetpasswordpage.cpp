@@ -16,6 +16,8 @@
 #include <QDebug>
 #include <qstackedwidget.h>
 #include "qwidget.h"
+#include "constants.h"
+#include "loginsessionmanager.h"
 using namespace std;
 
 ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
@@ -57,7 +59,7 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     QSet<QString> dictionaryWords;
 
     dictionaryWords = loadDictionaryWords("../../common_passwords.txt"); //source: https://work2go.se/en/category/news/
-    //QString username = LoginSessionManager::getInstance().getUsername();
+    QString username = LoginSessionManager::getInstance().getUsername();
 
 
     //Validation checks
@@ -77,10 +79,10 @@ void ResetPasswordPage::onUpdatePasswordClicked()
         QMessageBox::warning(this, "Error", "Password cannot be empty or only spaces.");
         return;
     }
-    // if (password.compare(accountName, Qt::CaseInsensitive) == 0) {
-    //     QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
-    //     return;
-    // }
+    if (newPassword.compare(username, Qt::CaseInsensitive) == 0) {
+        QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
+        return;
+    }
     QString normalizedPassword = newPassword.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (newPassword != normalizedPassword) {
         QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
@@ -90,20 +92,21 @@ void ResetPasswordPage::onUpdatePasswordClicked()
         return;
     }
 
-    //Hash password
-    string hashed;
-    hash_password(newPassword.toStdString(), hashed);
 
 
-    //fetchAndStoreSalt();
-    oldSalt =  generateSalt(crypto_pwhash_SALTBYTES);
+
+    if(!getSaltRequest()){
+        qDebug() << "Error getting salt";
+    }
+
 
     QString newSalt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray newSaltRaw = QByteArray::fromBase64(newSalt.toUtf8()); // decode to raw bytes
 
-    //decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
 
-    //sendCredentials(hashed, newSalt.toStdString(););
+    decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
+
+
+    sendResetPasswordRequest(newPassword, newSalt);
 
 
     QMessageBox::information(this, "Success", "Password updated!");
@@ -131,45 +134,51 @@ void ResetPasswordPage::onShowPasswordClicked()
     }
 }
 
-void ResetPasswordPage::sendCredentials(string password, string salt)
-{
-    QJsonObject json;
-    json["hashedPassword"] = QString::fromStdString(password);
-    json["salt"] = QString::fromStdString(salt);
 
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
+bool ResetPasswordPage::sendResetPasswordRequest(const QString newPassword, const QString newSalt){
+    // Set base URL for the server
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("http://gobbler.info:4004/change_password"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    // Prepare JSON payload for reset
+    QJsonObject requestData;
+    requestData["password"] = newPassword;
+    requestData["salt"] = newSalt;
 
-    QNetworkReply *reply = manager->post(request, jsonData);
+
+    // Make the POST request to the sign_up endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(RESET_PASSWORD_ENDPOINT, requestData);
+
+    // Check if request was successful
+    if (response.success) {
+
+        qDebug() << "Reset successful.";
+        return true;
+    } else {
+        QMessageBox::critical(this, "Reset Error",  QString::fromStdString(response.errorMessage));
+        return false;
+    }
 }
 
+bool ResetPasswordPage::getSaltRequest(){
+    // Set base URL for the server
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
-void ResetPasswordPage::fetchAndStoreSalt()
-{
-    QNetworkAccessManager* manager = new QNetworkAccessManager();
 
-    QNetworkRequest request(QUrl("http://gobbler.info:4004/get_current_user"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    QNetworkReply* reply = manager->get(request);
+    // Make the GET request to the get_current_user endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_USER_ENDPOINT);
 
-    QObject::connect(reply, &QNetworkReply::finished, this, [this, reply]() { //wait for response from server
-        if (reply->error() == QNetworkReply::NoError) {
-            QByteArray response = reply->readAll();
-            QJsonDocument doc = QJsonDocument::fromJson(response);
-            if (doc.isObject()) {
-                QJsonObject obj = doc.object();
-                oldSalt = obj["salt"].toString();
-                qDebug() << "Salt stored:" << oldSalt;
-            }
-        } else {
-            qDebug() << "Error fetching salt:" << reply->errorString();
-        }
-        reply->deleteLater();
-        reply->manager()->deleteLater();
-    });
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+
+        // Extract salt from the response
+        oldSalt = jsonObj["salt"].toString();
+
+        return true;
+    } else {
+        qDebug() << "Error getting salt:" <<response.errorMessage;
+        return false;
+    }
 }
+
