@@ -7,6 +7,7 @@
 #include <chrono>
 #include <iostream> 
 #include "constants.h"
+#include "json_sanitizer.h" 
 
 using namespace std;
 
@@ -317,7 +318,10 @@ void RequestUtils::processResponse(Response& response, const string& responseDat
         if (parseError.error == QJsonParseError::NoError) {
             response.jsonData = jsonDoc;
         } else {
-            cout << "JSON parse error: " << parseError.errorString().toStdString() << endl;
+            // Sanitize before logging using JsonSanitizer
+            string sanitizedJson = JsonSanitizer::sanitizeJsonString(response.rawData);
+            cout << "JSON parse error: " << parseError.errorString().toStdString() 
+                 << " for data: " << sanitizedJson << endl;
             response.errorMessage = "JSON parse error: " + parseError.errorString().toStdString();
         }
     }
@@ -336,7 +340,10 @@ void RequestUtils::processResponse(Response& response, const string& responseDat
         } else {
             response.errorMessage = "HTTP error: " + to_string(response.statusCode);
         }
-        cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage << endl;
+        // Sanitize the JSON data before logging errors using JsonSanitizer
+        QJsonDocument sanitizedDoc = JsonSanitizer::sanitizeJson(response.jsonData);
+        cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage 
+             << " - Response: " << sanitizedDoc.toJson().toStdString() << endl;
     }
 }
 
