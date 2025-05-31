@@ -66,6 +66,11 @@ set(UTILS_SOURCES
     utils/securevector.h
     utils/securevector.cpp
     utils/securebufferutils.h
+    utils/request_utils.h
+    utils/request_utils.cpp
+    utils/custom_deleter.h
+    utils/json_sanitizer.h
+    utils/json_sanitizer.cpp
 )
 
 set(CORE_SOURCES
@@ -116,10 +121,14 @@ add_executable(tst_key_utils
     utils/securevector.h
     utils/securevector.cpp
     utils/securebufferutils.h
+    utils/request_utils.h
+    utils/request_utils.cpp
     crypto/encryptionhelper.h
     crypto/encryptionhelper.cpp
     core/loginsessionmanager.h
     core/loginsessionmanager.cpp
+    utils/json_sanitizer.h
+    utils/json_sanitizer.cpp
 )
 
 # Include directories for the whole project

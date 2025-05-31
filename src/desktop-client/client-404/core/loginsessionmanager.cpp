@@ -4,6 +4,7 @@
 #include <cstring>
 #include <QString>
 #include "utils/securevector.h"
+#include "utils/request_utils.h"
 
 LoginSessionManager::LoginSessionManager() {}
 
@@ -33,6 +34,19 @@ const QString LoginSessionManager::getUsername() const {
 
 const SecureVector LoginSessionManager::getMasterKey() const {
     return SecureVector(this->m_masterKey);  // Return a SecureVector containing the master key
+}
+
+void LoginSessionManager::setTokens(const QString& accessToken, const QString& refreshToken) {
+    this->m_requestUtils.setBearerToken(accessToken.toStdString());
+    this->m_requestUtils.setRefreshToken(refreshToken.toStdString());
+}
+
+void LoginSessionManager::setBaseUrl(const QString& baseUrl) {
+    this->m_requestUtils.setBaseUrl(baseUrl.toStdString());
+}
+
+RequestUtils::Response LoginSessionManager::post(const std::string& url, const QJsonObject& data) {
+    return this->m_requestUtils.post(url, data);
 }
 
 void LoginSessionManager::clearSession() {
