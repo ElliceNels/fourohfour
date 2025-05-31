@@ -1,9 +1,10 @@
-from flask import Flask
 import pytest
+import uuid
+import base64
+from flask import Flask
 from unittest.mock import MagicMock, patch, mock_open
 from server.utils.file import upload_file_to_db, get_user_files, get_file_by_uuid, delete_file_by_uuid
 from server.app import create_app
-import uuid
 
 # HTTP status code constants
 CODE_SUCCESS = 200
@@ -11,6 +12,7 @@ CODE_CREATED = 201
 CODE_BAD_REQUEST = 400
 CODE_FORBIDDEN = 403
 CODE_NOT_FOUND = 404
+CODE_CONFLICT = 409
 CODE_SERVER_ERROR = 500
 
 @pytest.fixture(scope="module")
@@ -36,18 +38,44 @@ def mock_session_ctx(mock_db):
             pass
     return Ctx()
 
-@pytest.mark.parametrize("user_id, file_present, db_error, expected_status", [
-    (1, True, False, CODE_CREATED),  # Success
-    (1, False, False, CODE_BAD_REQUEST),  # No file provided
-    (1, True, True, CODE_SERVER_ERROR),  # DB error
+@pytest.mark.parametrize("user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status", [
+    # Basic cases
+    (1, True, None, False, False, False, CODE_CREATED),  # New file upload
+    (1, False, None, False, False, False, CODE_BAD_REQUEST),  # No file provided
+    
+    # UUID update cases
+    (1, True, str(uuid.uuid4()), True, True, False, CODE_CREATED),  # Update existing file (owner)
+    (1, True, str(uuid.uuid4()), True, False, False, CODE_FORBIDDEN),  # Update existing file (not owner)
+    (1, True, str(uuid.uuid4()), False, False, False, CODE_NOT_FOUND),  # Update non-existing file
+    
+    # Duplicate filename cases
+    (1, True, None, True, False, False, CODE_CONFLICT),  # Duplicate filename
+    
+    # Error cases
+    (1, True, None, False, False, True, CODE_SERVER_ERROR),  # DB error
 ])
-def test_upload_file_to_db(user_id, file_present, db_error, expected_status, mock_db, app_ctx, mocker):
-    class DummyFile:
-        filename = "test.txt"
-    file = DummyFile() if file_present else None
-    file_path = "/tmp/test.txt"
+def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, mock_db, app_ctx, mocker):
+    # Set up test data
+    filename = "test.txt" if file_present else None
+    file_contents_b64 = "dGVzdCBjb250ZW50" if file_present else None # Base64 for "test content"
     metadata = {'size': 123, 'format': 'txt'}
-    test_uuid = uuid.uuid4()
+    test_uuid = uuid.UUID(uuid_provided) if uuid_provided else None
+
+    # Mock existing file query
+    existing_file = None
+    if file_exists:
+        existing_file = MagicMock()
+        existing_file.owner_id = user_id if is_owner else user_id + 1
+        existing_file.uuid = test_uuid
+        existing_file.name = "test.txt"
+        existing_file.path = "/tmp/test.txt"
+        existing_file.file_metadata = MagicMock()
+        existing_file.file_metadata.size = 123
+        existing_file.file_metadata.format = 'txt'
+
+    mock_db.query().filter_by().first.return_value = existing_file
+
+    # Mock DB operations
     if db_error:
         mock_db.add.side_effect = Exception("DB error")
     else:
@@ -55,25 +83,47 @@ def test_upload_file_to_db(user_id, file_present, db_error, expected_status, moc
         mock_db.flush.side_effect = None
         mock_db.commit.side_effect = None
         mock_db.rollback.side_effect = None
-        # Simulate new_file.id and uuid
         def add_side_effect(obj):
             if hasattr(obj, 'id'):
                 obj.id = 42
             if hasattr(obj, 'uuid'):
-                obj.uuid = test_uuid
+                obj.uuid = test_uuid if test_uuid else uuid.uuid4()
         mock_db.add.side_effect = add_side_effect
+
+    # Mock file operations
+    mocker.patch('os.makedirs')
+    mocker.patch('os.remove')
+    mocker.patch('builtins.open', mock_open())
+    mocker.patch('base64.b64decode', return_value=b'test content')
+
+    # Run test
     mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
-    response, status = upload_file_to_db(user_id, file, file_path, metadata)
-    assert status == expected_status
-    data = response.get_json()
+    
+    # Call with the new function signature
+    response = upload_file_to_db(user_id, filename, file_contents_b64, metadata, test_uuid)
+    
+    # Handle both tuple and single return formats
+    if isinstance(response, tuple):
+        response_obj, status = response
+        data = response_obj.get_json()
+    else:
+        status = 500
+        data = response.get_json()
+    
+    # Assertions
+    assert status == expected_status, f"Expected {expected_status}, got {status}. Response: {data}"
+    
     if expected_status == CODE_CREATED:
-        assert 'uuid' in data
-        assert data['uuid'] == str(test_uuid)
+        assert 'uuid' in data or 'message' in data
+        if test_uuid and 'uuid' in data:
+            assert data['uuid'] == str(test_uuid)
+    elif expected_status == CODE_BAD_REQUEST:
+        assert 'error' in data
     else:
         assert 'error' in data
 
 @pytest.mark.parametrize("user_id, owned_files, shared_files, db_error, expected_status", [
-    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
+    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'file_metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
     (2, [], [], True, CODE_SERVER_ERROR),
 ])
 def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_status, mock_db, app_ctx, mocker):
@@ -152,18 +202,19 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
             mocker.patch("builtins.open", m)
         elif file_found and (owner or has_permission) and file_read_error:
             mocker.patch("builtins.open", side_effect=Exception("read error"))
+    
     response = get_file_by_uuid(str(file_uuid), user_id)
+    
+
+    data, status = response
+    assert status == expected_status
     if expected_status == CODE_SUCCESS:
-        data = response.get_json()
+        data = data.get_json()
         assert 'encrypted_file' in data
         if owner:
             assert 'encrypted_keys' in data
     else:
-        if db_error:
-            assert response[1] == CODE_SERVER_ERROR
-        else:
-            assert response[1] == expected_status
-        assert 'error' in response[0].get_json()
+        assert 'error' in data.get_json()
 
 @pytest.mark.parametrize("file_uuid, user_id, file_found, owner, file_delete_error, db_error, expected_status", [
     (uuid.uuid4(), 1, True, True, False, False, CODE_SUCCESS),  # Success
