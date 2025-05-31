@@ -956,16 +956,6 @@ QPushButton:pressed {
             </layout>
            </item>
            <item>
-            <widget class="QLabel" name="acceptanceResultLabel">
-             <property name="text">
-              <string/>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignmentFlag::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item>
             <spacer name="verify_buttonsTopSpacer">
              <property name="orientation">
               <enum>Qt::Orientation::Vertical</enum>

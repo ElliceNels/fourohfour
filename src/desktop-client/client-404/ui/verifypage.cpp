@@ -31,8 +31,6 @@ void VerifyPage::setupConnections(){
     connect(this->ui->verify_backButton, &QPushButton::clicked,this, [this]() { switchPages(FIND_FRIEND_INDEX); });
     connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
     connect(this->ui->findButton, &QPushButton::clicked, this, [this]() {switchPages(VERIFY_PUBLIC_KEY_INDEX);} );
-    connect(this->ui->rejectButton, &QPushButton::clicked, this, [this]() {on_rejectButton_clicked(); });
-    connect(this->ui->acceptButton, &QPushButton::clicked, this, [this]() {on_acceptButton_clicked(); });
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
@@ -129,49 +127,17 @@ void VerifyPage::on_verifyButton_clicked(){
 
 void VerifyPage::on_rejectButton_clicked() {
     setButtonsEnabled(false);
-    showFriendshipStatus(false);
+    QMessageBox::information(this, "Rejected", "Friendship rejected!");
+    switchPages(FIND_FRIEND_INDEX);
 }
 
 void VerifyPage::on_acceptButton_clicked() {
     // TODO: Implement the logic to accept the friendship and store it locally
     setButtonsEnabled(false);
-    showFriendshipStatus(true);
-}
-
-void VerifyPage::showFriendshipStatus(bool accepted) {
-    // Set message and color based on acceptance status
-    if (accepted) {
-        this->ui->acceptanceResultLabel->setText("Friendship accepted!");
-        this->ui->acceptanceResultLabel->setStyleSheet(Styles::SuccessMessage);
-    } else {
-        this->ui->acceptanceResultLabel->setText("Friendship rejected!");
-        this->ui->acceptanceResultLabel->setStyleSheet(Styles::ErrorMessage);
-    }
-    
-    // Show the label
-    this->ui->acceptanceResultLabel->show();
-    
-    // Disable all buttons to prevent multiple clicks during animation
-    // Use QTimer instead of sleep to avoid blocking UI thread
-    QTimer* timer = new QTimer(this);
-    timer->setSingleShot(true);
-    
-    // Connect the timer to perform navigation after timeout
-    connect(timer, &QTimer::timeout, this, [this, accepted, timer]() {
-        if (accepted) {
-            // For acceptance, go to main menu
-            emit this->goToMainMenuRequested();
-            switchPages(FIND_FRIEND_INDEX);
-        } else {
-            // For rejection, go back to find friend page
-            switchPages(FIND_FRIEND_INDEX);
-        }
-        // Clean up the timer
-        timer->deleteLater();
-    });
-    
-    // Start the timer for 1.5 seconds (1500 ms)
-    timer->start(1500);
+    QMessageBox::information(this, "Success", "Friendship accepted!");
+    emit goToMainMenuRequested(); 
+    // internal switch to the find friend page
+    switchPages(FIND_FRIEND_INDEX);
 }
 
 
@@ -181,11 +147,10 @@ void VerifyPage::toggleUIElements(bool show) {
         this->ui->rejectButton->show();
         this->ui->acceptanceInfoLabel->show();
     } else {
-        this->ui->displayLineEdit->setText("No key file selected...");
+        this->ui->displayLineEdit->clear(); 
         this->ui->acceptButton->hide();
         this->ui->rejectButton->hide();
         this->ui->acceptanceInfoLabel->hide();
-        this->ui->acceptanceResultLabel->hide();
     }
   
 }
@@ -209,5 +174,5 @@ VerifyPage::~VerifyPage()
 {
     qDebug() << "Destroying Verify Page";
     delete this->ui;
-    
+
 }

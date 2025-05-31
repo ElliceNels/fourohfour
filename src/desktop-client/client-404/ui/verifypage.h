@@ -35,7 +35,6 @@ private:
     void setupConnections() override;
 
     void switchPages(int pageIndex);
-    void showFriendshipStatus(bool accepted);
     void toggleUIElements(bool show);
     void setButtonsEnabled(bool enabled);
 
