@@ -14,7 +14,7 @@ def login():
     Expected JSON payload:
     {
         "username": "<username>",
-        "hashed_password": "<hashed_password>",
+        "password": "<password>",
     }
 
     Expected response:
@@ -27,9 +27,9 @@ def login():
     data = request.get_json()
     logger.debug(f"Received login request for username: {data.get('username')}")
     username = data.get('username')
-    hash_password = data.get('hashed_password')
+    password = data.get('password')
 
-    return auth.login(username, hash_password)
+    return auth.login(username, password)
 
 @authentication_routes.route('/refresh', methods=['POST'])
 def refresh():
@@ -64,7 +64,7 @@ def sign_up():
     Expected JSON payload:
     {
         "username": "<username>",
-        "hashed_password": "<hashed_password>",
+        "password": "<password>",
         "public_key": "<public_key>",
         "salt": "<salt>"
     }
@@ -78,12 +78,12 @@ def sign_up():
     data = request.get_json()
     logger.debug(f"Received sign up request")
     username = data.get('username')
-    hash_password = data.get('hashed_password')
+    password = data.get('password')
     public_key = data.get('public_key')
     salt = data.get('salt')
     bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
-    return auth.sign_up(username, hash_password, public_key, bytes_salt)
+    return auth.sign_up(username, password, public_key, bytes_salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
@@ -203,7 +203,6 @@ def get_current_user():
     Expected response:
     {
         "username": "<username>",
-        "password": "<hashed_password>",
         "public_key": "<public_key>",
         "salt": "<salt>",
         "created_at": "<created_at>",

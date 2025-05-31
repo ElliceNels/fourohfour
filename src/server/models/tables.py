@@ -11,7 +11,7 @@ class Users(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(String(50), unique=True, nullable=False)
-    password = Column(String(100), nullable=False)
+    password = Column(BLOB, nullable=False)
     salt = Column(BLOB, nullable=False)
     public_key = Column(String(191), nullable=False, unique=True)
     created_at = Column(DateTime, nullable=False)

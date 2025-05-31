@@ -4,22 +4,23 @@ from server.utils.db_setup import get_session
 from server.models.tables import Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
 import logging
+import nacl.pwhash
 import base64
 
 logger = logging.getLogger(__name__)
 
-def login(username: str, hash_password: bytes) -> dict:
+def login(username: str, password: str) -> dict:
     """Login route to authenticate users.
 
     Args:
         username (str): Username of the user.
-        hash_password (bytes): Hashed password of the user.
+        password (str): Password of the user.
 
     Returns:
         dict: response containing access and refresh tokens or error message.
     """
 
-    if not username or not hash_password:
+    if not username or not password:
         logger.warning("Login failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
     
@@ -32,8 +33,8 @@ def login(username: str, hash_password: bytes) -> dict:
         logger.warning(f"Login failed for user {username}: User not found")
         return jsonify({"error": "User not found"}), 404
     
-    # Cond 2: Password is incorrect for the given username
-    if user.password != hash_password:
+    # Cond 2: Password is incorrect for the given 
+    if not verify_password(user.password, password):
         logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
@@ -84,7 +85,7 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
         # Create a new user
         new_user = Users(
             username=username,
-            password=password,
+            password=hash_password(password),
             public_key=public_key,
             salt=salt,
             created_at=datetime.now(),
@@ -129,18 +130,20 @@ def change_password(token: str, new_password: str) -> dict:
             logger.warning(f"Change password failed for user {user_id}: User not found")
             return jsonify({"error": "User not found"}), 404
         
-        # Cond 1: The new password is the same as the current one
-        if user.password == new_password:
-            logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
-            return jsonify({"error": "New password is the same as the current one"}), 400
-        
-        # Cond 2: The new password is not provided
+        # Cond 1: The new password is not provided
         if new_password == "" or new_password is None:
             logger.warning(f"Change password failed for user {user_id}: No new password provided")
             return jsonify({"error": "No new password provided"}), 400
+        
+        # Cond 2: The new password is the same as the current one
+        if verify_password(user.password, new_password):
+            logger.warning(f"Change password failed for user {user_id}: New password is the same as the current one")
+            return jsonify({"error": "New password is the same as the current one"}), 400
 
+        hashed_new_password = hash_password(new_password)
+        
         # Update the password
-        user.password = new_password
+        user.password = hashed_new_password
         user.updated_at = datetime.now()
         db.commit()
         logger.info(f"User {user_id} changed password successfully")
@@ -249,11 +252,9 @@ def get_current_user() -> dict:
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
-        "user_id": user.id,
         "username": user.username,
-        "password": user.password,
         "public_key": user.public_key,
-        "salt": user.salt,
+        "salt": base64.b64encode(user.salt).decode() if isinstance(user.salt, bytes) else user.salt,
         "created_at": user.created_at,
         "updated_at": user.updated_at
     }
@@ -281,3 +282,38 @@ def get_public_key(username: str) -> dict:
         return jsonify({"error": "User not found"}), 404
     
     return jsonify({"public_key": user.public_key}), 200
+
+def hash_password(password: str) -> bytes:
+    """Hash the password with the provided salt.
+
+    Args:
+        password (str): The password to hash.
+        salt (bytes): The salt to use for hashing.
+
+    Returns:
+        bytes: The hashed password.
+    """
+
+    if not password:
+        raise ValueError("Password must be provided")
+    
+    return nacl.pwhash.str(password.encode(), opslimit=nacl.pwhash.OPSLIMIT_SENSITIVE, memlimit=nacl.pwhash.MEMLIMIT_SENSITIVE)
+
+def verify_password(hashed_password: bytes, password: str) -> bool:
+    """Verify the password against the hashed password.
+
+    Args:
+        hashed_password (bytes): The hashed password to verify against.
+        password (str): The password to verify.
+
+    Returns:
+        bool: True if the password matches, False otherwise.
+    """
+    
+    if not hashed_password or not password:
+        raise ValueError("Hashed password and password must be provided")
+    
+    try:
+        return nacl.pwhash.verify(hashed_password, password.encode())
+    except nacl.exceptions.InvalidkeyError:
+        return False

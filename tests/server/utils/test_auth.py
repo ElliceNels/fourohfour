@@ -10,7 +10,7 @@ Some test explainations:
 import pytest
 from flask import Flask
 from unittest.mock import MagicMock
-from server.utils.auth import login, sign_up, change_password, delete_account, change_username
+from server.utils.auth import login, sign_up, change_password, delete_account, change_username, hash_password
 from server.models.tables import Users
 from server.app import create_app
 from server.utils.jwt import JWTError
@@ -52,14 +52,18 @@ def mock_session_ctx(mock_db):
     return Ctx()
 
 @pytest.mark.parametrize("username, password, expected_status", [
-    ("valid_user", b"correct_password", CODE_SUCCESS),  # Success
-    ("invalid_user", b"wrong_password", CODE_NOT_FOUND),  # User not found
-    (None, b"password", CODE_BAD_REQUEST),  # Missing username
+    ("valid_user", "correct_password", CODE_SUCCESS),  # Success
+    ("invalid_user", "wrong_password", CODE_NOT_FOUND),  # User not found
+    (None, "password", CODE_BAD_REQUEST),  # Missing username
     ("user", None, CODE_BAD_REQUEST),  # Missing password
-    ("user", b"wrong", CODE_UNAUTHORIZED)  # Invalid password
+    ("user", "wrong", CODE_UNAUTHORIZED)  # Invalid password
 ])
 def test_login_cases(username, password, expected_status, mock_db, app_ctx, mocker):
-    user = Users(username=username, password=b"correct_password") if expected_status in [CODE_SUCCESS, CODE_UNAUTHORIZED] else None
+    salt = b"salt"
+    if expected_status in [CODE_SUCCESS, CODE_UNAUTHORIZED]:
+        user = Users(username=username, password=hash_password("correct_password"), salt=salt)
+    else:
+        user = None
     mock_db.query().filter_by().first.return_value = user
     mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     response = login(username, password)
@@ -97,16 +101,16 @@ def test_sign_up_cases(username, password, public_key, salt, expected_status, mo
     "username, old_password, new_password, token, user_exists, token_error, expected_status, expected_error",
     [
         # Success
-        ("user1", b"old_pass", b"new_pass", 'token', True, None, CODE_SUCCESS, None),
+        ("user1", "old_pass", "new_pass", 'token', True, None, CODE_SUCCESS, None),
         # User not found
-        ("user2", b"wrong_pass", b"new_pass", 'token', False, None, CODE_NOT_FOUND, None),
+        ("user2", "wrong_pass", "new_pass", 'token', False, None, CODE_NOT_FOUND, None),
         # New password same as old
-        ("user3", b"same_pass", b"same_pass", 'token', True, None, CODE_BAD_REQUEST, None),
+        ("user3", "same_pass", "same_pass", 'token', True, None, CODE_BAD_REQUEST, None),
         # Missing required fields (username or token)
-        (None, b"old_pass", b"new_pass", "token", False, None, CODE_NOT_FOUND, None),
-        ("user4", "old_pass", b"new_pass", None, True, None, CODE_BAD_REQUEST, None),
+        (None, "old_pass", "new_pass", "token", False, None, CODE_NOT_FOUND, None),
+        ("user4", "old_pass", "new_pass", None, True, None, CODE_BAD_REQUEST, None),
         # Token error
-        ("user5", b"old_pass", b"new_pass", 'token', True, JWTError("err", CODE_UNAUTHORIZED), CODE_UNAUTHORIZED, "err"),
+        ("user5", "old_pass", "new_pass", 'token', True, JWTError("err", CODE_UNAUTHORIZED), CODE_UNAUTHORIZED, "err"),
     ]
 )
 def test_change_password_cases(
@@ -115,8 +119,9 @@ def test_change_password_cases(
 ):
     from server.utils.auth import change_password
     # Patch DB session
+    salt = b"salt"
     if user_exists:
-        user = Users(id=1, username=username, password=old_password)
+        user = Users(id=1, username=username, password=hash_password(old_password), salt=salt)
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None
