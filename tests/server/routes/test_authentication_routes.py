@@ -92,7 +92,10 @@ def test_refresh_token(client: FlaskClient, logged_in_user):
 
 def test_change_password(client: FlaskClient, logged_in_user):
     """Test changing password."""
-    new_password_data = {"new_password": "new_test_password"}
+    new_password_data = {
+        "new_password": "new_test_password",
+        "salt": "new_test_salt"  # Send as string, route will convert to bytes
+    }
 
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     response = client.post("/change_password", json=new_password_data, headers=headers)
