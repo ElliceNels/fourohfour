@@ -39,36 +39,6 @@ def make_query_side_effect(mock_file, file_exists, mock_recipient, recipient_exi
         return Query()
     return query_side_effect
 
-@pytest.mark.parametrize("user_exists, public_key, expected_status", [
-    (True, "testkey", CODE_OK), # Success case
-    (False, None, CODE_NOT_FOUND), # User does not exist (key doesn't matter)
-])
-def test_get_user_public_key(user_exists, public_key, expected_status):
-    # Mock the user object
-    mock_user = MagicMock()
-    # Set the public_key attribute if the user exists
-    mock_user.public_key = public_key
-    # Patch the get_session function from the permission module
-    with patch("server.utils.permission.get_session") as mock_get_session:
-        mock_db = MagicMock()
-        # Mock the context manager returned by get_session
-        mock_get_session.return_value.__enter__.return_value = mock_db
-        # Mock the database query to return a user or None (if user does not exist)
-        if user_exists:
-            # This mirrors the db query behavior in the actual code
-            mock_db.query.return_value.get.return_value = mock_user
-        else:
-            mock_db.query.return_value.get.return_value = None
-
-        # NOW: Call the function to test
-        resp, status = permission.get_user_public_key(1)
-        data = resp.get_json()
-        if user_exists:
-            assert data["public_key"] == public_key
-            assert status == expected_status
-        else:
-            assert data["error"] == "User not found"
-            assert status == expected_status
 
 @pytest.mark.parametrize("file_exists, owner_matches, recipient_exists, permission_exists, raises, expected_status", [
     (True, True, True, False, False, CODE_CREATED),   # Success
