@@ -26,7 +26,7 @@ private slots:
 
 private:
     Ui::VerifyPage *ui;
-    QByteArray *otherPublicKey;
+    QByteArray otherPublicKey;  
     QString generate_hash(QString usersPublicKey);
     QString fetch_public_key();
 
@@ -35,7 +35,6 @@ private:
     void setupConnections() override;
 
     void switchPages(int pageIndex);
-    void publicKeyCleanup();
     void showFriendshipStatus(bool accepted);
     void toggleUIElements(bool show);
     void setButtonsEnabled(bool enabled);

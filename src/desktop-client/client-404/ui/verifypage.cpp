@@ -13,7 +13,6 @@
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
     ,ui(new Ui::VerifyPage)
-    ,otherPublicKey(nullptr)
 {
     qDebug() << "Constructing and setting up Verify Page";
 }
@@ -37,10 +36,7 @@ void VerifyPage::setupConnections(){
 }
 
 void VerifyPage::set_other_public_key(const QByteArray &otherpk){
-    if (this->otherPublicKey != nullptr) {
-        delete this->otherPublicKey;  // delete old value to avoid leak
-    }
-    this->otherPublicKey = new QByteArray(otherpk);
+    this->otherPublicKey = otherpk; 
 }
 
 QString VerifyPage::fetch_public_key(){
@@ -80,7 +76,7 @@ QString VerifyPage::fetch_public_key(){
 }
 
 QString VerifyPage::generate_hash(QString usersPublicKey){
-    if (usersPublicKey.isEmpty() || this->otherPublicKey == nullptr ||  this->otherPublicKey->isEmpty()) {
+    if (usersPublicKey.isEmpty() || this->otherPublicKey.isEmpty()) {
         return QString();
     }
 
@@ -88,10 +84,10 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
 
     // Ensures there is a consistent order of concatenation cross device
     QByteArray concatenated;
-    if (encodedUserPK < (*this->otherPublicKey)) {
-        concatenated = encodedUserPK + (*this->otherPublicKey);
+    if (encodedUserPK < this->otherPublicKey) {
+        concatenated = encodedUserPK + this->otherPublicKey;
     } else {
-        concatenated = (*this->otherPublicKey) + encodedUserPK;
+        concatenated = this->otherPublicKey + encodedUserPK;
     }
 
     // Hash the combination of keys
@@ -178,12 +174,6 @@ void VerifyPage::showFriendshipStatus(bool accepted) {
     timer->start(1500);
 }
 
-void VerifyPage::publicKeyCleanup() {
-    if (this->otherPublicKey != nullptr) {
-        delete this->otherPublicKey;  // delete old value to avoid leak
-        this->otherPublicKey = nullptr; // set to nullptr to avoid dangling pointer
-    }
-}
 
 void VerifyPage::toggleUIElements(bool show) {
     if (show){
@@ -209,7 +199,7 @@ void VerifyPage::setButtonsEnabled(bool enabled) {
 void VerifyPage::switchPages(int pageIndex) {
     ui->contentStackedWidget->setCurrentIndex(pageIndex);
     if (pageIndex == FIND_FRIEND_INDEX) {
-        this->publicKeyCleanup(); 
+        this->otherPublicKey.clear();  // Simply clear the QByteArray
         toggleUIElements(false); // Hide all UI elements
     }
     setButtonsEnabled(true);
@@ -219,5 +209,5 @@ VerifyPage::~VerifyPage()
 {
     qDebug() << "Destroying Verify Page";
     delete this->ui;
-    this->publicKeyCleanup(); 
+    
 }
