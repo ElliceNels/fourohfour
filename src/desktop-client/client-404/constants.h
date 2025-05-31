@@ -32,8 +32,16 @@ const std::string ACCEPT_JSON = "Accept: application/json";
 const std::string AUTH_BEARER_PREFIX = "Authorization: Bearer ";
 const std::string REFRESH_TOKEN_HEADER = "X-Refresh-Token: ";
 
+// Default base URL for the server
+// PRODUCTION: Enforce HTTPS only
+// const std::string DEFAULT_BASE_URL = "https://gobbler.info/"; 
+
+// DEVELOPMENT: Allow both HTTP and HTTPS for local testing
+const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000"; 
+
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
+const std::string SIGN_UP_ENDPOINT = "/sign_up";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
