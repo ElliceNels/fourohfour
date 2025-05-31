@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session
-from signup import validate_registration
+from signup import validate_registration, manage_registration
 from uploadfile import validate_file_size, validate_file_type
 
 app = Flask(__name__)
@@ -20,8 +20,12 @@ def signup():
         if not valid:
             flash(message, "error")
         else:
-            flash(message, "success")
-            return redirect(url_for('login'))
+            registration_success, error_message = manage_registration(account_name, password)
+            if registration_success:
+                flash(message, "success")
+                return redirect(url_for('login'))
+            else:
+                flash(error_message, "error")
 
     return render_template('signup.html')
 
