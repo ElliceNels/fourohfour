@@ -34,7 +34,6 @@ def login(username: str, password: str) -> dict:
         return jsonify({"error": "User not found"}), 404
     
     # Cond 2: Password is incorrect for the given 
-    hashed_password = hash_password(password)
     if not verify_password(user.password, password):
         logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
