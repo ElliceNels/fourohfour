@@ -12,6 +12,9 @@
 #include <qstackedwidget.h>
 #include  "crypto/key_utils.h"
 #include "constants.h"
+#include "core/loginsessionmanager.h"
+#include "utils/request_utils.h"
+
 using namespace std;
 
 RegisterPage::RegisterPage(QWidget *parent) :
@@ -91,10 +94,10 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
-    //Hash password
-    string hashed;
-
-    hash_password(password.toStdString(), hashed);
+    //Salt generation
+    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
+    string sSalt =  salt.toStdString();
+    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
 
 
 
@@ -106,16 +109,15 @@ void RegisterPage::onCreateAccountClicked()
     }
 
 
-
-    QString salt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
-    QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
     unsigned char key[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
 
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
-    string pubKey = password.toStdString();
-    string sSalt = salt.toStdString();
+    string pubKey = pubKeyBase64.toStdString();
     string* saltPtr = &sSalt;
+
+
+
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
@@ -125,20 +127,13 @@ void RegisterPage::onCreateAccountClicked()
 
     //Debug prints
     cout << sAccountName << endl;
-    cout << hashed << endl;
-    cout << pubKeyBase64.toStdString() << endl;
-    cout << privKeyBase64.toStdString() << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-    //Uncomment when server side is ready
-    sendCredentials(sAccountName, hashed, pubKey, sSalt);
-
-
-    QMessageBox::information(this, "Success", "Account created!");
-
-
-    // Switch to main menu after registration
+    if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
+    QMessageBox::information(this, "Success", "Account created and logged in!");
     emit goToMainMenuRequested();
+    }
+    // Error to be thrown will be caught in the sendSignUpRequest function
 }
 
 void RegisterPage::onShowPasswordClicked()
@@ -154,33 +149,57 @@ void RegisterPage::onShowPasswordClicked()
     }
 }
 
-void RegisterPage::sendCredentials(string name, string password, string publicKey, string salt)
+
+/**
+ * @brief Sends a sign-up request to the server with the provided user credentials and cryptographic data.
+ *
+ * This method constructs a JSON payload containing the username, hashed password, public key, and salt,
+ * then sends it to the server's sign-up endpoint. If the registration is successful, it extracts the
+ * access and refresh tokens from the server response and stores them in the LoginSessionManager.
+ * In case of failure, it displays an error message to the user.
+ *
+ * @param username The username to register.
+ * @param hashedPassword The hashed password of the user.
+ * @param publicKey The user's public key for cryptographic operations.
+ * @param salt The salt used for password hashing.
+ * @return true if registration is successful and tokens are saved; false otherwise.
+ */
+bool RegisterPage::sendSignUpRequest(const QString& username, const QString& hashedPassword, 
+                                    const QString& publicKey, const QString& salt)
 {
-    QJsonObject json;
-    json["username"] = QString::fromStdString(name);
-    json["hashed_password"] = QString::fromStdString(password);
-    json["public_key"] = QString::fromStdString(publicKey);
-    json["salt"] = QString::fromStdString(salt);
 
-    QJsonDocument doc(json);
-    QByteArray jsonData = doc.toJson();
-
-    QNetworkAccessManager *manager = new QNetworkAccessManager(this);
-    QNetworkRequest request(QUrl("http://gobbler.info:4004/sign_up"));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    QNetworkReply *reply = manager->post(request, jsonData);
-
-    connect(reply, &QNetworkReply::finished, this, [reply]() {
-        if (reply->error() == QNetworkReply::NoError) {
-            QByteArray response = reply->readAll();
-            cout << response.toStdString() << endl;
-        } else {
-           cout << "error: " << reply->errorString().toStdString() << endl;
-        }
-        reply->deleteLater();
-    });
-
+    // Set base URL for the server
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
+    
+    // Prepare JSON payload for registration
+    QJsonObject requestData;
+    requestData["username"] = username;
+    requestData["hashed_password"] = hashedPassword;
+    requestData["public_key"] = publicKey;
+    requestData["salt"] = salt;
+    
+    // Make the POST request to the sign_up endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(SIGN_UP_ENDPOINT, requestData);
+    
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+        
+        // Extract tokens from the response
+        QString accessToken = jsonObj["access_token"].toString();
+        QString refreshToken = jsonObj["refresh_token"].toString();
+        
+        // Set tokens in the LoginSessionManager
+        LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+        
+        qDebug() << "Registration successful. Tokens saved in session manager.";
+        return true;
+    } else {
+        QMessageBox::critical(this, "Registration Error", 
+                             QString::fromStdString(response.errorMessage));
+        return false;
+    }
+>>>>>>> b53827477257a2a31f1e47f21a24b29c3487780f
 }
 
 
