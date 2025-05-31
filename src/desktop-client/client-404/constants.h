@@ -3,6 +3,8 @@
 
 #include <QString>
 
+using namespace std;
+
 constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
@@ -24,9 +26,32 @@ const QString shareIconPath = ":/images/share-fat-fill.svg";
 const QString deleteIconPath = ":/images/trash-fill.svg";
 const QString downloadIconPath =":/images/download-simple-bold.svg";
 
+// Constants for HTTP request settings
+const long ENABLED = 1L;
+const long MAX_REDIRECTS = 5L;
+const long TIMEOUT_SECONDS = 30L;
+const long SSL_VERIFY_HOST_STRICT = 2L;
+const std::string DNS_URL_DOH = "https://1.1.1.1/dns-query";
+
+// HTTP Headers
+const std::string CONTENT_TYPE_JSON = "Content-Type: application/json";
+const std::string ACCEPT_JSON = "Accept: application/json";
+const std::string AUTH_BEARER_PREFIX = "Authorization: Bearer ";
+const std::string REFRESH_TOKEN_HEADER = "X-Refresh-Token: ";
+
+// Default base URL for the server
+// PRODUCTION: Enforce HTTPS only
+// const std::string DEFAULT_BASE_URL = "https://gobbler.info/"; 
+
+// DEVELOPMENT: Allow both HTTP and HTTPS for local testing
+const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000"; 
+
+// API paths
+const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
+const std::string SIGN_UP_ENDPOINT = "/sign_up";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-constexpr std::string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
+constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
 
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;

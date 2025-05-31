@@ -30,6 +30,11 @@ private:
     void initialisePageUi() override;
     void setupConnections() override;
 
+    // Function to send sign-up request to the server
+    bool sendSignUpRequest(const QString& username, const QString& hashedPassword, 
+                                    const QString& publicKey, const QString& salt);
+
+
 signals:
     void goToLoginRequested();
     void goToMainMenuRequested();
