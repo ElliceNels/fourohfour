@@ -129,7 +129,6 @@ void RegisterPage::onCreateAccountClicked()
     cout << sAccountName << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-
     if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
     QMessageBox::information(this, "Success", "Account created and logged in!");
     emit goToMainMenuRequested();

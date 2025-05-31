@@ -21,6 +21,7 @@ public:
 private slots:
     void on_logOutButton_clicked();
 
+
 private:
     Ui::MainMenu *ui;
 
@@ -33,6 +34,7 @@ signals:
     void goToVerifyPageRequested();
     void goToLoginPageRequested();
     void goToViewFilesPageRequested();
+    void goToResetPasswordRequested();
 
 };
 

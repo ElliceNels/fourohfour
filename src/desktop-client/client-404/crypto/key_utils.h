@@ -12,6 +12,7 @@ bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString
 bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username);
 bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username);
 SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto);
+bool decryptAndReencryptUserFile(const QString& username, const QString& oldPassword, const QString& oldSalt, const QString& newPassword, const QString& newSalt);
 
 inline bool deriveKeyFromPassword(const string &password, const unsigned char *salt, unsigned char *key, size_t key_len= crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
     unsigned long long opslimit = crypto_pwhash_OPSLIMIT_INTERACTIVE;
