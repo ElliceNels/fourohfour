@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         function togglePassword() {
-            var pwd = document.getElementById('password');
-            var btn = document.getElementById('show-btn');
+            const pwd = document.getElementById('password');
+            const btn = document.getElementById('show-btn');
+            
             if (pwd.type === 'password') {
                 pwd.type = 'text';
                 btn.textContent = 'Hide';

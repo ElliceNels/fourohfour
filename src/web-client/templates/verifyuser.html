@@ -6,9 +6,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         function updateHashOutput() {
-            var userKey = document.getElementById('user-key-input');
-            var output = document.getElementById('hash-output');
-            if (!userKey.files.length && !otherKey.files.length) {
+            const userKey = document.getElementById('user-key-input');
+            const output = document.getElementById('hash-output');
+            
+            if (!userKey.files.length) {
                 output.value = "No key file selected...";
             } else {
                 output.value = "Ready to generate hash";

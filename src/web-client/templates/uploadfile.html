@@ -27,15 +27,26 @@
     <script>
         function updateFileInfo(input) {
             if (input.files.length > 0) {
-                var file = input.files[0];
-                document.getElementById('file-name').value = file.name;
-                document.getElementById('file-type').value = file.name.lastIndexOf('.') !== -1 ? file.name.substring(file.name.lastIndexOf('.')) : '-';
-                document.getElementById('file-size').value = file.size + ' bytes';
-                document.getElementById('upload-details').style.display = 'block';
-                document.getElementById('upload-instructions').style.display = 'block';
-                document.getElementById('confirm-btn').style.display = 'inline-block';
+                const file = input.files[0];
+                const fileName = document.getElementById('file-name');
+                const fileType = document.getElementById('file-type');
+                const fileSize = document.getElementById('file-size');
+                const uploadDetails = document.getElementById('upload-details');
+                const uploadInstructions = document.getElementById('upload-instructions');
+                const confirmBtn = document.getElementById('confirm-btn');
+
+                fileName.value = file.name;
+                fileType.value = file.name.lastIndexOf('.') !== -1 
+                    ? file.name.substring(file.name.lastIndexOf('.')) 
+                    : '-';
+                fileSize.value = `${file.size} bytes`;
+                
+                uploadDetails.style.display = 'block';
+                uploadInstructions.style.display = 'block';
+                confirmBtn.style.display = 'inline-block';
             }
         }
+
         function triggerBrowse() {
             document.getElementById('file-input').click();
         }
