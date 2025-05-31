@@ -142,6 +142,23 @@ body {
     box-shadow: 4px 4px 0 0 #222;
 }
 
+/* Green confirm upload button */
+.btn.big-btn.confirm-btn {
+    background: #43a047;
+}
+
+.btn.big-btn.confirm-btn:hover {
+    background: #2e7031;
+}
+
+/* Upload actions row */
+.upload-actions {
+    display: flex;
+    gap: 32px;
+    margin-top: 24px;
+    justify-content: center;
+}
+
 /* Login & Signup Form Styles */
 .login-form, .signup-form {
     width: 400px;
@@ -277,4 +294,208 @@ input[type="text"]:focus, input[type="password"]:focus {
 .reset-form-main .btn.big-btn {
     width: 100%;
     margin-top: 24px;
+}
+.upload-box {
+    background: #f7f7f7;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    padding: 32px 32px 24px 32px;
+    margin: 0 auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 400px;
+    max-width: 500px;
+}
+
+.upload-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.upload-label {
+    font-weight: 600;
+    font-size: 1.15rem;
+    min-width: 120px;
+    color: #222;
+}
+
+.upload-value {
+    background: #fff;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    padding: 8px 16px;
+    font-size: 1.1rem;
+    min-width: 220px;
+    color: #444;
+}
+
+.btn.back-btn {
+    background: #757575;
+    color: #fff;
+    border-radius: 5px;
+    padding: 12px 32px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    box-shadow: none;
+    transition: background 0.2s;
+    margin-left: 12px;
+}
+
+.btn.back-btn:hover {
+    background: #424242;
+}
+
+/* --- View Files Page Styles --- */
+.files-container {
+    display: flex;
+    width: 90vw;
+    height: 70vh;
+    margin-top: 32px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.sidebar {
+    width: 220px;
+    background: #f7f7f7;
+    border-right: 1.5px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    padding-top: 32px;
+}
+.sidebar-btn {
+    padding: 18px 24px;
+    font-size: 1.1rem;
+    color: #222;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+}
+.sidebar-btn.active, .sidebar-btn:hover {
+    background: #e3f2fd;
+    color: #2196F3;
+    font-weight: 600;
+}
+.files-main {
+    flex: 1;
+    padding: 32px 32px 32px 32px;
+    display: flex;
+    flex-direction: column;
+}
+.files-title {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #424242;
+    margin-bottom: 24px;
+}
+.files-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fafafa;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.files-table th, .files-table td {
+    padding: 14px 18px;
+    text-align: left;
+}
+.files-table th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #222;
+}
+.files-table tr:not(:last-child) td {
+    border-bottom: 1px solid #e0e0e0;
+}
+.files-table td {
+    color: #444;
+}
+.files-table tr:last-child td {
+    border-bottom: none;
+}
+.files-table {
+    margin-bottom: 0;
+}
+.files-table-empty {
+    height: 200px;
+    background: #fff;
+    border-radius: 0 0 8px 8px;
+    border: 1px solid #e0e0e0;
+    border-top: none;
+}
+.verify-container {
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.verify-instructions {
+    color: #757575;
+    font-size: 1.15rem;
+    text-align: center;
+    margin-bottom: 36px;
+    margin-top: 18px;
+    max-width: 600px;
+}
+
+.verify-row {
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.verify-label {
+    font-weight: 600;
+    color: #2196F3;
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.verify-output {
+    width: 100%;
+    background: #fafafa;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 16px 18px;
+    font-size: 1.1rem;
+    color: #444;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+}
+
+.btn.select-btn {
+    width: 100%;
+    background: #21a1ff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    font-size: 1.25rem;
+    font-weight: 500;
+    padding: 16px 0;
+    margin-top: 10px;
+    margin-bottom: 0;
+    box-shadow: 2px 2px 0 0 #222;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: block;
+    text-align: center;
+}
+
+.btn.select-btn:hover {
+    background: #1976D2;
+    box-shadow: 4px 4px 0 0 #222;
 }

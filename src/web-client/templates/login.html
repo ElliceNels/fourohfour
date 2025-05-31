@@ -7,8 +7,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         function togglePassword() {
-            var pwd = document.getElementById('password');
-            var btn = document.getElementById('show-btn');
+            const pwd = document.getElementById('password');
+            const btn = document.getElementById('show-btn');
+            
             if (pwd.type === 'password') {
                 pwd.type = 'text';
                 btn.textContent = 'Hide';
@@ -21,7 +22,9 @@
 </head>
 <body>
     <div class="header">
-        <span class="logo-primary">fourohfour</span><span class="logo-secondary"> Files</span>
+        <div class="header-left">
+            <span class="logo-primary">fourohfour</span><span class="logo-secondary"> Files</span>
+        </div>
     </div>
     <div class="center-viewport">
         <div class="hero">
