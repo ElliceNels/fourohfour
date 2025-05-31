@@ -61,7 +61,7 @@ def mock_session_ctx(mock_db):
 def test_login_cases(username, password, expected_status, mock_db, app_ctx, mocker):
     salt = b"salt"
     if expected_status in [CODE_SUCCESS, CODE_UNAUTHORIZED]:
-        user = Users(username=username, password=hash_password("correct_password", salt), salt=salt)
+        user = Users(username=username, password=hash_password("correct_password"), salt=salt)
     else:
         user = None
     mock_db.query().filter_by().first.return_value = user
@@ -121,7 +121,7 @@ def test_change_password_cases(
     # Patch DB session
     salt = b"salt"
     if user_exists:
-        user = Users(id=1, username=username, password=hash_password(old_password, salt), salt=salt)
+        user = Users(id=1, username=username, password=hash_password(old_password), salt=salt)
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None

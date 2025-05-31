@@ -60,7 +60,7 @@ def create_user(session, username=None):
     logger.info(f"Creating test user: {username}")
     user = Users(
         username=username,
-        password=hash_password("password", salt=b"salt"),
+        password=hash_password("password"),
         salt=b"salt",
         public_key=f"public_key_{uuid.uuid4().hex[:8]}",
         created_at=datetime.now(UTC),
@@ -127,7 +127,7 @@ def test_update_user_password(db_session):
     logger.info("Testing password update")
     user = create_user(db_session)
     new_password = "new_password"
-    hashed_password = hash_password(new_password, salt=user.salt)
+    hashed_password = hash_password(new_password)
     user.password = hashed_password
     user.updated_at = datetime.now(UTC) + timedelta(seconds=1)
     db_session.commit()
@@ -248,7 +248,7 @@ def test_duplicate_public_keys_fail(db_session):
     public_key = "duplicate_key"
     user1 = Users(
         username="user1",
-        password=hash_password("password", salt=b"salt"),
+        password=hash_password("password"),
         salt=b"salt",
         public_key=public_key,
         created_at=datetime.now(UTC),
@@ -260,7 +260,7 @@ def test_duplicate_public_keys_fail(db_session):
     try:
         user2 = Users(
             username="user2",
-            password=hash_password("password", salt=b"salt"),
+            password=hash_password("password"),
             salt=b"salt",
             public_key=public_key,  # Same public key
             created_at=datetime.now(UTC),
