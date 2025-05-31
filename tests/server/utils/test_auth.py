@@ -98,30 +98,29 @@ def test_sign_up_cases(username, password, public_key, salt, expected_status, mo
         assert "error" in data
 
 @pytest.mark.parametrize(
-    "username, old_password, new_password, token, user_exists, token_error, expected_status, expected_error",
+    "username, old_password, new_password, salt, token, user_exists, token_error, expected_status, expected_error",
     [
         # Success
-        ("user1", "old_pass", "new_pass", 'token', True, None, CODE_SUCCESS, None),
+        ("user1", "old_pass", "new_pass", b"salt2", 'token', True, None, CODE_SUCCESS, None),
         # User not found
-        ("user2", "wrong_pass", "new_pass", 'token', False, None, CODE_NOT_FOUND, None),
+        ("user2", "wrong_pass", "new_pass", b"salt2", 'token', False, None, CODE_NOT_FOUND, None),
         # New password same as old
-        ("user3", "same_pass", "same_pass", 'token', True, None, CODE_BAD_REQUEST, None),
+        ("user3", "same_pass", "same_pass", b"salt3", 'token', True, None, CODE_BAD_REQUEST, None),
         # Missing required fields (username or token)
-        (None, "old_pass", "new_pass", "token", False, None, CODE_NOT_FOUND, None),
-        ("user4", "old_pass", "new_pass", None, True, None, CODE_BAD_REQUEST, None),
+        (None, "old_pass", "new_pass", b"salt4", "token", False, None, CODE_NOT_FOUND, None),
+        ("user4", "old_pass", "new_pass", None, "token", True, None, CODE_BAD_REQUEST, None),
         # Token error
-        ("user5", "old_pass", "new_pass", 'token', True, JWTError("err", CODE_UNAUTHORIZED), CODE_UNAUTHORIZED, "err"),
+        ("user5", "old_pass", "new_pass", b"salt5", 'token', True, JWTError("err", CODE_UNAUTHORIZED), CODE_UNAUTHORIZED, "err"),
     ]
 )
 def test_change_password_cases(
-    username, old_password, new_password, token, user_exists, token_error, expected_status, expected_error,
+    username, old_password, new_password, salt, token, user_exists, token_error, expected_status, expected_error,
     mock_db, app_ctx, mocker
 ):
     from server.utils.auth import change_password
     # Patch DB session
-    salt = b"salt"
     if user_exists:
-        user = Users(id=1, username=username, password=hash_password(old_password), salt=salt)
+        user = Users(id=1, username=username, password=hash_password(old_password), salt=b"oldsalt")
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None
@@ -132,12 +131,14 @@ def test_change_password_cases(
     else:
         mocker.patch('server.utils.auth.get_user_id_from_token', return_value=1)
     # Call function
-    response = change_password(token, new_password)
+    response = change_password(token, new_password, salt)
     assert response[1] == expected_status
     data = response[0].get_json()
     if expected_error:
         assert data["error"] == expected_error
     elif expected_status == CODE_SUCCESS:
+        # Check if salt was updated
+        assert user.salt == salt
         assert "message" in data
     else:
         assert "error" in data
