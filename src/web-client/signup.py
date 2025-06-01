@@ -1,6 +1,8 @@
 import unicodedata
 from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
-from password_utils import hash_password
+from session_manager import LoginSessionManager
+from constants import SIGN_UP_ENDPOINT
+from exceptions import UsernameAlreadyExistsError, ServerError
 
 RESTRICTED_CHARS = set('!@#$%^&*()+=[]{}|\\;:\'",<>/?`~')  
 
@@ -70,6 +72,34 @@ def manage_registration(account_name, password):
     except Exception as e:
         # Catch any unexpected errors
         return False, f"Unexpected error during registration: {str(e)}"
+    
+def register_user(username, password, public_key, salt):
+    data = {
+        "username": username,
+        "password": password,
+        "public_key": public_key,
+        "salt": salt
+    }
+    try:
+        response = LoginSessionManager.getInstance().post(SIGN_UP_ENDPOINT, data)
+        if response is not None and response.ok:
+            json_data = response.json()
+            jwt_token = json_data.get("token")
+            if jwt_token:
+                LoginSessionManager.getInstance().setJwtToken(jwt_token)
+                return True
+        elif response.status_code == 409:  
+            raise UsernameAlreadyExistsError("Username already exists.")
+        elif response.status_code >= 500:  
+            raise ServerError("Server error occurred.")
+        return False
+    except UsernameAlreadyExistsError as e:
+        raise e
+    except ServerError as e:
+        raise e
+    except Exception as e:
+        print(f"An error occurred during registration: {e}")
+        return False
 
 
 

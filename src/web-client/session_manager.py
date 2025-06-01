@@ -13,10 +13,11 @@ class LoginSessionManager:
         return cls._instance
 
     def _init(self):
-        self.m_username: Optional[str] = None
-        self.m_masterKey: Optional[bytes] = None
+        self.username: Optional[str] = None
+        self.masterKey: Optional[bytes] = None
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
+        self.jwt_token: Optional[str] = None
 
     @classmethod
     def getInstance(cls):
@@ -24,14 +25,26 @@ class LoginSessionManager:
 
     def setSession(self, username: str, masterKey: bytes):
         self.clearSession()
-        self.m_username = username
-        self.m_masterKey = masterKey
+        self.username = username
+        self.masterKey = masterKey
 
     def getUsername(self) -> Optional[str]:
-        return self.m_username
+        return self.username
+    
+    def setUsername(self, username: str):
+        self.username = username
 
     def getMasterKey(self) -> Optional[bytes]:
-        return self.m_masterKey if self.m_masterKey else None
+        return self.masterKey if self.masterKey else None
+    
+    def setMasterKey(self, masterKey: str):
+        self.masterKey = masterKey
+
+    def getJwtToken(self) -> Optional[str]:
+        return self.jwt_token
+    
+    def setJwtToken(self, token: str):
+        self.jwt_token = token
 
     def setTokens(self, accessToken: str, refreshToken: str):
         self.access_token = accessToken
@@ -47,10 +60,10 @@ class LoginSessionManager:
         return get_request(path, params)
 
     def clearSession(self):
-        if self.m_masterKey:
-            self.m_masterKey = b'\x00' * len(self.m_masterKey)
-            self.m_masterKey = None
-        self.m_username = None
+        if self.masterKey:
+            self.masterKey = b'\x00' * len(self.masterKey)
+            self.masterKey = None
+        self.username = None
         self.access_token = None
         self.refresh_token = None
         print("Session cleaned up when called")

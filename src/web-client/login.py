@@ -1,10 +1,11 @@
 from session_manager import LoginSessionManager
 from constants import LOGIN_ENDPOINT
+from exceptions import UserNotFoundError, InvalidPasswordError
 
 def manage_login(password, username):
     data = {
         "username": username,
-        "hashed_password": password
+        "password": password
     }
     try:
         response = LoginSessionManager.getInstance().post(LOGIN_ENDPOINT, data)
