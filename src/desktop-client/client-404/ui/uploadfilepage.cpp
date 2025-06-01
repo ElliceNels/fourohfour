@@ -172,13 +172,12 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData, co
     
     // Create a JSON document in the format expected by the server
     QJsonObject fileObj;
-    fileObj["filename"] = this->fileName + "." + this->fileType; 
+    fileObj["filename"] = this->fileName;
     
     // Add UUID for overwrite if provided
     if (!fileUuid.isEmpty()) {
         fileObj["uuid"] = fileUuid;
     }
-    
     // Convert SecureVector to base64 string
     QByteArray tempData(reinterpret_cast<const char*>(encryptedData.data()), static_cast<int>(encryptedData.size()));
     QByteArray base64Data = tempData.toBase64(QByteArray::Base64Option::Base64Encoding);
