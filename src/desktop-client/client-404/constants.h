@@ -14,7 +14,7 @@ const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
 const int fileSizeLabelWidth = 60;
-const QString serverPath = "http://gobbler.info:4004";
+const QString serverPath = "https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000
 const QString loginEndpoint = serverPath + "/login";
@@ -49,6 +49,8 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
+const std::string GET_USER_ENDPOINT = "/get_current_user";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";

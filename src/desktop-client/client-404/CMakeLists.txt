@@ -51,6 +51,9 @@ set(UI_SOURCES
     ui/viewfilespage.ui
     ui/basepage.h
     ui/basepage.cpp
+    ui/resetpasswordpage.ui
+    ui/resetpasswordpage.h
+    ui/resetpasswordpage.cpp
 )
 
 set(CRYPTO_SOURCES
@@ -94,7 +97,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resource.qrc
-        utils/password_utils.cpp utils/password_utils.h utils/securebufferutils.h utils/securevector.cpp utils/securevector.h
     )
 else()
     if(ANDROID)
