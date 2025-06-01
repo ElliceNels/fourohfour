@@ -1,4 +1,8 @@
 Flask==3.0.2
 Werkzeug==3.0.1
+<<<<<<< HEAD
 pynacl
 requests 
+=======
+PyNaCl==1.5.0  
+>>>>>>> 198f65ace3a55c79166537b14b47ddd7d6ca614b

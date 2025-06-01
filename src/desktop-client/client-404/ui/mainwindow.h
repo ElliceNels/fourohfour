@@ -7,6 +7,7 @@
 #include <QTextStream>
 #include <QFileDialog>
 #include <QMessageBox>
+#include "resetpasswordpage.h"
 #include "ui/loginpage.h"
 #include "ui/registerpage.h"
 #include "ui/titlepage.h"
@@ -43,6 +44,7 @@ private:
     VerifyPage *verifyPage;
     UploadFilePage *uploadFilePage;
     MainMenu *mainMenu;
+    ResetPasswordPage *resetPasswordPage;
     ViewFilesPage *viewFilesPage;
 
     // Templates must be fully defined in the header file because

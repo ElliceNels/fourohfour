@@ -6,6 +6,7 @@ from nacl.bindings import (
     crypto_aead_xchacha20poly1305_ietf_decrypt
 )
 import nacl.utils
+from exceptions import GenerationError
 
 class EncryptionHelper:
     """
@@ -26,21 +27,23 @@ class EncryptionHelper:
         try:
             return nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
         except Exception as e:
-            raise Exception(f"Failed to generate encryption key: {str(e)}")
+            raise GenerationError(f"Failed to generate encryption key: {str(e)}")
 
     @staticmethod
     def generate_nonce() -> bytes:
         """
         Generate a securely random nonce for XChaCha20-Poly1305.
+
         Returns:
             bytes: A random nonce of length crypto_aead_xchacha20poly1305_ietf_NPUBBYTES.
+
         Raises:
             Exception: If nonce generation fails for any reason.
         """
         try:
             return nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)
         except Exception as e:
-            raise Exception(f"Failed to generate nonce: {str(e)}")
+            raise GenerationError(f"Failed to generate nonce: {str(e)}")
 
     @staticmethod
     def encrypt(plaintext: bytes, key: bytes, nonce: bytes, additional_data: bytes = None) -> bytes:
@@ -51,8 +54,10 @@ class EncryptionHelper:
             key (bytes | str): The encryption key (must be correct length). If string, will be encoded to bytes using UTF-8.
             nonce (bytes | str): The nonce (must be correct length). If string, will be encoded to bytes using UTF-8.
             additional_data (bytes | str, optional): Additional authenticated data (AAD). If string, will be encoded to bytes using UTF-8. Defaults to None.
+
         Returns:
             bytes: The ciphertext (includes authentication tag).
+
         Raises:
             ValueError: If key or nonce are the wrong length.
             TypeError: If any input cannot be converted to bytes.
@@ -71,7 +76,7 @@ class EncryptionHelper:
                 raise ValueError(f"Key must be {crypto_aead_xchacha20poly1305_ietf_KEYBYTES} bytes")
             if len(nonce) != crypto_aead_xchacha20poly1305_ietf_NPUBBYTES:
                 raise ValueError(f"Nonce must be {crypto_aead_xchacha20poly1305_ietf_NPUBBYTES} bytes")
-
+            
             # Handle additional_data
             if additional_data is None:
                 additional_data = b''
@@ -99,8 +104,10 @@ class EncryptionHelper:
             key (bytes | str): The decryption key (must be correct length). If string, will be encoded to bytes using UTF-8.
             nonce (bytes | str): The nonce (must be correct length). If string, will be encoded to bytes using UTF-8.
             additional_data (bytes | str, optional): Additional authenticated data (AAD). If string, will be encoded to bytes using UTF-8. Defaults to None.
+
         Returns:
             bytes: The decrypted plaintext.
+
         Raises:
             ValueError: If key, nonce, or ciphertext are the wrong length.
             TypeError: If any input cannot be converted to bytes.
