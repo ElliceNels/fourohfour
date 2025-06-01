@@ -76,6 +76,10 @@ private:
     optional<string> m_refreshToken;
     std::atomic<bool> m_tokenRefreshInProgress{false};  
 
+    // Storage for the last generated JSON data string
+    // This ensures the data remains valid while CURL uses its pointer
+    std::string m_lastJsonData;
+    
     // Private utility methods
     void setupCurl();
     void resetHeaders();

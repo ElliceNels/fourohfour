@@ -291,8 +291,13 @@ void RequestUtils::configureRequestMethod(HttpMethod method, const QJsonObject& 
 
         if (!data.isEmpty()) {
             jsonData = jsonToString(data);
-            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDS, jsonData.c_str());
-            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDSIZE, jsonData.length());
+            
+            // Keep a copy of the JSON string until request completes
+            // This is crucial as CURLOPT_POSTFIELDS only stores a pointer
+            m_lastJsonData = jsonData;
+            
+            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDS, m_lastJsonData.c_str());
+            curl_easy_setopt(m_curl.get(), CURLOPT_POSTFIELDSIZE, m_lastJsonData.length());
         }
     }
 }
@@ -368,10 +373,9 @@ void RequestUtils::processResponse(Response& response, const string& responseDat
         } else {
             response.errorMessage = "HTTP error: " + to_string(response.statusCode);
         }
-        // Sanitize the JSON data before logging errors using JsonSanitizer
-        QJsonDocument sanitizedDoc = JsonSanitizer::sanitizeJson(response.jsonData);
-        cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage 
-             << " - Response: " << sanitizedDoc.toJson().toStdString() << endl;
+        
+        // Log error status but not the full response
+        cout << "HTTP error: " << response.statusCode << " - " << response.errorMessage << endl;
     }
 }
 

@@ -6,7 +6,16 @@
 
 using namespace std;
 
-constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+// File upload constants
+namespace FileUpload {
+    // encryption overhead:
+    // - XChaCha20-Poly1305 nonce (24 bytes)
+    // - Authentication tag (16 bytes)
+    constexpr qint64 ENCRYPTION_OVERHEAD_BYTES = 40;
+    
+    // Exact database constraint (100MB)
+    constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;
+}
 
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
@@ -22,8 +31,7 @@ const int fileSizeLabelWidth = 60;
 const QString serverPath = "https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000
-const QString loginEndpoint = serverPath + "/login";
-const QString registerEndpoint = serverPath + "/sign_up";
+
 const int fileOwnerLabelWidth = 200;
 
 const QString previewIconPath = ":/images/eye-bold.svg";
@@ -54,6 +62,8 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string FILES_API_ENDPOINT = "/api/files";
+const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
 const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
 const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
