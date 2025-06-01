@@ -34,7 +34,13 @@ def make_query_side_effect(mock_file, file_exists, mock_recipient, recipient_exi
             def filter_by(self, **kwargs):
                 class F:
                     def first(self):
-                        return mock_perm if permission_exists else None
+                        # If querying Files table
+                        if args[0].__name__ == 'Files':
+                            return mock_file if file_exists else None
+                        # If querying FilePermissions table
+                        elif args[0].__name__ == 'FilePermissions':
+                            return mock_perm if permission_exists else None
+                        return None
                 return F()
         return Query()
     return query_side_effect
