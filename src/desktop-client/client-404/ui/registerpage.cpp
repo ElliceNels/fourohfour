@@ -164,8 +164,7 @@ void RegisterPage::onShowPasswordClicked()
  * @param salt The salt used for password hashing.
  * @return true if registration is successful and tokens are saved; false otherwise.
  */
-bool RegisterPage::sendSignUpRequest(const QString& username, const QString& hashedPassword, 
-                                    const QString& publicKey, const QString& salt)
+bool RegisterPage::sendSignUpRequest(const QString& username, const QString& hashedPassword, const QString& publicKey, const QString& salt)
 {
 
     // Set base URL for the server
@@ -195,8 +194,7 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& has
         qDebug() << "Registration successful. Tokens saved in session manager.";
         return true;
     } else {
-        QMessageBox::critical(this, "Registration Error", 
-                             QString::fromStdString(response.errorMessage));
+        QMessageBox::critical(this, "Registration Error", QString::fromStdString(response.errorMessage));
         return false;
     }
 }
