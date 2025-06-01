@@ -26,7 +26,7 @@ void VerifyPage::preparePage(){
 
 void VerifyPage::initialisePageUi(){
     this->ui->setupUi(this);
-    toggleUIElements(false); // Hide all certain ui  elements initially
+    toggleVerificationAcceptanceControls(false); // Hide all certain ui elements initially
 }
 
 void VerifyPage::setupConnections(){
@@ -146,7 +146,7 @@ void VerifyPage::on_verifyButton_clicked(){
 
         this->ui->displayLineEdit->setText(hash);
 
-        toggleUIElements(true); // Show the UI elements for acceptance/rejection
+        toggleVerificationAcceptanceControls(true); // Show the UI elements for acceptance/rejection
     }
 }
 
@@ -282,7 +282,7 @@ bool VerifyPage::saveFriendPairToJSON() {
 }
 
 
-void VerifyPage::toggleUIElements(bool show) {
+void VerifyPage::toggleVerificationAcceptanceControls(bool show) {
     if (show){
         this->ui->acceptButton->show();
         this->ui->rejectButton->show();
@@ -308,7 +308,7 @@ void VerifyPage::switchPages(int pageIndex) {
     if (pageIndex == FIND_FRIEND_INDEX) {
         this->otherPublicKey.clear();  
         this->otherUsername.clear();  
-        toggleUIElements(false); // Hide all UI elements
+        toggleVerificationAcceptanceControls(false); // Hide all UI elements
     }
     setButtonsEnabled(true);
 }
