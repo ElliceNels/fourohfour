@@ -5,7 +5,10 @@
 
 using namespace std;
 
-constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+// File upload constants
+constexpr qint64 ENCRYPTION_OVERHEAD_BYTES = 50;  // Conservative estimate for encryption overhead
+constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;  // Exact database constraint (100MB)
+
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
 const QString binaryExtension = ".bin";
@@ -14,11 +17,12 @@ const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
 const int fileSizeLabelWidth = 60;
+
+
 const QString serverPath = "http://gobbler.info:4004";
 //http://gobbler.info:4004
 //http://localhost:5000
-const QString loginEndpoint = serverPath + "/login";
-const QString registerEndpoint = serverPath + "/sign_up";
+
 const int fileOwnerLabelWidth = 200;
 
 const QString previewIconPath = ":/images/eye-bold.svg";
@@ -49,6 +53,8 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string FILES_API_ENDPOINT = "/api/files";
+const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";

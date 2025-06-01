@@ -31,7 +31,7 @@ private:
     qint64 fileSize;
     QByteArray fileData;
 
-    bool encryptUploadedFile();
+    void encryptAndUploadFile();
     QByteArray formatFileMetadata();
     bool SaveKeyToLocalStorage(const QString &fileUuid,const unsigned char *key, size_t keyLen);
     bool validateKeyParameters(const unsigned char *key, size_t keyLen);
@@ -48,6 +48,7 @@ private:
     bool encryptAndSaveKeyStorage(const QString &filepath,
                                 const QByteArray &jsonData,
                                 const SecureVector &masterKey);
+    QString uploadFileToServer(const SecureVector& encryptedData);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
