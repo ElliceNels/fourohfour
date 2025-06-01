@@ -31,7 +31,8 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
             # Check if file with UUID exists
             existing_file = None
             if file_uuid:
-                existing_file = db.query(Files).filter_by(uuid=file_uuid).first()
+                file_uuid_str = str(file_uuid)
+                existing_file = db.query(Files).filter_by(uuid=file_uuid_str).first()
                 
                 if existing_file:
                     if existing_file.owner_id != user_id:
