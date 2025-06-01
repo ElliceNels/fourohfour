@@ -120,25 +120,10 @@ def test_remove_file_permission(file_exists, owner_matches, permission_exists, r
         mock_file.id = 123  # Add an internal ID for the file
         mock_perm = MagicMock()
         
-        # Mock the database query to return a file or permission depending on input
-        def query_side_effect(*args, **kwargs):
-            if args[0].__name__ == 'Files':
-                file_query = MagicMock()
-                if file_exists:
-                    file_query.filter_by().first.return_value = mock_file
-                else:
-                    file_query.filter_by().first.return_value = None
-                return file_query
-            elif args[0].__name__ == 'FilePermissions':
-                perm_query = MagicMock()
-                if permission_exists:
-                    perm_query.filter_by().first.return_value = mock_perm
-                else:
-                    perm_query.filter_by().first.return_value = None
-                return perm_query
-            return MagicMock()
-        
-        mock_db.query.side_effect = query_side_effect
+        # Use the standardized make_query_side_effect function
+        mock_db.query.side_effect = make_query_side_effect(
+            mock_file, file_exists, None, False, mock_perm, permission_exists
+        )
         
         # Simulate an exception on commit if raises is True
         if raises:
@@ -152,7 +137,7 @@ def test_remove_file_permission(file_exists, owner_matches, permission_exists, r
         assert status == expected_status
 
         # For success, check for 'message'; for errors, check for 'error'
-        if status in (CODE_OK, CODE_CREATED):
+        if status in (CODE_CREATED, CODE_OK):
             assert "message" in data
         else:
             assert "error" in data
