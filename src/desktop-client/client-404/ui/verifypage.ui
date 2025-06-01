@@ -713,8 +713,7 @@ QPushButton:pressed {
               <string notr="true">color: #757575;</string>
              </property>
              <property name="text">
-              <string>Please upload your public key file to generate a hash
-    of your key and the other person's public key to verify each other's identity.</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:700;&quot;&gt;For secure out-of-band identity verification, follow these steps:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;1.&lt;span style=&quot; font-weight:700;&quot;&gt; Upload your public key file:&lt;/span&gt; We will then generate a cryptographic hash using your public key and the other person's public key.&lt;/p&gt;&lt;p&gt;2. &lt;span style=&quot; font-weight:700;&quot;&gt;Share this hash with the other person: &lt;/span&gt;They will perform the same action on their end to generate their own hash.&lt;/p&gt;&lt;p&gt;3. &lt;span style=&quot; font-weight:700;&quot;&gt;Compare your hashes: &lt;/span&gt;If they match, you've successfully verified each other's identity. To record your trust, select 'Accept' otherwise select 'Reject'.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="alignment">
               <set>Qt::AlignmentFlag::AlignCenter</set>
