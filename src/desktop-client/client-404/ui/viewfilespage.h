@@ -2,6 +2,9 @@
 #define VIEWFILESPAGE_H
 
 #include <QWidget>
+#include <QListWidget> 
+#include <QJsonArray>   
+#include <QJsonObject> 
 #include "ui/basepage.h"
 
 namespace Ui {
@@ -18,6 +21,8 @@ public:
     ~ViewFilesPage();
     ViewFilesPage& operator=(const ViewFilesPage&) = delete;  // Prevent assignment
 
+public slots:
+    void fetchUserFiles();
 
 private:
     Ui::ViewFilesPage *ui;
@@ -27,6 +32,8 @@ private:
     void setupConnections() override;
 
     void switchFileListPage(int pageIndex);
+    void displayFiles(const QJsonArray& ownedFiles, const QJsonArray& sharedFiles);
+    void addFileItem(const QJsonObject& fileObj, QListWidget* listWidget, const QString& ownerLabel); // Removed isOwner parameter
 
 signals:
     void goToMainMenuRequested();
