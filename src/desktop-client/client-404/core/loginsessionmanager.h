@@ -15,6 +15,8 @@ public:
     const SecureVector getMasterKey() const;
     void setTokens(const QString& accessToken, const QString& refreshToken);
     void setBaseUrl(const QString& baseUrl);
+
+    // HTTP methods
     RequestUtils::Response post(const std::string& url, const QJsonObject& data = QJsonObject());
     RequestUtils::Response get(const std::string& url, const QJsonObject& data = QJsonObject());
     void clearSession();

@@ -2,12 +2,17 @@
 #define CONSTANTS_H
 
 #include <QString>
+#include <QRegularExpression>
 
 using namespace std;
 
 constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
+const QString friendsPath = "/friends_";
+
+const QString jsonExtension = ".json";
 const QString binaryExtension = ".bin";
 const int MAX_LOGIN_ATTEMPTS = 5;
 const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
@@ -49,14 +54,19 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
 const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
+const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");
+inline const QRegularExpression RESTRICTED_CHARS_REGEX("[" + QRegularExpression::escape(RESTRICTED_CHARS) + "]");
 
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;
+
+const int FIND_FRIEND_INDEX = 0;
+const int VERIFY_PUBLIC_KEY_INDEX = 1;
 
 namespace Styles {
 const QString CentralWidget = R"(
@@ -101,6 +111,18 @@ const QString SelectedSidebarButton = R"(
 const QString UnselectedSidebarButton = R"(
     background-color: transparent; 
     color: #424242;
+)";
+
+const QString SuccessMessage = R"(
+    color: #4CAF50; 
+    font-weight: bold;
+    font-size: 14px;
+)";
+
+const QString ErrorMessage = R"(
+    color: #F44336; 
+    font-weight: bold;
+    font-size: 14px;
 )";
 }
 
