@@ -6,3 +6,5 @@ RESTRICTED_CHARS = set("!@#$%^&*()+=[]{}|\\;:'\",<>/?`~")
 SERVER_URL = "http://localhost:5000"
 SIGN_UP_ENDPOINT = "/sign_up"
 LOGIN_ENDPOINT = "/login"
+GET_USER_ENDPOINT = "/get_current_user"
+RESET_PASSWORD_ENDPOINT = "/change_password"

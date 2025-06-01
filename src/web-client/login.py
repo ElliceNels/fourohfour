@@ -15,6 +15,7 @@ def manage_login(password, username):
             refresh_token = json_data.get("refresh_token")
             if access_token and refresh_token:
                 LoginSessionManager.getInstance().setTokens(access_token, refresh_token)
+                LoginSessionManager.getInstance().setUsername(username)
                 return True
         elif response.status_code == 404:
             raise UserNotFoundError("User not found.")

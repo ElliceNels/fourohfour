@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, flash, url_for, ses
 from login import manage_login
 from signup import validate_registration, manage_registration
 from uploadfile import validate_file_size, validate_file_type
+from resetpassword import manage_reset_password
+from session_manager import LoginSessionManager
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -23,11 +25,11 @@ def signup():
         else:
             registration_success, error_message = manage_registration(account_name, password)
             if registration_success:
+                print(f"Registration successful for {account_name}")  
                 flash(message, "success")
                 return redirect(url_for('login'))
             else:
                 flash(error_message, "error")
-
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -108,7 +110,36 @@ def verify_user():
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
-        pass
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')  
+
+        username = LoginSessionManager.getInstance().getUsername()
+        
+        success, message = validate_registration(
+            account_name=username,
+            password=new_password,
+            confirm_password=confirm_password
+        )
+        
+        if not success:
+            flash(message, 'error')
+            return render_template('resetpassword.html')
+            
+        if not old_password:
+            flash('Please provide your old password', 'error')
+            return render_template('resetpassword.html')
+            
+        # If validation passes, proceed with password reset
+        success, message = manage_reset_password(old_password, new_password)
+        
+        if success:
+            flash('Password reset successful!', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash(message, 'error')
+            return render_template('resetpassword.html')
+            
     return render_template('resetpassword.html')
 
 if __name__ == '__main__':

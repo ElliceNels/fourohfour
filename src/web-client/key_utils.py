@@ -110,7 +110,7 @@ def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str
     combined_data = nonce + ciphertext
 
     #Save encrypted private key file
-    file_name = os.path.join(KEYS_PATH, f"{username}{BINARY_EXTENSION}")
+    file_name = f"{KEYS_PATH}{username}{BINARY_EXTENSION}"
     try:
         with open(file_name, 'wb') as f:
             f.write(combined_data)
@@ -149,6 +149,62 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
     except IOError as e:
         print(f"Error saving master key file: {str(e)}")
         return False 
+    
+
+
+def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: str, new_password: str, new_salt: str) -> bool:
+    """
+    Decrypt a user's encrypted file using their old password and salt, then re-encrypt it with their new password and salt.
+
+    Args:
+        username (str): The username of the user
+        old_password (str): The user's old password
+        old_salt (str): The user's old salt (base64 encoded)
+        new_password (str): The user's new password
+        new_salt (str): The user's new salt (base64 encoded)
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    crypto = EncryptionHelper()
+
+    # Read encrypted file
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
+    try:
+        with open(file_path, 'rb') as file:
+            encrypted_data = file.read()
+    except IOError as e:
+        print(f"Failed to open file for reading: {file_path}")
+        return False
+
+    # Extract nonce and ciphertext
+    nonce_size = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
+    nonce = encrypted_data[-nonce_size:]
+    ciphertext = encrypted_data[:-nonce_size]
+
+    # Derive old key
+    old_salt_raw = base64.b64decode(old_salt)
+    old_key = derive_key_from_password(old_password, old_salt_raw)
+
+    # Decrypt
+    try:
+        decrypted_data = crypto.decrypt(
+            ciphertext,
+            old_key,
+            nonce,
+            None,  # no additional data
+            0
+        )
+    except Exception as e:
+        print(f"Decryption failed: {str(e)}")
+        return False
+
+    # Derive new key
+    new_salt_raw = base64.b64decode(new_salt)
+    new_key = derive_key_from_password(new_password, new_salt_raw)
+
+    # Re-encrypt and save
+    return encrypt_and_save_master_key(decrypted_data, new_key, username)
 
 def derive_key_from_password(password: str, salt: bytes, key_len: int = 32) -> bytes:
     """
