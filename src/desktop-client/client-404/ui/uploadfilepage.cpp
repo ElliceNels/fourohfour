@@ -48,8 +48,12 @@ void UploadFilePage::on_uploadButton_clicked()
     if (!filePath.isEmpty()) {
         QFileInfo fileInfo(filePath);
 
-        // Gets the metadata that won't be encrypted but will be authenticated
-        this->fileName = fileInfo.completeBaseName();
+          // Gets the metadata that won't be encrypted but will be authenticated
+        QString baseName = fileInfo.completeBaseName();
+        // Sanitize the filename by replacing any dots with underscores
+        baseName.replace(".", "_");
+        this->fileName = baseName;
+        
         this->fileType = fileInfo.suffix();
         this->fileSize = fileInfo.size();  // originally in bytes
 
