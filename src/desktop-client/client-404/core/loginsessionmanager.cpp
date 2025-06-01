@@ -48,10 +48,6 @@ void LoginSessionManager::setBaseUrl(const QString& baseUrl) {
 RequestUtils::Response LoginSessionManager::post(const std::string& url, const QJsonObject& data) {
     return this->m_requestUtils.post(url, data);
 }
-RequestUtils::Response LoginSessionManager::get(const string& url, const QJsonObject& params){
-    return this->m_requestUtils.get(url, params);
-}
-
 RequestUtils::Response LoginSessionManager::get(const std::string& url, const QJsonObject& data) {
     return this->m_requestUtils.get(url, data);
 }
