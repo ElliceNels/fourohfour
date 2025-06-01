@@ -6,6 +6,7 @@ from nacl.bindings import (
     crypto_aead_xchacha20poly1305_ietf_decrypt
 )
 import nacl.utils
+from exceptions import GenerationError
 
 class EncryptionHelper:
     """
@@ -27,7 +28,7 @@ class EncryptionHelper:
         try:
             return nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
         except Exception as e:
-            raise Exception(f"Failed to generate encryption key: {str(e)}")
+            raise GenerationError(f"Failed to generate encryption key: {str(e)}")
 
     @staticmethod
     def generate_nonce() -> bytes:
@@ -43,7 +44,7 @@ class EncryptionHelper:
         try:
             return nacl.utils.random(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES)
         except Exception as e:
-            raise Exception(f"Failed to generate nonce: {str(e)}")
+            raise GenerationError(f"Failed to generate nonce: {str(e)}")
 
     @staticmethod
     def encrypt(plaintext: bytes, key: bytes, nonce: bytes, additional_data: bytes = None) -> bytes:
