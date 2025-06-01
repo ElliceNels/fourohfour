@@ -1,5 +1,6 @@
 #include "mainmenu.h"
-#include "ui/ui_mainmenu.h"
+#include "pages.h"
+#include "ui_mainmenu.h"
 #include <qstackedwidget.h>
 #include "core/loginsessionmanager.h"
 
@@ -24,6 +25,7 @@ void MainMenu::setupConnections(){
     connect(this->ui->uploadButton, &QPushButton::clicked, this, &MainMenu::goToUploadFilePageRequested);
     connect(this->ui->viewFilesButton, &QPushButton::clicked, this, &MainMenu::goToViewFilesPageRequested);
     connect(this->ui->verifyButton, &QPushButton::clicked, this, &MainMenu::goToVerifyPageRequested);
+    connect(this->ui->resetPasswordButton, &QPushButton::clicked, this, &MainMenu::goToResetPasswordRequested);
 }
 
 void MainMenu::on_logOutButton_clicked() {
@@ -36,3 +38,4 @@ MainMenu::~MainMenu()
     qDebug() << "Destroying Main Menu";
     delete this->ui;
 }
+

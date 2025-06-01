@@ -111,7 +111,10 @@ def list_files():
         current_user_info, status_code = get_current_user()
         if status_code != 200:
             return jsonify({'error': 'Authentication failed'}), status_code
-
+    except Exception as e:
+        logger.error(f"Error retrieving current user: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    try:
         user_id = current_user_info['user_id'] 
         return get_user_files(user_id)
     except Exception as e:

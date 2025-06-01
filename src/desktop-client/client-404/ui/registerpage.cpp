@@ -84,11 +84,11 @@ void RegisterPage::onCreateAccountClicked()
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
         return;
     }
-    for (char restrictedChar : RESTRICTED_CHARS) {
-        if (accountName.contains(QChar(restrictedChar))) {
-            QMessageBox::warning(this, "Error", "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
-            return;
-        }
+    
+    if (RESTRICTED_CHARS_REGEX.match(accountName).hasMatch()) {
+        QMessageBox::warning(this, "Error", 
+            "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+        return;
     }
 
 
@@ -129,7 +129,6 @@ void RegisterPage::onCreateAccountClicked()
     cout << sAccountName << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-
     if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
     QMessageBox::information(this, "Success", "Account created and logged in!");
     emit goToMainMenuRequested();
@@ -154,19 +153,18 @@ void RegisterPage::onShowPasswordClicked()
 /**
  * @brief Sends a sign-up request to the server with the provided user credentials and cryptographic data.
  *
- * This method constructs a JSON payload containing the username, hashed password, public key, and salt,
+ * This method constructs a JSON payload containing the username, password, public key, and salt,
  * then sends it to the server's sign-up endpoint. If the registration is successful, it extracts the
  * access and refresh tokens from the server response and stores them in the LoginSessionManager.
  * In case of failure, it displays an error message to the user.
  *
  * @param username The username to register.
- * @param hashedPassword The hashed password of the user.
+ * @param password The plaintext password of the user.
  * @param publicKey The user's public key for cryptographic operations.
  * @param salt The salt used for password hashing.
  * @return true if registration is successful and tokens are saved; false otherwise.
  */
-bool RegisterPage::sendSignUpRequest(const QString& username, const QString& hashedPassword, 
-                                    const QString& publicKey, const QString& salt)
+bool RegisterPage::sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, const QString& salt)
 {
 
     // Set base URL for the server
@@ -175,7 +173,7 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& has
     // Prepare JSON payload for registration
     QJsonObject requestData;
     requestData["username"] = username;
-    requestData["hashed_password"] = hashedPassword;
+    requestData["password"] = password;
     requestData["public_key"] = publicKey;
     requestData["salt"] = salt;
     
@@ -196,8 +194,7 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& has
         qDebug() << "Registration successful. Tokens saved in session manager.";
         return true;
     } else {
-        QMessageBox::critical(this, "Registration Error", 
-                             QString::fromStdString(response.errorMessage));
+        QMessageBox::critical(this, "Registration Error", QString::fromStdString(response.errorMessage));
         return false;
     }
 }

@@ -14,7 +14,7 @@ def login():
     Expected JSON payload:
     {
         "username": "<username>",
-        "hashed_password": "<hashed_password>",
+        "password": "<password>",
     }
 
     Expected response:
@@ -27,9 +27,9 @@ def login():
     data = request.get_json()
     logger.debug(f"Received login request for username: {data.get('username')}")
     username = data.get('username')
-    hash_password = data.get('hashed_password')
+    password = data.get('password')
 
-    return auth.login(username, hash_password)
+    return auth.login(username, password)
 
 @authentication_routes.route('/refresh', methods=['POST'])
 def refresh():
@@ -64,7 +64,7 @@ def sign_up():
     Expected JSON payload:
     {
         "username": "<username>",
-        "hashed_password": "<hashed_password>",
+        "password": "<password>",
         "public_key": "<public_key>",
         "salt": "<salt>"
     }
@@ -78,12 +78,12 @@ def sign_up():
     data = request.get_json()
     logger.debug(f"Received sign up request")
     username = data.get('username')
-    hash_password = data.get('hashed_password')
+    password = data.get('password')
     public_key = data.get('public_key')
     salt = data.get('salt')
     bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
-    return auth.sign_up(username, hash_password, public_key, bytes_salt)
+    return auth.sign_up(username, password, public_key, bytes_salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
@@ -125,7 +125,8 @@ def change_password():
     
     Expected JSON payload:
     {
-        "new_password": "<new_password>"
+        "new_password": "<new_password>",
+        "salt": "<salt>"
     }
     Expected response:
     {
@@ -136,6 +137,8 @@ def change_password():
     data = request.get_json()
     logger.debug(f"Received change password request")
     new_password = data.get('new_password')
+    salt = data.get('salt')
+    bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
     try:
         token = jwt.get_current_token()
@@ -143,7 +146,7 @@ def change_password():
         logger.warning("Change password failed: Missing or malformed token")
         return jsonify({"error": e.message}), e.status
 
-    return auth.change_password(token, new_password)
+    return auth.change_password(token, new_password, bytes_salt)
 
 @authentication_routes.route('/delete_account', methods=['POST'])
 def delete_account():
@@ -203,7 +206,6 @@ def get_current_user():
     Expected response:
     {
         "username": "<username>",
-        "password": "<hashed_password>",
         "public_key": "<public_key>",
         "salt": "<salt>",
         "created_at": "<created_at>",
@@ -215,7 +217,13 @@ def get_current_user():
         user_info, status_code = auth.get_current_user()
         if status_code != 200:
             logger.warning("Get current user failed: Missing or malformed token")
-            return user_info, status_code
+            return {
+                "username": user_info["username"],
+                "public_key": user_info["public_key"],
+                "salt": user_info["salt"],
+                "created_at": user_info["created_at"],
+                "updated_at": user_info["updated_at"]
+            }, status_code
         return jsonify(user_info), 200
     except JWTError as e:
         return jsonify({"error": e.message}), e.status

@@ -14,23 +14,39 @@ class VerifyPage : public BasePage
 
 public:
     explicit VerifyPage(QWidget *parent = nullptr);
-    void set_other_public_key(const QByteArray &otherpk);
     void preparePage() override;
     ~VerifyPage();
     VerifyPage& operator=(const VerifyPage&) = delete;  // Prevent assignment
 
 private slots:
     void on_verifyButton_clicked();
+    void on_acceptButton_clicked();
+    void on_rejectButton_clicked();
+    void on_findButton_clicked();
 
 private:
     Ui::VerifyPage *ui;
-    QByteArray *otherPublicKey;
+    QByteArray otherPublicKey;
+    QString otherUsername;  
     QString generate_hash(QString usersPublicKey);
-    QString fetch_public_key();
+    QString fetch_local_public_key();
+    bool fetch_server_public_key(const QString& username);
+
+
+    bool saveFriendPairToJSON();
+    QString buildFriendStorageFilePath();
+    bool validateFriendData();
+    QJsonObject readFriendsJson(const QString& filepath);
+    bool writeFriendsJson(const QString& filepath, const QJsonObject& friendsData);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
     void setupConnections() override;
+
+    void switchPages(int pageIndex);
+    void toggleVerificationAcceptanceControls(bool show);
+    void setButtonsEnabled(bool enabled);
+    bool validateUsername(const QString& username);
 
 signals:
     void goToMainMenuRequested();
