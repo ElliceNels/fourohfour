@@ -3,7 +3,7 @@ import uuid
 import logging
 from flask.testing import FlaskClient
 from sqlalchemy_utils import database_exists, drop_database
-from server.utils.db_setup import setup_db, get_session
+from server.utils.db_setup import setup_db, get_session, teardown_db
 from server.app import create_app
 from server.models.tables import Base, Users, Files
 
@@ -30,21 +30,13 @@ def app_fixture():
 @pytest.fixture(scope="session")
 def setup_test_db(app_fixture):
     """Set up test database before running tests."""
-    engine = setup_db("test_database")
-    Base.metadata.create_all(bind=engine)
+    db_name = "test_permission_database"
+    engine = setup_db(db_name)
     logger.info("Test database setup complete.")
 
     yield
-    Base.metadata.drop_all(bind=engine)
-    
-    # Ensure database deletion
-    if database_exists(engine.url):
-        try:
-            engine.dispose()  # Close connection before deletion
-            drop_database(engine.url, checkfirst=False)
-        except Exception as e:
-            logger.error(f"Error dropping test database: {e}")
 
+    teardown_db(db_name, engine=engine, remove_db=True)
     logger.info("Test database teardown complete.")
 
 @pytest.fixture
@@ -104,7 +96,7 @@ def test_file_data():
     """Generate a sample file data for testing."""
     return {
         "file": {
-            "filename": "testfile.txt",
+            "filename": "testfile",
             "contents": "dGVzdCBmaWxlIGNvbnRlbnQ="  # base64 encoded "test file content"
         },
         "metadata": {
@@ -138,15 +130,15 @@ def second_signed_up_user(client, second_test_user):
     assert response.status_code == 201
     return second_test_user
 
-@pytest.mark.parametrize("expected_status, include_key, include_file, is_owner", [
-    (CREATED, True, True, True),           # Success: all fields included
-    (CONFLICT, True, True, True),          # Conflict: all fields included
-    (BAD_REQUEST, True, False, True),      # Error: missing file_uuid
-    (BAD_REQUEST, True, True, True),       # Error: missing user_id
-    (BAD_REQUEST, False, True, True),      # Error: missing key_for_recipient
-    (NOT_FOUND, True, True, False),        # Error: file not found
+@pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
+    (CREATED, True, True, True, True),           # Success: all fields included
+    (CONFLICT, True, True, True, True),          # Conflict: all fields included
+    (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
+    (BAD_REQUEST, True, True, False, True),      # Error: missing user_id
+    (BAD_REQUEST, False, True, True, True),      # Error: missing key_for_recipient
+    (NOT_FOUND, True, True, True, False),        # Error: file not found
 ])
-def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, is_owner):
+def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
     """Test creating file permissions with various scenarios."""
     # Get the second user's ID
     with get_session() as db:
@@ -162,34 +154,26 @@ def test_create_permission(client, logged_in_user, second_signed_up_user, stored
     if include_key:
         permission_data["key_for_recipient"] = "encrypted_key_for_recipient"
     
-    permission_data["user_id"] = user_id
+    if include_user_id:
+        permission_data["user_id"] = user_id
     
     if expected_status == CONFLICT:
         # Create permission first time
         response = client.post("/api/permissions", json=permission_data, headers=headers)
         assert response.status_code == CREATED
     
-    # Handle missing fields based on expected status
-    if expected_status == BAD_REQUEST:
-        if not include_file:
-            pass  # Already handled by not including the file
-        elif not include_key:
-            pass  # Already handled by not including the key
-        else:
-            del permission_data["user_id"]  # Remove user_id for BAD_REQUEST case
-    
     # Now make the actual test request
     response = client.post("/api/permissions", json=permission_data, headers=headers)
     assert response.status_code == expected_status
 
-@pytest.mark.parametrize("expected_status, include_key, include_file, is_owner", [
-    (SUCCESS, True, True, True),           # Success: all fields included
-    (NOT_FOUND, True, True, True),         # Error: permission not found
-    (BAD_REQUEST, True, False, True),      # Error: missing file_uuid
-    (BAD_REQUEST, True, True, True),       # Error: missing user_id
-    (NOT_FOUND, True, True, False),        # Error: file not found
+@pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
+    (SUCCESS, True, True, True, True),           # Success: all fields included
+    (NOT_FOUND, True, True, True, True),         # Error: permission not found
+    (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
+    (BAD_REQUEST, True, True, False, True),      # Error: missing user_id
+    (NOT_FOUND, True, True, True, False),        # Error: file not found
 ])
-def test_remove_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, is_owner):
+def test_remove_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
     """Test removing file permissions with various scenarios."""
     # Get the second user's ID
     with get_session() as db:
@@ -217,16 +201,8 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, stored
     if include_key:
         remove_data["key_for_recipient"] = "encrypted_key_for_recipient"
     
-    remove_data["user_id"] = user_id
-    
-    # Handle missing fields based on expected status
-    if expected_status == BAD_REQUEST:
-        if not include_file:
-            pass  # Already handled by not including the file
-        elif not include_key:
-            pass  # Already handled by not including the key
-        else:
-            del remove_data["user_id"]  # Remove user_id for BAD_REQUEST case
+    if include_user_id:
+        remove_data["user_id"] = user_id
     
     # Make the removal request
     response = client.delete("/api/permissions", json=remove_data, headers=headers)
