@@ -51,6 +51,9 @@ set(UI_SOURCES
     ui/viewfilespage.ui
     ui/basepage.h
     ui/basepage.cpp
+    ui/resetpasswordpage.ui
+    ui/resetpasswordpage.h
+    ui/resetpasswordpage.cpp
 )
 
 set(CRYPTO_SOURCES

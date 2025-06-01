@@ -18,8 +18,7 @@ public:
 
     // HTTP methods
     RequestUtils::Response post(const std::string& url, const QJsonObject& data = QJsonObject());
-    RequestUtils::Response get(const string& url, const QJsonObject& params);
-    
+    RequestUtils::Response get(const std::string& url, const QJsonObject& data = QJsonObject());
     void clearSession();
 
 private:

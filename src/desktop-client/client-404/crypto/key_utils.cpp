@@ -155,6 +155,57 @@ SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsign
         );
 }
 
+bool decryptAndReencryptUserFile(const QString& username, const QString& oldPassword, const QString& oldSalt, const QString& newPassword, const QString& newSalt)
+{
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
+
+    //Read encrypted file
+    QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open file for reading:" << filePath;
+        return false;
+    }
+    QByteArray encryptedData = file.readAll();
+    file.close();
+
+    //Extract nonce and ciphertext
+    const int nonceSize = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+    QByteArray nonce = encryptedData.right(nonceSize);
+    QByteArray ciphertext = encryptedData.left(encryptedData.size() - nonceSize);
+
+    //Derive old key
+    QByteArray oldSaltRaw = QByteArray::fromBase64(oldSalt.toUtf8());
+    unsigned char oldKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    deriveKeyFromPassword(oldPassword.toStdString(), reinterpret_cast<const unsigned char*>(oldSaltRaw.constData()), oldKey, sizeof(oldKey));
+
+    //Decrypt
+    SecureVector decryptedData;
+    try {
+        decryptedData = crypto->decrypt(
+            reinterpret_cast<const unsigned char*>(ciphertext.constData()), ciphertext.size(),
+            oldKey,
+            reinterpret_cast<const unsigned char*>(nonce.constData()),
+            nullptr, // no additional data
+            0
+            );
+    } catch (const std::exception& e) {
+        qDebug() << "Decryption failed:" << e.what();
+        return false;
+    }
+
+    //Derive new key
+    QByteArray newSaltRaw = QByteArray::fromBase64(newSalt.toUtf8());
+    unsigned char newKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    deriveKeyFromPassword(newPassword.toStdString(), reinterpret_cast<const unsigned char*>(newSaltRaw.constData()), newKey, sizeof(newKey));
+
+    return encryptAndSaveMasterKey(decryptedData.data(), decryptedData.size(), newKey, crypto, username);
+
+
+
+}
+
+
 //Function overloading
 bool saveFile(const QString &filePath, const SecureVector &data) {
     QFile file(filePath);
@@ -183,5 +234,3 @@ bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultNa
     }
     return false;
 }
-
-

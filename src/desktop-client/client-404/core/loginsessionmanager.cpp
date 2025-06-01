@@ -52,6 +52,10 @@ RequestUtils::Response LoginSessionManager::get(const string& url, const QJsonOb
     return this->m_requestUtils.get(url, params);
 }
 
+RequestUtils::Response LoginSessionManager::get(const std::string& url, const QJsonObject& data) {
+    return this->m_requestUtils.get(url, data);
+}
+
 void LoginSessionManager::clearSession() {
     this->m_masterKey.clear();  // SecureVector handles secure zeroing
     this->m_username.clear();

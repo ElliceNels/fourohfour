@@ -16,6 +16,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->stackedWidget = new QStackedWidget(this);
     this->stackedWidget->setStyleSheet(Styles::CentralWidget);
 
+
     // BasePage is an abstract class (has at least one pure virtual function) so cannot be instantiated
     // Uncomment the line below to see the warning and error that appear
     //BasePage* bpPtr = new BasePage();
@@ -26,7 +27,6 @@ MainWindow::MainWindow(QWidget *parent)
      * basepage.h:22:18: unimplemented pure virtual method 'setupConnections' in 'BasePage'
     */
 
-
     // Demonstrate Runtime polymorphism by creating pages as BasePages first
     this->titlePage = this->createAndAddPage<TitlePage>(this, this->stackedWidget);
     this->registerPage = this->createAndAddPage<RegisterPage>(this, this->stackedWidget);
@@ -34,7 +34,9 @@ MainWindow::MainWindow(QWidget *parent)
     this->verifyPage = this->createAndAddPage<VerifyPage>(this, this->stackedWidget);
     this->uploadFilePage = this->createAndAddPage<UploadFilePage>(this, this->stackedWidget);
     this->mainMenu = this->createAndAddPage<MainMenu>(this, this->stackedWidget);
+    this->resetPasswordPage = this->createAndAddPage<ResetPasswordPage>(this, this->stackedWidget);
     this->viewFilesPage = this->createAndAddPage<ViewFilesPage>(this, this->stackedWidget);
+
 
     //Operator overloading
     *stackedWidget + titlePage;
@@ -43,6 +45,7 @@ MainWindow::MainWindow(QWidget *parent)
     *stackedWidget + verifyPage;
     *stackedWidget + uploadFilePage;
     *stackedWidget + mainMenu;
+    *stackedWidget + resetPasswordPage;
     *stackedWidget + viewFilesPage;
 
 
@@ -66,6 +69,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToVerifyPageRequested, Pages::VerifyPageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToLoginPageRequested, Pages::LoginPageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToViewFilesPageRequested, Pages::ViewFilesPageIndex);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToResetPasswordRequested, Pages::ResetPasswordPage);
 
     this->setCentralWidget(this->stackedWidget);
 
