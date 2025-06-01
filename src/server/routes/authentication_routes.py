@@ -125,7 +125,8 @@ def change_password():
     
     Expected JSON payload:
     {
-        "new_password": "<new_password>"
+        "new_password": "<new_password>",
+        "salt": "<salt>"
     }
     Expected response:
     {
@@ -136,6 +137,8 @@ def change_password():
     data = request.get_json()
     logger.debug(f"Received change password request")
     new_password = data.get('new_password')
+    salt = data.get('salt')
+    bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
     try:
         token = jwt.get_current_token()
@@ -143,7 +146,7 @@ def change_password():
         logger.warning("Change password failed: Missing or malformed token")
         return jsonify({"error": e.message}), e.status
 
-    return auth.change_password(token, new_password)
+    return auth.change_password(token, new_password, bytes_salt)
 
 @authentication_routes.route('/delete_account', methods=['POST'])
 def delete_account():
