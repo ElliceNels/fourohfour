@@ -150,7 +150,7 @@ void UploadFilePage::tryEncryptAndUploadFile() {
         // Upload the file to server and get the UUID
         QString fileUuid = uploadFileToServer(combinedData);
         if (fileUuid.isEmpty()) {
-            return; // Early return on failure
+            return; // Early return on failure or user choice not to overwrite
         }
 
         // Save using the server-provided UUID
@@ -163,7 +163,7 @@ void UploadFilePage::tryEncryptAndUploadFile() {
     }
 }
 
-QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
+QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData, const QString& fileUuid, const QString& successMessage) {
     // Validate input data
     if (encryptedData.empty()) {
         QMessageBox::warning(this, "Error", "No encrypted data to upload");
@@ -173,6 +173,12 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
     // Create a JSON document in the format expected by the server
     QJsonObject fileObj;
     fileObj["filename"] = this->fileName + "." + this->fileType; 
+    
+    // Add UUID for overwrite if provided
+    if (!fileUuid.isEmpty()) {
+        fileObj["uuid"] = fileUuid;
+    }
+    
     // Convert SecureVector to base64 string
     QByteArray tempData(reinterpret_cast<const char*>(encryptedData.data()), static_cast<int>(encryptedData.size()));
     QByteArray base64Data = tempData.toBase64(QByteArray::Base64Option::Base64Encoding);
@@ -192,7 +198,8 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
     requestPayload["file"] = fileObj;
     requestPayload["metadata"] = metadataObj;
 
-    qDebug() << "Uploading file:" << this->fileName << "." << this->fileType;
+    qDebug() << "Uploading file:" << this->fileName << "." << this->fileType
+             << (fileUuid.isEmpty() ? "" : " with UUID: " + fileUuid);
 
 
     RequestUtils::Response response = LoginSessionManager::getInstance().post(UPLOAD_FILE_ENDPOINT, requestPayload);
@@ -203,13 +210,35 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
         
         if (jsonResponse.contains("uuid")) {
             QString uuid = jsonResponse["uuid"].toString();
-            QMessageBox::information(this, "Success", "File uploaded successfully!");
+            
+            // Use custom success message if provided, otherwise use default
+            QString message = !successMessage.isEmpty() 
+                ? successMessage 
+                : "File uploaded successfully!";
+            
+            QMessageBox::information(this, "Success", message);
             return uuid;
         } else {
             QMessageBox::warning(this, "Warning", "File uploaded but no UUID returned");
             return QString();
         }
     } else {
+        // Check for conflict (409) status - File with same name exists
+        if (response.statusCode == 409) {
+            QJsonObject jsonResponse = response.jsonData.object();
+            if (jsonResponse.contains("uuid")) {
+                QString existingUuid = jsonResponse["uuid"].toString();
+                // Show dialog asking if user wants to overwrite
+                if (showOverwriteConfirmation()) {
+                    // Reupload with the UUID to overwrite
+                    return uploadFileToServer(encryptedData, existingUuid, "File overwritten successfully!");
+                } else {
+                    // User chose not to overwrite
+                    return QString(); // empty string is handled and the encryptedKeys file is not updated
+                }
+            }
+        }
+        
         // Log the detailed error information for debugging
         qDebug() << "Upload failed - Status:" << response.statusCode 
                  << "Error:" << QString::fromStdString(response.errorMessage);
@@ -220,6 +249,28 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
         
         return QString();
     }
+}
+
+bool UploadFilePage::showOverwriteConfirmation() {
+    QMessageBox msgBox;
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setText("A file with the same name already exists.");
+    msgBox.setInformativeText("Do you want to overwrite the existing file?\n\nIf you select 'No', you should rename your file locally and try uploading again.");
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    
+    // If user clicks No, show additional reminder
+    int result = msgBox.exec();
+    if (result == QMessageBox::No) {
+        QMessageBox::information(this, "Upload Cancelled", 
+                               "Please rename your file locally and try uploading again.");
+    }
+    return (result == QMessageBox::Yes);
+}
+
+QString UploadFilePage::reuploadWithUuid(const SecureVector& encryptedData, const QString& fileUuid) {
+    // Simply call uploadFileToServer with the UUID and a custom success message
+    return uploadFileToServer(encryptedData, fileUuid, "File overwritten successfully!");
 }
 
 bool UploadFilePage::SaveKeyToLocalStorage(const QString &fileUuid, const unsigned char *key, size_t keyLen) {
@@ -401,7 +452,7 @@ bool UploadFilePage::encryptAndSaveKeyStorage(const QString &filepath, const QBy
     
     file.write(reinterpret_cast<const char*>(combinedData.data()), static_cast<qint64>(combinedData.size()));
     file.close();
-    
+    qDebug() << "Key storage updated and saved successfully";
     return true;
 }
 
