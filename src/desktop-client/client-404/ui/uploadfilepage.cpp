@@ -206,15 +206,14 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData) {
             return QString();
         }
     } else {
-        // Handle error with more detailed information
-        QString errorMsg = "Upload failed: ";
-        if (!response.errorMessage.empty()) {
-            errorMsg += QString::fromStdString(response.errorMessage);
-        } else {
-            errorMsg += "Server returned status " + QString::number(response.statusCode);
-        }
+        // Log the detailed error information for debugging
+        qDebug() << "Upload failed - Status:" << response.statusCode 
+                 << "Error:" << QString::fromStdString(response.errorMessage);
         
-        QMessageBox::warning(this, "Error", errorMsg);
+        // Show a generic user-friendly message without exposing technical details
+        QMessageBox::warning(this, "Error", 
+            "Failed to upload file. Please check your connection and try again.");
+        
         return QString();
     }
 }
