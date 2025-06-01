@@ -127,7 +127,7 @@ Important Security Notes:
 ## Deploying to Gobbler.info
 1. Copy files to server:
    ```bash
-   scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
+   rsync -avz --exclude="venv" -e "ssh -i ~/.ssh/id_rsa" "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server/" jean@gobbler.info:~/db_test/src/
    ```
 
 2. Set production environment variables:
