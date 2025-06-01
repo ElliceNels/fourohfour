@@ -9,6 +9,8 @@
 #include <sodium.h>
 #include "constants.h"
 #include <QTimer>
+#include "utils/request_utils.h"
+#include "loginsessionmanager.h"
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
@@ -24,7 +26,7 @@ void VerifyPage::preparePage(){
 
 void VerifyPage::initialisePageUi(){
     this->ui->setupUi(this);
-    toggleUIElements(false); // Hide all certain ui  elements initially
+    toggleVerificationAcceptanceControls(false); // Hide all certain ui elements initially
 }
 
 void VerifyPage::setupConnections(){
@@ -32,44 +34,73 @@ void VerifyPage::setupConnections(){
     connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
 }
 
-void VerifyPage::set_other_public_key(const QByteArray &otherpk){
-    this->otherPublicKey = otherpk; 
-}
-
-QString VerifyPage::fetch_public_key(){
+QString VerifyPage::fetch_local_public_key(){
     QString filePath = QFileDialog::getOpenFileName(this, "Open File", "", "JSON Files (*.json)");
-
+    
     if (!filePath.isEmpty()) {
-        QFile file(filePath);
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            QMessageBox::warning(this, "Error", "Could not open the file.");
-            return QString();
-        }
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "Error", "Could not open the file.");
+        return QString();
+    }
 
-        // Parsing of the keys from the JSON file
-        QByteArray jsonData = file.readAll();
-        file.close();
+    // Parsing of the keys from the JSON file
+    QByteArray jsonData = file.readAll();
+    file.close();
 
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
+    QJsonParseError parseError;
+    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
 
-        if (parseError.error != QJsonParseError::NoError) {
-            QMessageBox::warning(this, "Parse Error", "Failed to parse JSON: " + parseError.errorString());
-            return QString();
-        }
+    if (parseError.error != QJsonParseError::NoError) {
+        QMessageBox::warning(this, "Parse Error", "Failed to parse JSON: " + parseError.errorString());
+        return QString();
+    }
 
-        if (jsonDoc.isObject()){
-            QJsonObject jsonObj = jsonDoc.object();
+    if (jsonDoc.isObject()){
+        QJsonObject jsonObj = jsonDoc.object();
 
-            if (jsonObj.contains("publicKey") && jsonObj["publicKey"].isString()) {
-                return jsonObj["publicKey"].toString();
-            } else {
+        if (jsonObj.contains("publicKey") && jsonObj["publicKey"].isString()) {
+            return jsonObj["publicKey"].toString();
+        } else {
                 QMessageBox::warning(this, "Error", "Unable to fetch your public key");
-                return QString();
-            }
+            return QString();
         }
     }
+    }
     return QString();
+}
+
+bool VerifyPage::fetch_server_public_key(const QString& username){
+    // Create params for the GET request
+    QJsonObject params;
+    params["username"] = username;
+
+    // Make the GET request to retrieve the public key
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_PUBLIC_KEY_ENDPOINT, params);
+
+    if (response.success) {
+        QJsonObject jsonObject = response.jsonData.object();
+        if (jsonObject.contains("public_key")) {
+            // Extract public key from response
+            QString publicKey = jsonObject["public_key"].toString();
+            
+            // Store the public key for later use
+            this->otherPublicKey = publicKey.toUtf8();
+            
+            qDebug() << "Public key retrieved for user: " << this->otherPublicKey;
+            
+            QMessageBox::information(this, "Success", 
+                "Successfully retrieved public key for: " + username);
+            return true;
+        } else {
+            QMessageBox::warning(this, "Error", "Public key not found in response");
+        }
+    } else {
+       QMessageBox::critical(this, "Public Key Fetch Error", 
+        "Failed to fetch public key for user: " + username + "\nError: " + QString::fromStdString(response.errorMessage));
+    }
+    
+    return false; // Return false if the public key was not found or request failed
 }
 
 QString VerifyPage::generate_hash(QString usersPublicKey){
@@ -101,30 +132,22 @@ QString VerifyPage::generate_hash(QString usersPublicKey){
 }
 
 void VerifyPage::on_verifyButton_clicked(){
-    // This is placeholder until we fetch the public key from the database
-    QByteArray placeholder_other_pk = QString("mZ3bW1x8F9j0XQeP7CqyLkA6wE9vFt9hRYKdJPngq+Q=").toUtf8();
-    set_other_public_key(placeholder_other_pk);
 
-    QString publicKey = this->fetch_public_key();
+    QString publicKey = this->fetch_local_public_key();
 
-    if (publicKey.isEmpty()){
-        // Clear data on failure to get public key
-        this->otherPublicKey.clear();
-        return;
+    if (!publicKey.isEmpty()) {
+
+        QString hash = this->generate_hash(publicKey);
+
+        if (hash.isEmpty()){
+            QMessageBox::warning(this, "Error", "Could not generate hash");
+            return;
+        }
+
+        this->ui->displayLineEdit->setText(hash);
+
+        toggleVerificationAcceptanceControls(true); // Show the UI elements for acceptance/rejection
     }
-
-    QString hash = this->generate_hash(publicKey);
-
-    if (hash.isEmpty()){
-        QMessageBox::warning(this, "Error", "Could not generate hash");
-        // Clear data on failure to generate hash
-        this->otherPublicKey.clear();
-        return;
-    }
-
-    this->ui->displayLineEdit->setText(hash);
-
-    toggleUIElements(true); // Show the UI elements for acceptance/rejection
 }
 
 void VerifyPage::on_rejectButton_clicked() {
@@ -134,13 +157,17 @@ void VerifyPage::on_rejectButton_clicked() {
 }
 
 void VerifyPage::on_acceptButton_clicked() {
-    // TODO: Implement the logic to accept the friendship and store it locally
-    setButtonsEnabled(false);
-    QMessageBox::information(this, "Success", "Friendship accepted!");
-    
-    emit goToMainMenuRequested(); 
-    // internal switch to the find friend page
-    switchPages(FIND_FRIEND_INDEX);
+    // Save friendship data
+    if (saveFriendPairToJSON()) {
+        setButtonsEnabled(false);
+        QMessageBox::information(this, "Success", "Friendship accepted!");
+        
+        emit goToMainMenuRequested(); 
+        // internal switch to the find friend page
+        switchPages(FIND_FRIEND_INDEX);
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to save friendship data");
+    }
 }
 
 bool VerifyPage::validateUsername(const QString& username) {
@@ -160,8 +187,102 @@ bool VerifyPage::validateUsername(const QString& username) {
     return true;
 }
 
+QString VerifyPage::buildFriendStorageFilePath() {
+    const QString username = LoginSessionManager::getInstance().getUsername();
+    return QCoreApplication::applicationDirPath() + friendsPath + username + jsonExtension;
+}
 
-void VerifyPage::toggleUIElements(bool show) {
+bool VerifyPage::validateFriendData() {
+    if (this->otherUsername.isEmpty()) {
+        QMessageBox::warning(this, "Error", "No username to save");
+        return false;
+    }
+    
+    if (this->otherPublicKey.isEmpty()) {
+        QMessageBox::warning(this, "Error", "No public key to save");
+        return false;
+    }
+    
+    return true;
+}
+
+QJsonObject VerifyPage::readFriendsJson(const QString& filepath) {
+    QJsonObject friendsData;
+    
+    if (!QFile::exists(filepath)) {
+        // Create the file if it doesn't exist
+        QFile file(filepath);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QMessageBox::warning(this, "Error", "Could not create friend storage file.");
+            return friendsData;
+        }
+        file.close();
+        return friendsData;
+    }
+    
+    // Read file data
+    QFile file(filepath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        QMessageBox::warning(this, "File Opening Error", 
+                            "Failed to open friend file: " + file.errorString());
+        return friendsData;
+    }
+    
+    // Read the existing data
+    const QByteArray jsonData = file.readAll();
+    file.close();
+    
+    // Parse existing JSON data
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
+        friendsData = doc.object();
+    } else if (!jsonData.isEmpty()) {
+        QMessageBox::warning(this, "Parse Error", 
+                            "Failed to parse friends data: " + parseError.errorString());
+    }
+    
+    return friendsData;
+}
+
+bool VerifyPage::writeFriendsJson(const QString& filepath, const QJsonObject& friendsData) {
+    QJsonDocument updatedDoc(friendsData);
+    QFile writeFile(filepath);
+    if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, "File Writing Error", 
+                           "Failed to write to friend file: " + writeFile.errorString());
+        return false;
+    }
+    
+    writeFile.write(updatedDoc.toJson());
+    writeFile.close();
+    
+    return true;
+}
+
+bool VerifyPage::saveFriendPairToJSON() {
+    // Validate we have the required data
+    if (!validateFriendData()) {
+        return false;
+    }
+
+    // Get the filepath
+    QString filepath = buildFriendStorageFilePath();
+    
+    // Read existing data
+    QJsonObject friendsData = readFriendsJson(filepath);
+    
+    // Add or update username and public key pair
+    QString publicKeyBase64 = QString::fromUtf8(this->otherPublicKey);
+    friendsData[this->otherUsername] = publicKeyBase64;
+    qDebug() << "Saving friend pair: " << this->otherUsername << " with public key: " << publicKeyBase64;
+    
+    // Write back to file
+    return writeFriendsJson(filepath, friendsData);
+}
+
+
+void VerifyPage::toggleVerificationAcceptanceControls(bool show) {
     if (show){
         this->ui->acceptButton->show();
         this->ui->rejectButton->show();
@@ -186,8 +307,8 @@ void VerifyPage::switchPages(int pageIndex) {
     ui->contentStackedWidget->setCurrentIndex(pageIndex);
     if (pageIndex == FIND_FRIEND_INDEX) {
         this->otherPublicKey.clear();  
-        this->username.clear();
-        toggleUIElements(false); // Hide all UI elements
+        this->otherUsername.clear();  
+        toggleVerificationAcceptanceControls(false); // Hide all UI elements
     }
     setButtonsEnabled(true);
 }
@@ -204,10 +325,13 @@ void VerifyPage::on_findButton_clicked()
 {
    QString username = this->ui->usernameLineEdit->text();
     if (validateUsername(username)) {
-        this->username = username;
-        QMessageBox::information(this, "Success", "Successfully found: " + username);
+        this->otherUsername = username;  // Store the username for later use
         this->ui->usernameLineEdit->clear(); 
-        switchPages(VERIFY_PUBLIC_KEY_INDEX);
+
+        if (fetch_server_public_key(username)) {
+              switchPages(VERIFY_PUBLIC_KEY_INDEX);
+        }
+        // Error messages are handled in fetch_server_public_key, so no need to show them here
     }
     // Error messages are handled in validateUsername, so no need to show them here
 }
