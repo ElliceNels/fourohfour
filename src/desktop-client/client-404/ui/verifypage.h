@@ -44,7 +44,7 @@ private:
     void setupConnections() override;
 
     void switchPages(int pageIndex);
-    void toggleUIElements(bool show);
+    void toggleVerificationAcceptanceControls(bool show);
     void setButtonsEnabled(bool enabled);
     bool validateUsername(const QString& username);
 
