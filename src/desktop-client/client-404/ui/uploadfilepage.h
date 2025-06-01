@@ -31,7 +31,7 @@ private:
     qint64 fileSize;
     QByteArray fileData;
 
-    void encryptAndUploadFile();
+    void tryEncryptAndUploadFile();
     QByteArray formatFileMetadata();
     bool SaveKeyToLocalStorage(const QString &fileUuid,const unsigned char *key, size_t keyLen);
     bool validateKeyParameters(const unsigned char *key, size_t keyLen);

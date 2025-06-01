@@ -6,8 +6,15 @@
 using namespace std;
 
 // File upload constants
-constexpr qint64 ENCRYPTION_OVERHEAD_BYTES = 50;  // Conservative estimate for encryption overhead
-constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;  // Exact database constraint (100MB)
+namespace FileUpload {
+    // encryption overhead:
+    // - XChaCha20-Poly1305 nonce (24 bytes)
+    // - Authentication tag (16 bytes)
+    constexpr qint64 ENCRYPTION_OVERHEAD_BYTES = 40;
+    
+    // Exact database constraint (100MB)
+    constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;
+}
 
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";

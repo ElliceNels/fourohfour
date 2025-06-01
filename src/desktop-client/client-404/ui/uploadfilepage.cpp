@@ -55,11 +55,11 @@ void UploadFilePage::on_uploadButton_clicked()
 
         // Account for encryption overhead when checking file size
         // Encryption adds nonce (24 bytes) + auth tag (~16 bytes) = ~40 bytes overhead
-        if (this->fileSize > (SERVER_MAX_SIZE_BYTES - ENCRYPTION_OVERHEAD_BYTES)) {
+        if (this->fileSize > (FileUpload::SERVER_MAX_SIZE_BYTES - FileUpload::ENCRYPTION_OVERHEAD_BYTES)) {
             QMessageBox::warning(this, "Error", 
                 QString("File size %1 bytes exceeds limit. Maximum allowed: %2 bytes (accounting for encryption overhead)")
                 .arg(this->fileSize)
-                .arg(SERVER_MAX_SIZE_BYTES - ENCRYPTION_OVERHEAD_BYTES));
+                .arg(FileUpload::SERVER_MAX_SIZE_BYTES - FileUpload::ENCRYPTION_OVERHEAD_BYTES));
             return;
         }
 
@@ -109,7 +109,7 @@ QByteArray UploadFilePage::formatFileMetadata(){
     return metadataBytes;
 }
 
-void UploadFilePage::encryptAndUploadFile() {
+void UploadFilePage::tryEncryptAndUploadFile() {
     
     EncryptionHelper crypto;
 
@@ -405,7 +405,7 @@ bool UploadFilePage::encryptAndSaveKeyStorage(const QString &filepath, const QBy
 void UploadFilePage::on_confirmButton_clicked(){
 
     // 
-   encryptAndUploadFile();
+   tryEncryptAndUploadFile();
 
     // Clean up member variables and this->ui
     this->fileData.clear();
