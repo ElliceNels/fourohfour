@@ -65,6 +65,15 @@ private:
             stackedWidget->setCurrentIndex(pageIndex);
         });
     }
+
+    // Overloaded version that performs an additional action after navigation
+    template<typename SenderType, typename SignalFunc, typename Receiver, typename Slot>
+    void connectPageNavigation(SenderType* sender, SignalFunc signal, int pageIndex, Receiver* receiver, Slot slot) {
+        connect(sender, signal, this, [this, pageIndex, receiver, slot]() {
+            stackedWidget->setCurrentIndex(pageIndex);
+            (receiver->*slot)();  
+        });
+    }
 };
 
 #endif // MAINWINDOW_H

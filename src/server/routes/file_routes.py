@@ -100,7 +100,8 @@ def list_files():
                 "file_size": <size>,
                 "format": <format>,
                 "uploaded_at": <timestamp>,
-                "is_owner": false
+                "is_owner": false,
+                "owner_username": <owner_username>
             }
         ]
     }

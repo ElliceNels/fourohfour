@@ -3,7 +3,7 @@ from flask import jsonify
 import os
 import base64
 import uuid
-from server.models.tables import Files, FilePermissions, FileMetadata
+from server.models.tables import Files, FilePermissions, FileMetadata, Users
 from server.utils.db_setup import get_session
 import logging
 from werkzeug.utils import secure_filename
@@ -166,30 +166,28 @@ def get_user_files(user_id: int) -> dict:
                 'is_owner': True
             } for file in owned_files]
 
-            # Get files shared with the user
-            shared_permissions = db.query(FilePermissions).filter_by(user_id=user_id).all()
-            shared_file_ids = [permission.file_id for permission in shared_permissions]
-            shared_files = db.query(Files).filter(Files.id.in_(shared_file_ids)).all()
+            # Get files shared with the user with owner information in a single query
+            shared_files = (db.query(Files, Users.username)
+                          .join(Users, Files.owner_id == Users.id)
+                          .join(FilePermissions, Files.id == FilePermissions.file_id)
+                          .filter(FilePermissions.user_id == user_id)
+                          .all())
 
-        shared_files_map = {file.id: file for file in shared_files}
-        shared_files_data = []
-        for permission in shared_permissions:
-            file = shared_files_map.get(permission.file_id)
-            if file:
-                shared_files_data.append({
-                    'uuid': str(file.uuid),
-                    'filename': file.name,
-                    'file_size': file.metadata.size if file.metadata else None,
-                    'format': file.metadata.format if file.metadata else None,
-                    'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None,
-                    'is_owner': False
-                })
+            shared_files_data = [{
+                'uuid': str(file.uuid),
+                'filename': file.name,
+                'file_size': file.file_metadata.size if file.file_metadata else None,
+                'format': file.file_metadata.format if file.file_metadata else None,
+                'uploaded_at': file.uploaded_at.isoformat() if file.uploaded_at else None,
+                'is_owner': False,
+                'owner_username': username
+            } for file, username in shared_files]
 
-        logger.info(f"User {user_id} retrieved their files successfully")
-        return jsonify({
-            'owned_files': owned_files_data,
-            'shared_files': shared_files_data
-        }), 200
+            logger.info(f"User {user_id} retrieved their files successfully")
+            return jsonify({
+                'owned_files': owned_files_data,
+                'shared_files': shared_files_data
+            }), 200
 
     except Exception as e:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")

@@ -28,6 +28,8 @@ private:
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
     void setupConnections() override;
+    
+    void onViewFilesClicked();
 
 signals:
     void goToUploadFilePageRequested();

@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/images">
+    <qresource prefix="/">
         <file>images/file_icon.png</file>
         <file>images/eye-bold.svg</file>
         <file>images/share-fat-fill.svg</file>
