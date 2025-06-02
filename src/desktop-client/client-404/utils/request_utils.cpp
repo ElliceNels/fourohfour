@@ -119,10 +119,19 @@ bool RequestUtils::refreshAccessToken() {
     return success;
 }
 
-// Destructor - no longer needs manual cleanup
 RequestUtils::~RequestUtils() {
     clearBearerToken();
     clearRefreshToken();
+    
+    // Clear the last JSON data 
+    if (!m_lastJsonData.empty()) {
+        sodium_memzero(m_lastJsonData.data(), m_lastJsonData.size());
+        m_lastJsonData.clear();
+    }
+    
+    // Clear the base URL
+    m_baseUrl.clear();
+    
     // Smart pointers will handle cleanup of m_curl and m_headers
 }
 
