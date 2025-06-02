@@ -120,7 +120,6 @@ void ViewFilesPage::displayFiles(const QJsonArray& ownedFiles, const QJsonArray&
     ui->sharedFilesListWidget->clear();
     
     // Add owned files
-    QString currentUser = LoginSessionManager::getInstance().getUsername();
     for (const QJsonValue& fileValue : ownedFiles) {
         addFileItem(
             fileValue.toObject(), 
