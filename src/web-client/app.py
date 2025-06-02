@@ -27,7 +27,7 @@ def signup():
             if registration_success:
                 print(f"Registration successful for {account_name}")  
                 flash(message, "success")
-                return redirect(url_for('login'))
+                return redirect(url_for('main_menu'))
             else:
                 flash(error_message, "error")
     return render_template('signup.html')
