@@ -73,7 +73,27 @@ The testing was performed with the assumption that neither client nor server can
 
 ## Full Penetration Testing Results
 
-### 1. Improper Input Validation
+### 1. Security Misconfiguration
+
+#### Test Case: Server Configuration
+**Description**: Analyzed server and application configuration.
+
+**Testing Method**:
+- Used OWASP ZAP to scan for misconfigurations
+- Manual review of security headers
+- Analysis of CORS implementation
+
+**Findings**:
+- Proper CORS configuration
+- Secure headers implemented
+- Debug mode disabled in production
+
+**Protection Mechanisms**:
+- Environment-based configuration
+- Secure default settings
+- Proper error handling
+
+### 2. Improper Input Validation
 
 #### Test Case: File Size Validation Bypass
 **Description:** Attempted to bypass file size restrictions through various methods including malformed requests and size manipulation.
@@ -99,7 +119,7 @@ Monitored server response and database behavior
 - Implement proper error responses instead of server crashes
 - Add logging for failed upload attempts
 
-### 2. Broken Authentication
+### 3. Broken Authentication
 
 #### Test Case: JWT Token Security
 **Description**: Analyzed JWT implementation and token handling.
@@ -123,7 +143,7 @@ Monitored server response and database behavior
 - JWT_SECRET_KEY properly configured
 - Token expiration and refresh mechanisms are properly configured
 
-### 3. Broken Access Control
+### 4. Broken Access Control
 
 #### Test Case: File Permission Bypass
 **Description:** Conducted comprehensive testing of the file access control system to identify potential permission bypass vulnerabilities.
@@ -172,12 +192,12 @@ Monitored server response and database behavior
 - Proper file path construction using os.path.join is in place
 - User-specific file path prefixes to prevent cross-user access
 
-### 4. Cryptographic Issues
+### 5. Cryptographic Issues
 
 #### Test Case: File Encryption Implementation
 TODO Client side encryption??
 
-### 5. Injection
+### 6. Injection
 
 #### Test Case: SQL Injection in Login
 **Description**: Conducted comprehensive testing of SQL injection vulnerabilities in authentication endpoints, focusing on login and password management functionality.
@@ -238,25 +258,6 @@ TODO Client side encryption??
 -Secure error handling
 - Input validation at multiple levels
 
-### 6. Security Misconfiguration
-
-#### Test Case: Server Configuration
-**Description**: Analyzed server and application configuration.
-
-**Testing Method**:
-- Used OWASP ZAP to scan for misconfigurations
-- Manual review of security headers
-- Analysis of CORS implementation
-
-**Findings**:
-- Proper CORS configuration
-- Secure headers implemented
-- Debug mode disabled in production
-
-**Protection Mechanisms**:
-- Environment-based configuration
-- Secure default settings
-- Proper error handling
 
 ### 7. Sensitive Data Exposure
 
