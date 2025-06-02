@@ -14,6 +14,7 @@
 #include <qstackedwidget.h>
 #include <QHostInfo>
 #include "constants.h"
+#include "loginsessionmanager.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -53,13 +54,51 @@ void LoginPage::onLoginButtonClicked()
     }
     recordLoginAttempt(clientIP);
 
+
     string sUsername = username.toStdString();
     string sPassword = password.toStdString();
 
 
 
-    // Switch to main menu after login
-    emit this->goToMainMenuRequested();
+    if (sendLogInRequest(username, password)) {
+        // Switch to main menu after login
+        emit goToMainMenuRequested();
+    }
+
+}
+
+bool LoginPage::sendLogInRequest(const QString& username, const QString& password)
+{
+
+    // Set base URL for the server
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
+
+    // Prepare JSON payload for registration
+    QJsonObject requestData;
+    requestData["username"] = username;
+    requestData["password"] = password;
+
+
+    // Make the POST request to the sign_up endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(LOGIN_ENDPOINT, requestData);
+
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+
+        // Extract tokens from the response
+        QString accessToken = jsonObj["access_token"].toString();
+        QString refreshToken = jsonObj["refresh_token"].toString();
+
+        // Set tokens in the LoginSessionManager
+        LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+
+        qDebug() << "Login successful. Tokens saved in session manager.";
+        return true;
+    } else {
+        QMessageBox::critical(this, "Login Error", QString::fromStdString(response.errorMessage));
+        return false;
+    }
 }
 
 void LoginPage::onShowPasswordClicked()

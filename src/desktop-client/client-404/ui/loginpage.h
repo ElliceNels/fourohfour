@@ -33,6 +33,7 @@ private:
     bool isRateLimited(const QString& ip);
     void recordLoginAttempt(const QString& ip);
     QString getClientIP();
+    bool sendLogInRequest(const QString& username, const QString& password);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;

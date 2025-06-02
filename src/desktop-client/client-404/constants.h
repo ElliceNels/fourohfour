@@ -33,7 +33,8 @@ const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
 const int fileSizeLabelWidth = 80;
-const QString serverPath = "https://fourohfour.gobbler.info/";
+const QString serverPath = "http://localhost:5000";
+//"https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000
 
@@ -67,6 +68,7 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string LOGIN_ENDPOINT = "/login";
 const std::string FILES_API_ENDPOINT = "/api/files";
 const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
 const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
