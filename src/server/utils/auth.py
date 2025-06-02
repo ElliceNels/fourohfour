@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from flask import jsonify, request
 from server.utils.db_setup import get_session
 from server.models.tables import OTPK, Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
+from typing import List, Dict
 import logging
 import nacl.pwhash
 import base64
@@ -95,8 +96,8 @@ def sign_up(username: str, password: str, public_key: str, spk: str, spk_signatu
             spk=spk,  # Store as base64 string
             spk_signature=spk_signature,  # Store as base64 string
             salt=salt,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
 
         db.add(new_user)
@@ -151,7 +152,7 @@ def change_password(token: str, new_password: str, salt: bytes) -> dict:
         hashed_new_password = hash_password(new_password)
         user.password = hashed_new_password
         user.salt = salt
-        user.updated_at = datetime.now()
+        user.updated_at = datetime.now(UTC)
         db.commit()
         logger.info(f"User {user_id} changed password and salt successfully")
     return jsonify({"message": "Password updated successfully"}), 200
@@ -223,7 +224,7 @@ def change_username(token: str, new_username: str) -> dict:
         
         # Update the username
         user.username = new_username
-        user.updated_at = datetime.now()
+        user.updated_at = datetime.now(UTC)
         db.commit()
     logger.info(f"User {user_id} changed username successfully")
 
@@ -342,3 +343,38 @@ def get_count_otpk(user_info : dict) -> int:
         otpk_count = db.query(OTPK).filter_by(user_id=user_id, used=0).count()
         logger.info(f"Counted {otpk_count} unused OTPKs for user {username})")
     return otpk_count
+
+def add_otks(otks: List[str], user_info: Dict) -> Dict:
+    """Add one-time pre keys (OTPKs) for the current user.
+
+    Args:
+        otks (List[str]): List of base64 encoded one-time pre keys to add.
+        user_info (Dict): Dictionary containing user information.
+
+    Returns:
+        Dict: Response containing success message or error message.
+    """
+    
+    if not otks or not user_info:
+        logger.warning("Add OTPKs failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    user_id = user_info.get("user_id")
+    if not user_id:
+        logger.warning("Add OTPKs failed: Missing user_id in user_info")
+        return {"error": "Missing user_id in user_info"}, 400
+
+    with get_session() as db:
+        for otk in otks:            
+            new_otk = OTPK(
+                user_id=user_id,
+                otk=otk,
+                used=0,  # Initially unused
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
+            )
+            db.add(new_otk)
+        db.commit()
+    
+    logger.info(f"Added {len(otks)} OTPKs for user {user_info['username']}")
+    return {"message": f"Added {len(otks)} OTPKs successfully"}, 201

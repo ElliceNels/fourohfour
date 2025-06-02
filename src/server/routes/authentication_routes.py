@@ -280,3 +280,34 @@ def count_otpk():
         return jsonify({"error": e.message}), e.status
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@authentication_routes.route('/add_otpks', methods=['POST'])
+def add_otpks():
+    """Add OTKs route to generate and add one-time pre keys for the current user.
+
+    Expected JSON payload:
+    {
+     optks:
+        [
+            dGhpcyBpcyBhIHRlc3Qga2V5IDMzNTU1Mw==, YW5vdGhlciB0ZXN0IGtleSAyMzQ1Njc4OQ== #base 64 encoded!
+        ]
+    }
+
+    Expected response:
+    {
+        "message": "OTPKs added successfully",
+        "otpk_count": <new_otpk_count>
+    }
+    """
+    try:
+        data = request.get_json()
+        otks = data.get('otpks')
+        if not data or not otks:
+            logger.warning("Add OTPKs failed: Missing or malformed request data")
+            return jsonify({"error": "Missing request fields"}), 400
+        user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+        return auth.add_otks(otks, user_info)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
