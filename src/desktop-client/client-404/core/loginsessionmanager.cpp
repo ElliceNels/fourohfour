@@ -55,6 +55,9 @@ RequestUtils::Response LoginSessionManager::get(const std::string& url, const QJ
 void LoginSessionManager::clearSession() {
     this->m_masterKey.clear();  // SecureVector handles secure zeroing
     this->m_username.clear();
+    
+    // Use dedicated reset method instead of recreating the object
+    this->m_requestUtils.reset();
 
     qDebug() << "Session cleaned up when called";
 }
