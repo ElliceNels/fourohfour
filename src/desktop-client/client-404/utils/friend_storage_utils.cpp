@@ -104,8 +104,29 @@ bool FriendStorageUtils::writeFriendsJson(const QString& filepath, const QJsonOb
  * @return true if the save succeeded, false otherwise
  */
 bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QString& publicKey, QWidget* parent) {
+    if (username.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "Cannot save friend with empty username.");
+        }
+        return false;
+    }
+    
+    if (publicKey.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "Cannot save friend with empty public key.");
+        }
+        return false;
+    }
+    
     // Get the current logged in user
     QString currentUsername = LoginSessionManager::getInstance().getUsername();
+    if (currentUsername.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "No logged-in user found. Cannot save friend.");
+        }
+        return false;
+    }
+    
     // Get the filepath
     QString filepath = buildFriendStorageFilePath(currentUsername);
     
