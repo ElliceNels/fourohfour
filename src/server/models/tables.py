@@ -35,7 +35,25 @@ class Users(Base):
         uselist=False,
         cascade="all, delete-orphan"
     )
-    # Cascades: When a user is deleted, all their files, permissions, and token invalidation records are also deleted !!
+    otpks = relationship(
+        "OTPK",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    # Cascades: When a user is deleted, all their files, permissions, token invalidation, otpk records are also deleted !!
+
+class OTPK(Base):
+    """One-Time Pre Key table to store one-time pre keys for users."""
+    __tablename__ = 'one_time_pre_keys'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    key = Column(BLOB, nullable=False) #A SIGNED pre key
+    used = Column(Integer, nullable=False, default=0)  # 0 for unused, 1 for used
+    created_at = Column(DateTime, nullable=False)
+
+    user = relationship("Users", back_populates="otpks")
+
 
 class FilePermissions(Base):
     """File permissions table to store user-specific file access permissions."""
