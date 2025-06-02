@@ -4,6 +4,7 @@ from signup import validate_registration, manage_registration
 from uploadfile import validate_file_size, validate_file_type
 from resetpassword import manage_reset_password
 from session_manager import LoginSessionManager
+from exceptions import UserNotFoundError
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -37,11 +38,15 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        if manage_login(password, username):
+        
+        login_success, message = manage_login(password, username)
+        if login_success:
+            print(f"Login successful for {username}")
+            flash(message, "success")
             return redirect(url_for('main_menu'))
         else:
-            error = "Login failed. Please check your credentials."
-            return render_template('login.html', error=error)
+            flash(message, "error")
+            
     return render_template('login.html')
 
 @app.route('/mainmenu')

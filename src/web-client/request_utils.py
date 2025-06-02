@@ -1,6 +1,6 @@
 import requests
 import json
-from exceptions import UsernameAlreadyExistsError, ServerError
+from exceptions import UsernameAlreadyExistsError, ServerError, UserNotFoundError, InvalidPasswordError
 
 def get_request(url, params=None):
     """
@@ -31,7 +31,7 @@ def post_request(url, json_data=None):
     :param url: The URL to send the POST request to.
     :param json_data: (Optional) JSON data to send in the body.
     :return: Response object or None if an error occurs.
-    :raises: UsernameAlreadyExistsError, ServerError
+    :raises: UsernameAlreadyExistsError, UserNotFoundError, InvalidPasswordError, ServerError
     """
     try:
         if json_data is not None and isinstance(json_data, dict):
@@ -43,8 +43,13 @@ def post_request(url, json_data=None):
         else:
             response = requests.post(url, data=json_data)
             
+        # Check status codes before raise_for_status
         if response.status_code == 409:
             raise UsernameAlreadyExistsError()
+        elif response.status_code == 404:
+            raise UserNotFoundError()
+        elif response.status_code == 401:
+            raise InvalidPasswordError()
             
         response.raise_for_status()
         return response
@@ -53,6 +58,10 @@ def post_request(url, json_data=None):
         print(f"HTTP error occurred: {http_err}")
         if "409" in str(http_err):
             raise UsernameAlreadyExistsError()
+        elif "404" in str(http_err):
+            raise UserNotFoundError()
+        elif "401" in str(http_err):
+            raise InvalidPasswordError()
         raise ServerError()
     except requests.exceptions.ConnectionError as conn_err:
         print(f"Connection error occurred: {conn_err}")
