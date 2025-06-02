@@ -119,10 +119,35 @@ bool RequestUtils::refreshAccessToken() {
     return success;
 }
 
-// Destructor - no longer needs manual cleanup
-RequestUtils::~RequestUtils() {
+void RequestUtils::reset() {
+    // First clean up all sensitive data
+    cleanup();
+
+    // Then reinitialize for reuse
+    curl_easy_reset(m_curl.get());
+    setupCurl();
+}
+
+
+void RequestUtils::cleanup() {
     clearBearerToken();
     clearRefreshToken();
+    
+    // Clear the last JSON data 
+    if (!m_lastJsonData.empty()) {
+        sodium_memzero(m_lastJsonData.data(), m_lastJsonData.size());
+        m_lastJsonData.clear();
+    }
+    
+    // Clear the base URL
+    m_baseUrl.clear();
+    
+    // Reset token refresh in progress flag
+    m_tokenRefreshInProgress.store(false);
+}
+
+RequestUtils::~RequestUtils() {
+    cleanup();
     // Smart pointers will handle cleanup of m_curl and m_headers
 }
 

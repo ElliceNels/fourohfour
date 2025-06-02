@@ -166,6 +166,15 @@ def test_list_files(client, logged_in_user, setup_test_db):
     data = response.json
     assert "owned_files" in data
     assert "shared_files" in data
+    
+    # Check that owned files don't have username field
+    for file in data["owned_files"]:
+        assert "owner_username" not in file
+    
+    # Check that shared files have username field
+    for file in data["shared_files"]:
+        assert "owner_username" in file
+        assert isinstance(file["owner_username"], str)
 
 def test_get_file(client, logged_in_user, stored_file_data, setup_test_db):
     """Test retrieving a specific file by UUID."""

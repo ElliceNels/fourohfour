@@ -23,9 +23,13 @@ void MainMenu::initialisePageUi(){
 
 void MainMenu::setupConnections(){
     connect(this->ui->uploadButton, &QPushButton::clicked, this, &MainMenu::goToUploadFilePageRequested);
-    connect(this->ui->viewFilesButton, &QPushButton::clicked, this, &MainMenu::goToViewFilesPageRequested);
+    connect(this->ui->viewFilesButton, &QPushButton::clicked, this, &MainMenu::onViewFilesClicked);
     connect(this->ui->verifyButton, &QPushButton::clicked, this, &MainMenu::goToVerifyPageRequested);
     connect(this->ui->resetPasswordButton, &QPushButton::clicked, this, &MainMenu::goToResetPasswordRequested);
+}
+
+void MainMenu::onViewFilesClicked() {
+    emit goToViewFilesPageRequested();
 }
 
 void MainMenu::on_logOutButton_clicked() {

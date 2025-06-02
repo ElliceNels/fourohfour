@@ -123,16 +123,36 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
         assert 'error' in data
 
 @pytest.mark.parametrize("user_id, owned_files, shared_files, db_error, expected_status", [
-    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'file_metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()], [], False, CODE_SUCCESS),
+    (1, [type('Obj', (), {'id': 1, 'uuid': uuid.uuid4(), 'name': 'a', 'file_metadata': type('Meta', (), {'size': 1, 'format': 'txt'})(), 'uploaded_at': None})()],
+     [(type('Obj', (), {'id': 2, 'uuid': uuid.uuid4(), 'name': 'b', 'file_metadata': type('Meta', (), {'size': 2, 'format': 'txt'})(), 'uploaded_at': None})(), 'owner1')],
+     False, CODE_SUCCESS),
     (2, [], [], True, CODE_SERVER_ERROR),
 ])
 def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_status, mock_db, app_ctx, mocker):
     if db_error:
         mocker.patch('server.utils.file.get_session', side_effect=Exception("DB error"))
     else:
-        mock_db.query().filter_by().all.side_effect = [owned_files, shared_files]
-        mock_db.query().filter().all.return_value = shared_files
-        mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
+        # Set up the query mocks
+        owned_query = MagicMock()
+        owned_query.filter_by().all.return_value = owned_files
+
+        # Set up the shared files query chain
+        shared_query = MagicMock()
+        shared_query.join = MagicMock(return_value=shared_query)
+        shared_query.filter = MagicMock(return_value=shared_query)
+        shared_query.all = MagicMock(return_value=shared_files)
+
+        # Make query() return different mocks based on the query
+        def query_side_effect(*args, **kwargs):
+            # If querying just Files, it's for owned files
+            if len(args) == 1 and args[0].__name__ == 'Files':
+                return owned_query
+            # If querying Files and Users.username, it's for shared files
+            return shared_query
+
+        mock_db.query.side_effect = query_side_effect
+        mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db)) 
+    
     response = get_user_files(user_id)
     if isinstance(response, tuple):
         data, status = response
@@ -145,12 +165,24 @@ def test_get_user_files(user_id, owned_files, shared_files, db_error, expected_s
             assert 'shared_files' in data
             if owned_files:
                 assert 'uuid' in data['owned_files'][0]
+                assert 'owner_username' not in data['owned_files'][0]
+            if shared_files:
+                assert len(data['shared_files']) > 0, "shared_files list is empty"
+                assert 'uuid' in data['shared_files'][0]
+                assert 'owner_username' in data['shared_files'][0]
+                assert data['shared_files'][0]['owner_username'] == shared_files[0][1]
     else:
         data = response.get_json()
         assert 'owned_files' in data
         assert 'shared_files' in data
         if owned_files:
             assert 'uuid' in data['owned_files'][0]
+            assert 'owner_username' not in data['owned_files'][0]
+        if shared_files:
+            assert len(data['shared_files']) > 0, "shared_files list is empty"
+            assert 'uuid' in data['shared_files'][0]
+            assert 'owner_username' in data['shared_files'][0]
+            assert data['shared_files'][0]['owner_username'] == shared_files[0][1]
 
 @pytest.mark.parametrize("file_uuid, user_id, file_found, owner, has_permission, file_read_error, db_error, expected_status", [
     (uuid.uuid4(), 1, True, True, True, False, False, CODE_SUCCESS),  # Owner, success
@@ -189,8 +221,10 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
 
         # Make query() return different mocks based on the query
         def query_side_effect(*args, **kwargs):
-            if args[0].__name__ == 'Files':
+            # If querying just Files, it's for owned files
+            if len(args) == 1 and args[0].__name__ == 'Files':
                 return file_query
+            # If querying Files and Users.username, it's for shared files
             return perm_query
         
         mock_db.query.side_effect = query_side_effect
