@@ -15,7 +15,7 @@ def generate_code(friend_username: str) -> str:
     pk_info, status = serv_api.get_public_key(friend_username)
     if status != 200:
         logger.error("Failed to fetch friend's public key")
-        raise Exception("Failed to fretch friend's public key")
+        raise Exception("Failed to fetch friend's public key")
     friend_pk = pk_info.get("public_key")
     if not friend_pk:
         logger.error("Public key not found in response")
@@ -134,7 +134,7 @@ def save_friend(friend_username: str, public_key: str) -> bool:
         
     friend_data[friend_username] = public_key
 
-    with open(config.friends.file_path, 'w') as f:
+    with open(_get_friend_filepath(), 'w') as f:
         json.dump(friend_data, f, indent=4)
     return True
 
