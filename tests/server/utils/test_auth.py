@@ -324,3 +324,45 @@ def test_add_otpk_cases(otpks, user_info, expected_status, mock_db, app_ctx, moc
             assert otk_obj.updated_at is not None
             # Verify that created_at and updated_at are set to the same value initially
             assert otk_obj.created_at == otk_obj.updated_at
+
+@pytest.mark.parametrize(
+    "username, user_exists, has_unused_otpk, expected_status, expected_otpk",
+    [
+        ("valid_user", True, True, CODE_SUCCESS, "test_otpk"),  # Success case
+        ("nonexistent_user", False, False, CODE_NOT_FOUND, None),  # User not found
+        ("user_no_otpk", True, False, CODE_NOT_FOUND, None),  # User exists but no unused OTPK
+        (None, False, False, CODE_BAD_REQUEST, None),  # Missing username
+    ]
+)
+def test_get_otpk_cases(username, user_exists, has_unused_otpk, expected_status, expected_otpk, mock_db, app_ctx, mocker):
+    from server.utils.auth import get_otpk
+    
+    # Set up mock database responses
+    if user_exists:
+        user = Users(id=1, username=username)
+        otpk = OTPK(key=expected_otpk, used=0) if has_unused_otpk else None
+        mock_db.query().filter_by().first.side_effect = [user, otpk]
+    else:
+        mock_db.query().filter_by().first.return_value = None
+    
+    # Patch the database session
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    
+    # Call the function
+    response = get_otpk(username)
+    
+    # Verify response status
+    assert response[1] == expected_status
+    
+    # Verify response content
+    if expected_status == CODE_SUCCESS:
+        assert response[0]["otpk"] == expected_otpk
+        # Verify that the OTPK was marked as used
+        assert otpk.used == 1
+        assert otpk.updated_at is not None
+        # Verify that the database was committed
+        assert mock_db.commit.call_count == 1
+    else:
+        assert "error" in response[0]
+        # Verify that no database changes were made for error cases
+        assert mock_db.commit.call_count == 0

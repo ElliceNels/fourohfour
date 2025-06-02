@@ -198,3 +198,33 @@ def test_db_is_clean_after_setup(setup_test_db):
     from server.utils.db_setup import get_session
     with get_session() as db:
         assert db.query(Users).count() == 0
+
+def test_get_otpk(client: FlaskClient, logged_in_user):
+    """Test getting a one-time prekey (OTPK)."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # First add some OTPKs
+    test_otpks = [
+        base64.b64encode(b"test_otpk_1").decode(),
+        base64.b64encode(b"test_otpk_2").decode(),
+        base64.b64encode(b"test_otpk_3").decode()
+    ]
+    
+    # Add the OTPKs
+    add_response = client.post("/add_otpks", json={"otpks": test_otpks}, headers=headers)
+    assert add_response.status_code == 201
+    
+    # Get an OTPK
+    username = logged_in_user["user"]["username"]
+    get_response = client.get(f"/get_otpk?username={username}", headers=headers)
+    assert get_response.status_code == 200
+    assert "otpk" in get_response.json
+    assert get_response.json["otpk"] in test_otpks
+    
+    # Verify the OTPK was marked as used by trying to get it again
+    # It should return a different OTPK
+    get_response_2 = client.get(f"/get_otpk?username={username}", headers=headers)
+    assert get_response_2.status_code == 200
+    assert "otpk" in get_response_2.json
+    assert get_response_2.json["otpk"] in test_otpks
+    assert get_response_2.json["otpk"] != get_response.json["otpk"]

@@ -399,10 +399,20 @@ def get_otpk(username: str) -> Dict:
         if not user:
             logger.warning(f"Get OTPK failed for user {username}: User not found")
             return {"error": "User not found"}, 404
+            
         #get the first unused OTPK for the user
         otpk = db.query(OTPK).filter_by(user_id=user.id, used=0).first()
         if not otpk:
             logger.warning(f"Get OTPK failed for user {username}: No unused OTPK found")
             return {"error": "No unused OTPK found"}, 404
-    logger.info(f"Retrieved OTPK for user {username}")
-    return {"otpk": otpk.key}, 200
+            
+        # Store the key before marking as used
+        otpk_key = otpk.key
+        
+        # Mark the OTPK as used
+        otpk.used = 1
+        otpk.updated_at = datetime.now(UTC)
+        db.commit()
+        
+    logger.info(f"Retrieved and marked OTPK as used for user {username}")
+    return {"otpk": otpk_key}, 200

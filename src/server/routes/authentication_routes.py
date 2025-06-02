@@ -233,8 +233,6 @@ def get_current_user():
     except JWTError as e:
         return jsonify({"error": e.message}), e.status
 
-
-
 @authentication_routes.route('/get_public_key', methods=['GET'])
 def get_public_key():
     """Get public key route to retrieve the user's public key.
@@ -287,7 +285,7 @@ def add_otpks():
 
     Expected JSON payload:
     {
-     optks:
+     otpks:
         [
             dGhpcyBpcyBhIHRlc3Qga2V5IDMzNTU1Mw==, YW5vdGhlciB0ZXN0IGtleSAyMzQ1Njc4OQ== #base 64 encoded!
         ]
@@ -333,10 +331,10 @@ def get_otpk():
         logger.warning("Get OTPK failed: Missing username")
         return jsonify({"error": "Missing username"}), 400
     try:
-        otpk = auth.get_otpk(username)
-        if otpk is None:
-            return jsonify({"error": "No OTPK found for the user"}), 404
-        return jsonify({"otpk": otpk}), 200
+        response, status_code = auth.get_otpk(username)
+        if status_code != 200:
+            return jsonify(response), status_code
+        return jsonify(response), 200
     except Exception as e:
         logger.error(f"Error getting OTPK: {str(e)}")
         return jsonify({"error": str(e)}), 500
