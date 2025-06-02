@@ -121,6 +121,7 @@ void FileItemWidget::handleDelete() {
         // Check the response and show appropriate message
         if (response.success) {
             QMessageBox::information(this, "Success", response.jsonData.object().value("message").toString());
+            emit fileDeleted(); // Emit the signal when deletion is successful to trigger UI refresh
         } else {
             QMessageBox::critical(this, "Error", 
                 "Failed to delete file: " + QString::fromStdString(response.errorMessage));

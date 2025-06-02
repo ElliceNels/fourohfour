@@ -12,6 +12,9 @@ class FileItemWidget : public QWidget {
 public:
     FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent);
 
+signals:
+    void fileDeleted(); 
+
 private slots:
     void handleDownload();
     void handleShare();
