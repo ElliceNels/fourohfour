@@ -14,12 +14,13 @@
  * @return The complete file path for the friend storage file
  */
 QString FriendStorageUtils::buildFriendStorageFilePath(const QString& username) {
-    QString dirPath = QCoreApplication::applicationDirPath() + friendsDirectory;
-    QDir dir(dirPath);
-    if (!dir.exists()) {
-        dir.mkpath(".");
+   QDir friendsDir(QDir(QCoreApplication::applicationDirPath()).filePath(friendsDirectory));
+    if (!friendsDir.exists()) {
+        if (!friendsDir.mkpath(".")) {
+            qWarning() << "Failed to create directory:" << friendsDir;
+        }
     }
-    return dirPath + friendsPath + username + jsonExtension;
+    return friendsDir.filePath(friendsPath + username + jsonExtension);
 }
 
 /**

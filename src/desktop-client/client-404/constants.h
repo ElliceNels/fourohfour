@@ -19,7 +19,7 @@ namespace FileUpload {
 
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
-const QString friendsDirectory = "/friends/";
+const QString friendsDirectory = "friends";
 const QString friendsPath = "friends_";
 
 const QString jsonExtension = ".json";
