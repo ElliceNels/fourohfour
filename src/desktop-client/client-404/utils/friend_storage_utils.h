@@ -11,6 +11,7 @@ public:
     static QJsonObject readFriendsJson(const QString& filepath, QWidget* parent = nullptr);
     static bool writeFriendsJson(const QString& filepath, const QJsonObject& friendsData, QWidget* parent = nullptr);
     static bool saveFriendPairToJSON(const QString& username, const QString& publicKey, QWidget* parent = nullptr);
+    static QString getUserPublicKey(const QString& username, QWidget* parent = nullptr);
 };
 
 #endif // FRIEND_STORAGE_UTILS_H

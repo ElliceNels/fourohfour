@@ -119,3 +119,31 @@ bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QSt
     // Write back to file
     return writeFriendsJson(filepath, friendsData, parent);
 }
+
+/**
+ * @brief Retrieves a user's public key from the friends storage system
+ * @param username The username whose public key to retrieve
+ * @param parent Optional parent widget for displaying error messages
+ * @return The user's public key as a QString, or empty string if not found
+ */
+QString FriendStorageUtils::getUserPublicKey(const QString& username, QWidget* parent) {
+    // Use existing method to build the file path
+    QString currentUser = LoginSessionManager::getInstance().getUsername();
+    QString filepath = buildFriendStorageFilePath(currentUser);
+    
+    // Use existing method to read the JSON data
+    QJsonObject friendsData = readFriendsJson(filepath, parent);
+    
+    // Look for the current user's own key in their friends file
+
+    if (friendsData.contains(username)) {
+        return friendsData[username].toString();
+    }
+    
+    // If the key is not found, show a warning
+    if (parent) {
+        QMessageBox::warning(parent, "Error", "Public key for " + username + " not found in storage.");
+    }
+    
+    return QString();
+}
