@@ -39,12 +39,13 @@ QString VerifyPage::fetch_local_public_key() {
     // Get public key directly from the file system for the current logged-in user
     QString publicKey = FriendStorageUtils::getUserPublicKey(LoginSessionManager::getInstance().getUsername(), this);
     qDebug() << "Local public key fetched: " << publicKey << " for user: " << LoginSessionManager::getInstance().getUsername();
+    
     if (publicKey.isEmpty()) {
         QMessageBox::warning(this, "Error", "Unable to retrieve your public key.");
-    } else {
-        qDebug() << "Successfully retrieved local public key";
+        return QString();
     }
     
+    qDebug() << "Successfully retrieved local public key";
     return publicKey;
 }
 
