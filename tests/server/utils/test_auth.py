@@ -285,3 +285,42 @@ def test_get_count_otpk_cases(user_info, mock_count, expected_result, mock_db, a
     
     result = get_count_otpk(user_info)
     assert result == expected_result
+
+@pytest.mark.parametrize(
+    "otpks, user_info, expected_status",
+    [
+        (["otk1", "otk2"], {"user_id": 1, "username": "user1"}, CODE_CREATED), # Success case
+        ([], {"user_id": 1, "username": "user1"}, CODE_BAD_REQUEST),  # Empty OTPKs list
+        (["otk1"], None, CODE_BAD_REQUEST), #Missing user_info
+        (["otk1"], {"username": "user1"}, CODE_BAD_REQUEST),# Missing user_id in user_info
+        (["otk1"], {"user_id": 1, "username": "user1"}, CODE_CREATED),# Single OTPK
+    ]
+)
+def test_add_otpk_cases(otpks, user_info, expected_status, mock_db, app_ctx, mocker):
+    from server.utils.auth import add_otpks
+    
+    # Patch the database session
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    
+    # Call the function
+    response = add_otpks(otpks, user_info)
+    
+    # Verify response status
+    assert response[1] == expected_status
+    
+    # Verify database interactions for success cases
+    if expected_status == CODE_CREATED:
+        assert mock_db.add.call_count == len(otpks)
+        assert mock_db.commit.call_count == 1
+        
+        # Verify OTPK object creation
+        for call_args in mock_db.add.call_args_list:
+            otk_obj = call_args[0][0]
+            assert isinstance(otk_obj, OTPK)
+            assert otk_obj.user_id == user_info["user_id"]
+            assert otk_obj.key in otpks
+            assert otk_obj.used == 0
+            assert otk_obj.created_at is not None
+            assert otk_obj.updated_at is not None
+            # Verify that created_at and updated_at are set to the same value initially
+            assert otk_obj.created_at == otk_obj.updated_at

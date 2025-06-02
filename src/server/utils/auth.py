@@ -344,18 +344,18 @@ def get_count_otpk(user_info : dict) -> int:
         logger.info(f"Counted {otpk_count} unused OTPKs for user {username})")
     return otpk_count
 
-def add_otks(otks: List[str], user_info: Dict) -> Dict:
+def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
     """Add one-time pre keys (OTPKs) for the current user.
 
     Args:
-        otks (List[str]): List of base64 encoded one-time pre keys to add.
+        otpks (List[str]): List of base64 encoded one-time pre keys to add.
         user_info (Dict): Dictionary containing user information.
 
     Returns:
         Dict: Response containing success message or error message.
     """
     
-    if not otks or not user_info:
+    if not otpks or not user_info:
         logger.warning("Add OTPKs failed: Missing required fields")
         return {"error": "Missing required fields"}, 400
     
@@ -365,10 +365,10 @@ def add_otks(otks: List[str], user_info: Dict) -> Dict:
         return {"error": "Missing user_id in user_info"}, 400
 
     with get_session() as db:
-        for otk in otks:            
+        for otpk in otpks:            
             new_otk = OTPK(
                 user_id=user_id,
-                otk=otk,
+                key=otpk,
                 used=0,  # Initially unused
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC)
@@ -376,5 +376,5 @@ def add_otks(otks: List[str], user_info: Dict) -> Dict:
             db.add(new_otk)
         db.commit()
     
-    logger.info(f"Added {len(otks)} OTPKs for user {user_info['username']}")
-    return {"message": f"Added {len(otks)} OTPKs successfully"}, 201
+    logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
+    return {"message": f"Added {len(otpks)} OTPKs successfully"}, 201

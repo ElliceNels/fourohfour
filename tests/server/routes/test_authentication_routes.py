@@ -6,6 +6,7 @@ from sqlalchemy_utils import database_exists, drop_database
 from server.utils.db_setup import setup_db, teardown_db
 from server.app import create_app
 from server.models.tables import Base
+import base64
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,7 +39,6 @@ def client(app_fixture):
 @pytest.fixture
 def test_user():
     """Generate a unique test user for each run with valid base64 cryptographic keys."""
-    import base64
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
     # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
@@ -156,6 +156,33 @@ def test_count_otpk(client: FlaskClient, logged_in_user):
     assert "otpk_count" in response.json
     assert isinstance(response.json["otpk_count"], int)
     assert response.json["otpk_count"] >= 0
+
+def test_add_otpks(client: FlaskClient, logged_in_user):
+    """Test adding one-time prekeys (OTPKs)."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # First get initial count
+    initial_count_response = client.get("/count_otpk", headers=headers)
+    assert initial_count_response.status_code == 200
+    initial_count = initial_count_response.json["otpk_count"]
+    
+    # Generate some test OTPKs (base64 encoded)
+    test_otpks = [
+        base64.b64encode(b"test_otpk_1").decode(),
+        base64.b64encode(b"test_otpk_2").decode(),
+        base64.b64encode(b"test_otpk_3").decode()
+    ]
+    
+    # Add the OTPKs
+    add_response = client.post("/add_otpks", json={"otpks": test_otpks}, headers=headers)
+    assert add_response.status_code == 201
+    
+    # Get new count and verify it increased by the number of OTPKs we added
+    new_count_response = client.get("/count_otpk", headers=headers)
+    assert new_count_response.status_code == 200
+    new_count = new_count_response.json["otpk_count"]
+    
+    assert new_count == initial_count + len(test_otpks)
 
 def test_db_tables_exist(setup_test_db):
     """Ensure tables exist after setup."""

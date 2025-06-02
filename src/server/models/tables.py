@@ -51,7 +51,8 @@ class OTPK(Base):
     key = Column(String(191), nullable=False) #A SIGNED pre key
     used = Column(Integer, nullable=False, default=0)  # 0 for unused, 1 for used
     created_at = Column(DateTime, nullable=False)
-
+    updated_at = Column(DateTime, nullable=False)
+    
     user = relationship("Users", back_populates="otpks")
 
 
