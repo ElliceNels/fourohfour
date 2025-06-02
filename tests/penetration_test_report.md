@@ -15,6 +15,15 @@ Below is a list of all major vunerabilities discovered during penetration testin
 - **Risk Assessment :**
 - **Reccomendations:**
 
+**Vunerable Libraries**
+- **Cryptographic operations used for TODO:**
+- **TDependency audit**
+- **Proof of Concept:**
+- **Likelihood of exploitation:**
+- **Potential Impact:**
+- **Risk Assessment :**
+- **Update dependency packages, periodically audit going forward**
+
 
 ## Engagement Summary
 Testing was performed from 31/05/25 to 01/06/25, once all major components of the project were completed, and to give the team time to remediate the vunerabilities discovered. 
@@ -75,12 +84,13 @@ The testing was performed with the assumption that neither client nor server can
 
 **Findings**: 
 - No direct buffer overflow vulnerabilities found
-- Application uses Python's built-in memory management
+- Application uses Python's built-in memory management, so buffer overflows are unlikely
+- Files larger than 100mb are rejected TODO what if we change the size parameter
 - Flask's request size limits are properly configured
 
 **Protection Mechanisms**:
 - Input validation in file upload routes is in place
-- Size limits are enforced at both client and server
+- Size limits are enforced on client side, but the size in the request is trusted TODO
 - Proper error handling and logging implemented
 
 #### Test Case: Integer Overflow in Permission Management
@@ -128,7 +138,8 @@ The testing was performed with the assumption that neither client nor server can
 
 **Testing Method**:
 - Used Postman to test various permission scenarios
-- Attempted to access files with modified UUIDs
+- Created 2 user logins, and a file belonging to user 1
+- Attempted to access user 1's file with user 2's JWT token
 - Tested horizontal privilege escalation
 
 **Findings**:
@@ -210,11 +221,13 @@ The testing was performed with the assumption that neither client nor server can
 - Used Wireshark to monitor network traffic and verify that transmitted requests were encrypted
 - Captured network packets during sign up and login
 - Analyzed transmission protocol (HTTPS/TLS)
+- Attempted to send to http??
 
 **Findings**:
-
+- Login and signup requests could be intercepted, but their contents were unreadable
 
 **Protection Mechanisms in Place**:
+- SSL/TLS communication over HTTPS is enforced by the server. 
 
 #### Test Case: File Content Protection
 **Description**: Analyzed file content handling and storage.
