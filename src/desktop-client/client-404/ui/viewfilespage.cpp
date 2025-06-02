@@ -103,6 +103,9 @@ void ViewFilesPage::addFileItem(const QJsonObject& fileObj, QListWidget* listWid
         this
     );
     
+    // Connect to the  fileDeleted signal to refresh the file list
+    connect(fileWidget, &FileItemWidget::fileDeleted, this, &ViewFilesPage::fetchUserFiles);
+    
     QListWidgetItem* item = new QListWidgetItem(listWidget);
     listWidget->setItemWidget(item, fileWidget);
     item->setSizeHint(fileWidget->sizeHint());

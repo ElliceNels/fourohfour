@@ -22,16 +22,16 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->downloadButton = createIconButton(downloadIconPath);
     if(isOwner){
         this->shareButton = createIconButton(shareIconPath);  // only owners can share files
+        this->deleteButton = createIconButton(deleteIconPath);
     }
-    this->deleteButton = createIconButton(deleteIconPath);
-
+  
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
 
     if (isOwner) {
         connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare); // only owners can share files
+        connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     } 
 
-    connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     connect(this->previewButton, &QPushButton::clicked, this, &FileItemWidget::handlePreview);
 
     // Layout
@@ -43,9 +43,10 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     layout->addWidget(this->downloadButton);
     if (isOwner) {
         layout->addWidget(this->shareButton);
+        layout->addWidget(this->deleteButton);
     }
     layout->addWidget(this->previewButton);
-    layout->addWidget(this->deleteButton);
+
 
     this->setLayout(layout);
 
@@ -100,9 +101,32 @@ void FileItemWidget::handleShare() {
     qDebug() << "Share clicked for file:" << this->fileNameLabel->toolTip();
 }
 
+bool FileItemWidget::confirmAction(const QString& title, const QString& text) {
+    QMessageBox msgBox;
+    msgBox.setWindowTitle(title);
+    msgBox.setText(text);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::No);
+    
+    return (msgBox.exec() == QMessageBox::Yes);
+}
+
 void FileItemWidget::handleDelete() {
-    // delete logic here
-    qDebug() << "Delete clicked for file:" << this->fileNameLabel->toolTip();
+    if (confirmAction("Confirm Deletion", "Are you sure you want to delete this file?")) {
+        // Construct the endpoint URL with the file UUID
+        std::string deleteUrl = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
+        
+        RequestUtils::Response response = LoginSessionManager::getInstance().del(deleteUrl);
+        
+        // Check the response and show appropriate message
+        if (response.success) {
+            QMessageBox::information(this, "Success", response.jsonData.object().value("message").toString());
+            emit fileDeleted(); // Emit the signal when deletion is successful to trigger UI refresh
+        } else {
+            QMessageBox::critical(this, "Error", 
+                "Failed to delete file: " + QString::fromStdString(response.errorMessage));
+        }
+    }
 }
 
 void FileItemWidget::handlePreview() {

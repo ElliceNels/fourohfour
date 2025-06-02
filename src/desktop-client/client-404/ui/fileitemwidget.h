@@ -3,12 +3,17 @@
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QString>
+#include <QMessageBox>
+#include "core/loginsessionmanager.h"
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
 
 public:
     FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent);
+
+signals:
+    void fileDeleted(); 
 
 private slots:
     void handleDownload();
@@ -31,4 +36,5 @@ private:
     QPushButton* createIconButton(const QString& iconPath);
     QLabel* createElidedLabel(const QString &text, int width);
     QString formatFileSize(qint64 bytes) const; 
+    bool confirmAction(const QString& title, const QString& text);
 };
