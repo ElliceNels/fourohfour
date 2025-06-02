@@ -3,7 +3,7 @@
 #include <qpushbutton.h>
 #include "constants.h"
 
-FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString uuid, QWidget *parent)
+FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent)
     : QWidget(parent)
 {
 
