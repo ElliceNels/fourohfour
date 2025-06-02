@@ -31,8 +31,12 @@ def decode_token(token: str) -> dict:
         with get_session() as db:
             invalidation = db.query(TokenInvalidation).filter_by(user_id=payload['user_id']).first()
         
-        if invalidation and datetime.fromtimestamp(payload['iat'], UTC) < invalidation.earliest_valid_iat:
-            raise JWTError('Token has been invalidated', 401)
+        if invalidation:
+            token_iat = datetime.fromtimestamp(payload['iat'], UTC)
+            # Ensure earliest_valid_iat is timezone-aware
+            earliest_valid_iat = invalidation.earliest_valid_iat.replace(tzinfo=UTC) if invalidation.earliest_valid_iat.tzinfo is None else invalidation.earliest_valid_iat
+            if token_iat < earliest_valid_iat:
+                raise JWTError('Token has been invalidated', 401)
         
         # Ensure it's an access token
         if payload.get('type') != 'access':
