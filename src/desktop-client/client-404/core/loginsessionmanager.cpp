@@ -32,6 +32,10 @@ const QString LoginSessionManager::getUsername() const {
     return this->m_username;
 }
 
+void LoginSessionManager::setUsername(const QString& username) {
+    this->m_username = username;
+}
+
 const SecureVector LoginSessionManager::getMasterKey() const {
     return SecureVector(this->m_masterKey);  // Return a SecureVector containing the master key
 }

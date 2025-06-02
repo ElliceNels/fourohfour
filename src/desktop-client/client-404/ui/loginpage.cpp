@@ -43,6 +43,11 @@ void LoginPage::setupConnections(){
 
 void LoginPage::onLoginButtonClicked()
 {
+    // Disable button and change text at the start
+    this->ui->loginButton->setEnabled(false);
+    this->ui->loginButton->setText("Logging in...");
+    this->ui->loginButton->repaint();
+
     QString username = this->ui->usernameLineEdit->text();
     QString password = this->ui->passwordLineEdit->text();
 
@@ -50,21 +55,27 @@ void LoginPage::onLoginButtonClicked()
     QString clientIP = getClientIP();
     if (isRateLimited(clientIP)) {
         QMessageBox::warning(this, "Rate Limited", "Too many login attempts. Please try again in 5 minutes.");
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
         return;
     }
     recordLoginAttempt(clientIP);
 
-
     string sUsername = username.toStdString();
     string sPassword = password.toStdString();
 
-
+    LoginSessionManager::getInstance().setUsername(username);
 
     if (sendLogInRequest(username, password)) {
         // Switch to main menu after login
         emit goToMainMenuRequested();
+    } else {
+        // Only reset the button if login failed
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
     }
-
 }
 
 bool LoginPage::sendLogInRequest(const QString& username, const QString& password)

@@ -53,6 +53,10 @@ ResetPasswordPage::~ResetPasswordPage()
 
 void ResetPasswordPage::onUpdatePasswordClicked()
 {
+    this->ui->updatePasswordButton->setEnabled(false);
+    this->ui->updatePasswordButton->setText("Updating password...");
+    this->ui->updatePasswordButton->repaint();
+
     QString oldPassword = ui->oldPasswordLineEdit->text();
     QString newPassword = ui->passwordLineEdit->text();
     QString confirmPassword = ui->confirmPasswordLineEdit->text();
@@ -65,42 +69,63 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     //Validation checks
     if (newPassword != confirmPassword) {
         QMessageBox::warning(this, "Error", "New passwords do not match!");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
     if (newPassword.length() < 8) {
         QMessageBox::warning(this, "Error", "Password must be at least 8 characters long.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
     if (newPassword.length() > 64) {
         QMessageBox::warning(this, "Error", "Password must be no more than 64 characters long.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
     if (newPassword.trimmed().isEmpty()) {
         QMessageBox::warning(this, "Error", "Password cannot be empty or only spaces.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
     if (newPassword.compare(username, Qt::CaseInsensitive) == 0) {
         QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
     QString normalizedPassword = newPassword.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (newPassword != normalizedPassword) {
         QMessageBox::information(this, "Warning", "Your password contains characters that may look different on other devices.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
+        return;
     }
     if (dictionaryWords.contains(newPassword.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
         return;
     }
 
 
 
 
-    if(!getSaltRequest()){
-        qDebug() << "Error getting salt";
-    }
-
 
     QString newSalt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
+    QString oldSalt = getSaltRequest();
+
+    cout << "OLD SALT RECOEVERED:" << oldSalt.toStdString() << endl;
 
 
     decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
@@ -116,6 +141,10 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
     if (stack) {
         stack->setCurrentIndex(Pages::MainMenuIndex);
+    } else {
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
     }
 }
 
@@ -141,7 +170,7 @@ bool ResetPasswordPage::sendResetPasswordRequest(const QString newPassword, cons
 
     // Prepare JSON payload for reset
     QJsonObject requestData;
-    requestData["password"] = newPassword;
+    requestData["new_password"] = newPassword;
     requestData["salt"] = newSalt;
 
 
@@ -159,7 +188,7 @@ bool ResetPasswordPage::sendResetPasswordRequest(const QString newPassword, cons
     }
 }
 
-bool ResetPasswordPage::getSaltRequest(){
+QString ResetPasswordPage::getSaltRequest(){
     // Set base URL for the server
     LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
@@ -175,10 +204,12 @@ bool ResetPasswordPage::getSaltRequest(){
         // Extract salt from the response
         oldSalt = jsonObj["salt"].toString();
 
-        return true;
+        cout << "GETTING SALT" << oldSalt.toStdString() << endl;
+
+        return oldSalt;
     } else {
         qDebug() << "Error getting salt:" <<response.errorMessage;
-        return false;
+        return NULL;
     }
 }
 
