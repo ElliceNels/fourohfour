@@ -14,8 +14,8 @@ class Users(Base):
     password = Column(BLOB, nullable=False)
     salt = Column(BLOB, nullable=False)
     public_key = Column(String(191), nullable=False, unique=True) #Long term Identity Key
-    spk = Column(BLOB, nullable=False) #Signed Pre Key
-    spk_signature = Column(BLOB, nullable=False) #Signature of the Signed Pre Key
+    spk = Column(String(191), nullable=False) #Signed Pre Key
+    spk_signature = Column(String(191), nullable=False) #Signature of the Signed Pre Key
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 
@@ -48,7 +48,7 @@ class OTPK(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    key = Column(BLOB, nullable=False) #A SIGNED pre key
+    key = Column(String(191), nullable=False) #A SIGNED pre key
     used = Column(Integer, nullable=False, default=0)  # 0 for unused, 1 for used
     created_at = Column(DateTime, nullable=False)
 
@@ -62,9 +62,9 @@ class FilePermissions(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
-    encryption_key = Column(BLOB, nullable=False) #the symmetric key, encrypted with derived shared secret
+    encryption_key = Column(String(191), nullable=False) #the symmetric key, encrypted with derived shared secret
     otpk_id = Column(Integer, ForeignKey('one_time_pre_keys.id'), nullable=True) #The ID of the one-time pre key used for this permission
-    ephemeral_key = Column(BLOB, nullable=False) #The ephemeral key used for this permission    
+    ephemeral_key = Column(String(191), nullable=False) #The ephemeral key used for this permission    
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 

@@ -66,10 +66,10 @@ def sign_up(username: str, password: str, public_key: str, spk: str, spk_signatu
     try:
         # Validate that the public key is a valid base64 string
         base64.b64decode(public_key)
-        # Validate that the spk is a valid base64 string and decode it
-        spk_bytes = base64.b64decode(spk)
-        # Validate that the spk_signature is a valid base64 string and decode it
-        spk_signature_bytes = base64.b64decode(spk_signature)
+        # Validate that the spk is a valid base64 string
+        base64.b64decode(spk)
+        # Validate that the spk_signature is a valid base64 string
+        base64.b64decode(spk_signature)
     except Exception as e:
         logger.warning(f"Sign up failed for user {username}: Invalid base64 format - {str(e)}")
         return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
@@ -92,8 +92,8 @@ def sign_up(username: str, password: str, public_key: str, spk: str, spk_signatu
             username=username,
             password=hash_password(password),
             public_key=public_key,
-            spk=spk_bytes,  # Store as bytes
-            spk_signature=spk_signature_bytes,  # Store as bytes
+            spk=spk,  # Store as base64 string
+            spk_signature=spk_signature,  # Store as base64 string
             salt=salt,
             created_at=datetime.now(),
             updated_at=datetime.now()
