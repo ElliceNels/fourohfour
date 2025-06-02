@@ -13,7 +13,9 @@ class Users(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(BLOB, nullable=False)
     salt = Column(BLOB, nullable=False)
-    public_key = Column(String(191), nullable=False, unique=True)
+    public_key = Column(String(191), nullable=False, unique=True) #Long term Identity Key
+    spk = Column(BLOB, nullable=False) #Signed Pre Key
+    spk_signature = Column(BLOB, nullable=False) #Signature of the Signed Pre Key
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 
