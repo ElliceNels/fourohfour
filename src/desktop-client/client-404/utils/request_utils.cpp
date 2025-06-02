@@ -119,7 +119,17 @@ bool RequestUtils::refreshAccessToken() {
     return success;
 }
 
-RequestUtils::~RequestUtils() {
+void RequestUtils::reset() {
+    // First clean up all sensitive data
+    cleanup();
+
+    // Then reinitialize for reuse
+    curl_easy_reset(m_curl.get());
+    setupCurl();
+}
+
+
+void RequestUtils::cleanup() {
     clearBearerToken();
     clearRefreshToken();
     
@@ -132,6 +142,12 @@ RequestUtils::~RequestUtils() {
     // Clear the base URL
     m_baseUrl.clear();
     
+    // Reset token refresh in progress flag
+    m_tokenRefreshInProgress.store(false);
+}
+
+RequestUtils::~RequestUtils() {
+    cleanup();
     // Smart pointers will handle cleanup of m_curl and m_headers
 }
 
