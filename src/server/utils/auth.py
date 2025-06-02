@@ -378,3 +378,31 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
     
     logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
     return {"message": f"Added {len(otpks)} OTPKs successfully"}, 201
+
+def get_otpk(username: str) -> Dict:
+    """Get one-time pre keys (OTPKs) for a selected user.
+
+    Args:
+        username (str): Username of the user whose OTPKs are requested.
+
+    Returns:
+        Dict: Response containing the OTPK or error message.
+    """
+    
+    if not username:
+        logger.warning("Get OTPK failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
+        
+        if not user:
+            logger.warning(f"Get OTPK failed for user {username}: User not found")
+            return {"error": "User not found"}, 404
+        #get the first unused OTPK for the user
+        otpk = db.query(OTPK).filter_by(user_id=user.id, used=0).first()
+        if not otpk:
+            logger.warning(f"Get OTPK failed for user {username}: No unused OTPK found")
+            return {"error": "No unused OTPK found"}, 404
+    logger.info(f"Retrieved OTPK for user {username}")
+    return {"otpk": otpk.key}, 200

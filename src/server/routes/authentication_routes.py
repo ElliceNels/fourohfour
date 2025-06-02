@@ -314,3 +314,29 @@ def add_otpks():
     except Exception as e:
         logger.error(f"Error adding OTPKs: {str(e)}")
         return jsonify({"error": str(e)}), 500
+    
+@authentication_routes.route('/get_otpk', methods=['GET'])
+def get_otpk():
+    """Get OTPK route to retrieve a one-time pre key for a selected user.
+        Expected JSON payload:
+    {
+        "username": "<username>"
+    }
+    Expected response:
+    {
+        "otpk": "<base64_encoded_otpk>"
+    }
+    """
+    logger.debug("Received request to get OTPK")
+    username = request.args.get('username')
+    if not username:
+        logger.warning("Get OTPK failed: Missing username")
+        return jsonify({"error": "Missing username"}), 400
+    try:
+        otpk = auth.get_otpk(username)
+        if otpk is None:
+            return jsonify({"error": "No OTPK found for the user"}), 404
+        return jsonify({"otpk": otpk}), 200
+    except Exception as e:
+        logger.error(f"Error getting OTPK: {str(e)}")
+        return jsonify({"error": str(e)}), 500
