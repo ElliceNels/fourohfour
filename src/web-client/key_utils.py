@@ -44,7 +44,8 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
     try:
         # Create and hide the root window
         root = tk.Tk()
-        root.withdraw()  # This hides the main window
+        root.attributes('-topmost', True)  
+        root.withdraw()  
 
         # Prepare the data to save
         data = {
@@ -54,6 +55,7 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
 
         # Open the file dialog
         file_path = filedialog.asksaveasfilename(
+            parent=root,  
             title="Save Your Keys",  
             defaultextension=".json", 
             initialfile="keys.json",  
@@ -74,13 +76,15 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
         return True, file_path
 
     except Exception as e:
+        print(f"Error in save_keys_to_json_file: {str(e)}")  # Add error logging
         return False, None
 
     finally:
         # Clean up
         try:
             root.destroy()
-        except:
+        except Exception as e:
+            print(f"Error destroying root window: {str(e)}")  # Add error logging
             pass
 
 def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str) -> bool:

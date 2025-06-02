@@ -21,6 +21,15 @@
                 btn.textContent = 'Show';
             }
         }
+
+        function showProgressAndDisableBtn() {
+            // Show the progress message
+            document.getElementById('progress-message').style.display = 'block';
+            // Disable the submit button
+            document.getElementById('signup-btn').disabled = true;
+            // Optionally, change the button text
+            document.getElementById('signup-btn').textContent = 'Registering...';
+        }
     </script>
 </head>
 <body>
@@ -38,6 +47,11 @@
             <p class="hero-subtitle">Join fourohfour Files today</p>
         </div>
 
+        <!-- Progress message (hidden by default) -->
+        <div id="progress-message" style="display:none; color: #0d47a1; margin-bottom: 10px;">
+            Registration in progress...
+        </div>
+
         <!-- Flash messages for validation errors/success -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -49,7 +63,7 @@
           {% endif %}
         {% endwith %}
 
-        <form class="signup-form" method="POST" action="/signup">
+        <form class="signup-form" method="POST" action="/signup" onsubmit="showProgressAndDisableBtn()">
             <div class="form-group">
                 <label for="username" class="form-label">Account Name</label>
                 <input id="username" name="username" type="text" required autocomplete="username">
@@ -68,7 +82,7 @@
             <div class="password-hint">
                 We recommend for your password to be at least 15 characters. Your password should also be unique and difficult to guess.
             </div>
-            <button type="submit" class="btn big-btn signup-btn">Create Account</button>
+            <button type="submit" class="btn big-btn signup-btn" id="signup-btn">Create Account</button>
         </form>
         <div class="form-footer">
             Already have an account?

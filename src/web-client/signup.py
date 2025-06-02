@@ -44,18 +44,19 @@ def manage_registration(account_name, password):
         except Exception as e:
             return False, f"Failed to generate keypair: {str(e)}"
 
-        #Save public key
-        try:
-            save_keys_to_json_file(pub_b64, priv_b64)
-        except Exception as e:
-            return False, f"Failed to save keys to file: {str(e)}"
-
         #Generate and decode salt
         try:
             salt = generate_salt()
             raw_salt = decode_salt(salt)
         except Exception as e:
             return False, f"Failed to generate or decode salt: {str(e)}"
+        
+        #Send data to server
+        try:
+            register_user(account_name, password, pub_b64, salt)
+        except Exception as e:
+            print(f"Unexpected error during server registration: {str(e)}")
+            return False, str(e)
 
         #Derive key from password
         try:
@@ -68,18 +69,14 @@ def manage_registration(account_name, password):
             encrypt_and_save_key(priv_b64, derived_key, account_name)
         except Exception as e:
             return False, f"Failed to encrypt and save key: {str(e)}"
-
-
-        #Send data to server
+        
+        #Save public key
         try:
-            if register_user(account_name, password, pub_b64, salt):
-                return True, "Registration completed successfully"
-            else:
-                print("Server registration failed")
-                return False, "Failed to register with server"
+            save_keys_to_json_file(pub_b64, priv_b64)
+            return True, "Registration completed successfully"
         except Exception as e:
-            print(f"Unexpected error during server registration: {str(e)}")
-            return False, f"Failed to register with server: {str(e)}"
+            return False, f"Failed to save keys to file: {str(e)}"
+
     
     except Exception as e:
         # Catch any unexpected errors

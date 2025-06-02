@@ -22,14 +22,17 @@ def signup():
 
         valid, message = validate_registration(account_name, password, confirm_password)
         if not valid:
+            clear_flashes()
             flash(message, "error")
         else:
             registration_success, error_message = manage_registration(account_name, password)
             if registration_success:
                 print(f"Registration successful for {account_name}")  
+                clear_flashes()
                 flash(message, "success")
                 return redirect(url_for('main_menu'))
             else:
+                clear_flashes()
                 flash(error_message, "error")
     return render_template('signup.html')
 
@@ -38,13 +41,15 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        
+
         login_success, message = manage_login(password, username)
         if login_success:
             print(f"Login successful for {username}")
+            clear_flashes()
             flash(message, "success")
             return redirect(url_for('main_menu'))
         else:
+            clear_flashes()
             flash(message, "error")
             
     return render_template('login.html')
@@ -146,6 +151,10 @@ def reset_password():
             return render_template('resetpassword.html')
             
     return render_template('resetpassword.html')
+
+
+def clear_flashes():
+    session.pop('_flashes', None)
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)
