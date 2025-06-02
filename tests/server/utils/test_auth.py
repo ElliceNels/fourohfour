@@ -10,8 +10,8 @@ Some test explainations:
 import pytest
 from flask import Flask
 from unittest.mock import MagicMock
-from server.utils.auth import login, sign_up, change_password, delete_account, change_username, hash_password
-from server.models.tables import Users
+from server.utils.auth import login, sign_up, change_password, delete_account, change_username, hash_password, get_count_otpk
+from server.models.tables import Users, OTPK
 from server.app import create_app
 from server.utils.jwt import JWTError
 import base64
@@ -256,3 +256,18 @@ def test_get_public_key_cases(username, expected_status, expected_public_key, mo
         assert data["public_key"] == expected_public_key
     else:
         assert "error" in data
+
+@pytest.mark.parametrize("user_info, mock_count, expected_result", [
+    ({"user_id": 1, "username": "user1"}, 5, 5),  # User has unused OTPKs
+    ({"user_id": 2, "username": "user2"}, 0, 0),  # User has no unused OTPKs
+    ({"user_id": 3, "username": "user3"}, 1, 1),  # User has exactly 1 unused OTPK
+    ({"user_id": 4}, 10, 10),  # Missing username but has user_id
+])
+def test_get_count_otpk_cases(user_info, mock_count, expected_result, mock_db, app_ctx, mocker):
+    from server.utils.auth import get_count_otpk
+    
+    mock_db.query().filter_by().count.return_value = mock_count
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    
+    result = get_count_otpk(user_info)
+    assert result == expected_result

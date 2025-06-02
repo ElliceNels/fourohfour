@@ -139,6 +139,16 @@ def test_get_current_user(client: FlaskClient, logged_in_user):
     assert response.status_code == 200
     assert response.json["username"] == logged_in_user["user"]["username"]
 
+#TODO when we can add otpks we should test the count of OTPKs
+def test_count_otpk(client: FlaskClient, logged_in_user):
+    """Test counting one-time prekeys (OTPKs)."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    response = client.get("/count_otpk", headers=headers)
+    assert response.status_code == 200
+    assert "otpk_count" in response.json
+    assert isinstance(response.json["otpk_count"], int)
+    assert response.json["otpk_count"] >= 0
+
 def test_db_tables_exist(setup_test_db):
     """Ensure tables exist after setup."""
     from server.models.tables import Users
