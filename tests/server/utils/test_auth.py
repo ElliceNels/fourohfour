@@ -74,22 +74,26 @@ def test_login_cases(username, password, expected_status, mock_db, app_ctx, mock
     else:
         assert "error" in data
 
-@pytest.mark.parametrize("username, password, public_key, salt, expected_status", [
-    ("new_user", "secure_pass", "cHViX2tleQ==", b"salt123", CODE_CREATED),  # Success - base64 of "pub_key"
-    ("existing_user", "secure_pass", "cHViX2tleQ==", b"salt123", CODE_CONFLICT),  # Username exists
-    (None, "pass", "cGs=", b"salt", CODE_BAD_REQUEST),  # Missing username - base64 of "pk"
-    ("user", None, "cGs=", b"salt", CODE_BAD_REQUEST),  # Missing password
-    ("user", "pass", None, b"salt", CODE_BAD_REQUEST),  # Missing public_key
-    ("user", "pass", "cGs=", None, CODE_BAD_REQUEST),  # Missing salt
-    ("user", "pass", "invalid_base64!", b"salt", CODE_BAD_REQUEST),  # Invalid base64 public key format
+@pytest.mark.parametrize("username, password, public_key, spk, spk_signature, salt, expected_status", [
+    ("new_user", "secure_pass", "cHViX2tleQ==", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt123", CODE_CREATED),  # Success - base64 values
+    ("existing_user", "secure_pass", "cHViX2tleQ==", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt123", CODE_CONFLICT),  # Username exists
+    (None, "pass", "cGs=", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Missing username
+    ("user", None, "cGs=", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Missing password
+    ("user", "pass", None, "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Missing public_key
+    ("user", "pass", "cGs=", None, "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Missing spk
+    ("user", "pass", "cGs=", "c3BrX2tleQ==", None, b"salt", CODE_BAD_REQUEST),  # Missing spk_signature
+    ("user", "pass", "cGs=", "c3BrX2tleQ==", "c2lnbmF0dXJl", None, CODE_BAD_REQUEST),  # Missing salt
+    ("user", "pass", "invalid_base64!", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Invalid base64 public key
+    ("user", "pass", "cGs=", "invalid_base64!", "c2lnbmF0dXJl", b"salt", CODE_BAD_REQUEST),  # Invalid base64 spk
+    ("user", "pass", "cGs=", "c3BrX2tleQ==", "invalid_base64!", b"salt", CODE_BAD_REQUEST),  # Invalid base64 spk_signature
 ])
-def test_sign_up_cases(username, password, public_key, salt, expected_status, mock_db, app_ctx, mocker):
+def test_sign_up_cases(username, password, public_key, spk, spk_signature, salt, expected_status, mock_db, app_ctx, mocker):
     if expected_status == CODE_CONFLICT:
         mock_db.query().filter_by().first.side_effect = [Users(username=username), None]
     else:
         mock_db.query().filter_by().first.return_value = None
     mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
-    response = sign_up(username, password, public_key, salt)
+    response = sign_up(username, password, public_key, spk, spk_signature, salt)
     assert response[1] == expected_status
     data = response[0].get_json()
     if expected_status == CODE_CREATED:

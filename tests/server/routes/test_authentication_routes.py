@@ -37,16 +37,24 @@ def client(app_fixture):
 
 @pytest.fixture
 def test_user():
-    """Generate a unique test user for each run with a valid base64 public key."""
+    """Generate a unique test user for each run with valid base64 cryptographic keys."""
     import base64
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
-    # Generate a random 32-byte value and encode as base64
+    # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_public_key = base64.b64encode(random_bytes).decode()
+    # Generate SPK and signature (mock values for testing)
+    spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    unique_spk = base64.b64encode(spk_bytes)  # Keep as bytes
+    signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    unique_spk_signature = base64.b64encode(signature_bytes)  # Keep as bytes
+    
     return {
         "username": unique_username,
         "password": "test_password",
         "public_key": unique_public_key,
+        "spk": unique_spk,
+        "spk_signature": unique_spk_signature,
         "salt": "test_salt"
     }
 

@@ -45,29 +45,34 @@ def login(username: str, password: str) -> dict:
         "refresh_token": refresh_token
     }), 200
 
-def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
+def sign_up(username: str, password: str, public_key: str, spk: str, spk_signature: str, salt: bytes) -> dict:
     """Sign up route to register new users.
 
     Args:
         username (str): Username of the new user.
         password (str): validated password of the new user.
         public_key (str): base64 encoded public key of the new user.
+        spk (str): base64 encoded signed pre key of the new user.
+        spk_signature (str): base64 encoded signature of the signed pre key.
         salt (bytes): salt used for hashing the password.
 
     Returns:
         dict: validated response containing access and refresh tokens or error message.
     """
     
-    if not username or not password or not public_key or not salt:
+    if not username or not password or not public_key or not spk or not spk_signature or not salt:
         logger.warning("Sign up failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
-    
     try:
         # Validate that the public key is a valid base64 string
         base64.b64decode(public_key)
+        # Validate that the spk is a valid base64 string and decode it
+        spk_bytes = base64.b64decode(spk)
+        # Validate that the spk_signature is a valid base64 string and decode it
+        spk_signature_bytes = base64.b64decode(spk_signature)
     except Exception as e:
-        logger.warning(f"Sign up failed for user {username}: Invalid public key format - {str(e)}")
-        return jsonify({"error": "Invalid public key format - must be base64 encoded"}), 400
+        logger.warning(f"Sign up failed for user {username}: Invalid base64 format - {str(e)}")
+        return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
     
     with get_session() as db:
         # Cond 1: The username already exists
@@ -87,6 +92,8 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
             username=username,
             password=hash_password(password),
             public_key=public_key,
+            spk=spk_bytes,  # Store as bytes
+            spk_signature=spk_signature_bytes,  # Store as bytes
             salt=salt,
             created_at=datetime.now(),
             updated_at=datetime.now()

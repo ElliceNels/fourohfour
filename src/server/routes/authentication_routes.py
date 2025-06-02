@@ -66,12 +66,15 @@ def sign_up():
         "username": "<username>",
         "password": "<password>",
         "public_key": "<public_key>",
+        "spk": "<signed_pre_key>",
+        "spk_signature": "<spk_signature>",
         "salt": "<salt>"
     }
 
     Expected response:
     {
-        "token": <JWT_token>
+        "access_token": "<JWT_access_token>",
+        "refresh_token": "<JWT_refresh_token>"
     }
     """
     
@@ -80,10 +83,12 @@ def sign_up():
     username = data.get('username')
     password = data.get('password')
     public_key = data.get('public_key')
+    spk = data.get('spk')
+    spk_signature = data.get('spk_signature')
     salt = data.get('salt')
     bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
-    return auth.sign_up(username, password, public_key, bytes_salt)
+    return auth.sign_up(username, password, public_key, spk, spk_signature, bytes_salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
