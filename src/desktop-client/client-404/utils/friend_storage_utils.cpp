@@ -8,8 +8,11 @@
 #include <QMessageBox>
 #include <QDebug>
 
-
-
+/**
+ * @brief Builds the file path for a user's friends storage file
+ * @param username The username for which to create the storage file path
+ * @return The complete file path for the friend storage file
+ */
 QString FriendStorageUtils::buildFriendStorageFilePath(const QString& username) {
     QString dirPath = QCoreApplication::applicationDirPath() + friendsPath;
     QDir dir(dirPath);
@@ -19,6 +22,12 @@ QString FriendStorageUtils::buildFriendStorageFilePath(const QString& username) 
     return dirPath + username + jsonExtension;
 }
 
+/**
+ * @brief Reads friend data from a JSON file
+ * @param filepath Path to the JSON file to read
+ * @param parent Optional parent widget for displaying error messages
+ * @return JSON object containing the friend data
+ */
 QJsonObject FriendStorageUtils::readFriendsJson(const QString& filepath, QWidget* parent) {
     QJsonObject friendsData;
     
@@ -62,6 +71,13 @@ QJsonObject FriendStorageUtils::readFriendsJson(const QString& filepath, QWidget
     return friendsData;
 }
 
+/**
+ * @brief Writes friend data to a JSON file
+ * @param filepath Path to the JSON file to write
+ * @param friendsData JSON object containing the friend data to save
+ * @param parent Optional parent widget for displaying error messages
+ * @return true if the write succeeded, false otherwise
+ */
 bool FriendStorageUtils::writeFriendsJson(const QString& filepath, const QJsonObject& friendsData, QWidget* parent) {
     QJsonDocument updatedDoc(friendsData);
     QFile writeFile(filepath);
@@ -79,6 +95,13 @@ bool FriendStorageUtils::writeFriendsJson(const QString& filepath, const QJsonOb
     return true;
 }
 
+/**
+ * @brief Saves a friend's username and public key pair to storage
+ * @param username The friend's username
+ * @param publicKey The friend's public key
+ * @param parent Optional parent widget for displaying error messages
+ * @return true if the save succeeded, false otherwise
+ */
 bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QString& publicKey, QWidget* parent) {
     // Get the current logged in user
     QString currentUsername = LoginSessionManager::getInstance().getUsername();
