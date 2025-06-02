@@ -2,10 +2,11 @@
 
 ## Executive Summary
 This report details the security assessment conducted on our file sharing application, covering both client and server-side components. 
-
+TODO BEEF UP
 ## Key Findings
 Below is a list of all major vunerabilities discovered during penetration testing. 
 
+TODO file upload size etc 
 **Name (Standardised)**
 - **Location:**
 - **Technique used to find:**
@@ -27,7 +28,7 @@ Below is a list of all major vunerabilities discovered during penetration testin
 
 ## Engagement Summary
 Testing was performed from 31/05/25 to 01/06/25, once all major components of the project were completed, and to give the team time to remediate the vunerabilities discovered. 
-The testing was performed with the assumption that neither client nor server can be fully trusted, implementing a zero-trust security model. Our testing methodology combined automated scanning tools with manual penetration testing to ensure comprehensive coverage of potential vulnerabilities, and applied OWASP and CVSS 3.1 standards to identify and catagorise vunerabilities.
+The testing was performed with the assumption that neither client nor server can be fully trusted, implementing a zero-trust security model. Our testing methodology combined automated scanning tools with manual penetration testing to ensure comprehensive coverage of potential vulnerabilities, and applied OWASP and CVSS 3.1 standards to identify and catagorise vunerabilities. TODO TIDY UP
 
 **Scope of Testing**
 - Server-side API endpoints
@@ -74,42 +75,29 @@ The testing was performed with the assumption that neither client nor server can
 
 ### 1. Improper Input Validation
 
-#### Test Case: Buffer Overflow in File Upload
-**Description**: Attempted to upload files with excessive sizes and malformed headers to test buffer handling.
-
+#### Test Case: File Size Validation Bypass
+**Description:** Attempted to bypass file size restrictions through various methods including malformed requests and size manipulation.
 **Testing Method**:
-- Used Postman to send malformed file upload requests
-- Attempted file uploads with corrupted headers
-- Tested with files exceeding configured size limits
+Used Postman to send files exceeding the 100MB limit
+Attempted to manipulate Content-Length headers to bypass size restrictions
+Tested with malformed multipart/form-data requests
+Monitored server response and database behavior
 
-**Findings**: 
-- No direct buffer overflow vulnerabilities found
-- Application uses Python's built-in memory management, so buffer overflows are unlikely
-- Files larger than 100mb are rejected TODO what if we change the size parameter
-- Flask's request size limits are properly configured
+**Finding**s:
+- Files exceeding size limit cause server crashes instead of graceful rejection
+- Size validation occurs only at database level, not application level
+- Server accepts malformed requests without proper validation
+- No proper error handling for oversized files
+- Client-side size validation can be bypassed by manipulating request headers
 
-**Protection Mechanisms**:
-- Input validation in file upload routes is in place
-- Size limits are enforced on client side, but the size in the request is trusted TODO
-- Proper error handling and logging implemented
-
-#### Test Case: Integer Overflow in Permission Management
-**Description**: Tested permission creation with extreme values and invalid IDs.
-
-**Testing Method**:
-- Used Burp Suite to intercept and modify permission requests
-- Tested with maximum integer values
-- Attempted negative ID values
-
-**Findings**:
-- SQLAlchemy's type system prevents integer overflow
-- Proper validation of user and file IDs
-- Error handling for invalid numeric inputs
-
-**Protection Mechanisms**:
-- Type checking in database models
-- Input validation in permission routes
-- Proper error responses for invalid inputs
+**Protection Mechanisms:**
+- Implement application-level file size validation before database interaction
+- Configure Flask's MAX_CONTENT_LENGTH to match database constraints
+- Add proper error handling for oversized files
+- Implement request validation for Content-Length headers
+- Add server-side validation independent of client-side checks
+- Implement proper error responses instead of server crashes
+- Add logging for failed upload attempts
 
 ### 2. Broken Authentication
 
@@ -138,53 +126,81 @@ The testing was performed with the assumption that neither client nor server can
 ### 3. Broken Access Control
 
 #### Test Case: File Permission Bypass
-**Description**: Attempted to access files without proper permissions.
+**Description:** Conducted comprehensive testing of the file access control system to identify potential permission bypass vulnerabilities.
 
-**Testing Method**:
-- Used Postman to test various permission scenarios
-- Created 2 user logins, and a file belonging to user 1
-- Attempted to access user 1's file with user 2's JWT token
-- Tested horizontal privilege escalation
+**Testing Method:**
+- Utilized Postman to simulate various access control scenarios
+- Established two distinct user accounts with separate authentication tokens
+- Created a test file under User 1's ownership
+- Attempted unauthorized access using User 2's credentials
+- Conducted horizontal privilege escalation testing by manipulating file access requests
 
-**Findings**:
-- Proper permission checks implemented
-- Owner verification in place
-- No IDOR vulnerabilities found
+**Findings:**
+- System correctly enforced access controls with appropriate 403 Forbidden responses
+- Robust permission verification system prevented unauthorized access attempts
+- Owner-based access control mechanisms functioned as intended
+- No Insecure Direct Object Reference (IDOR) vulnerabilities were identified
+- Access control checks were consistently applied across all file operations
 
-**Protection Mechanisms**:
-- Permission verification in file access routes
-- Owner validation in permission management
-- Proper error handling for unauthorized access
+**Protection Mechanisms:**
+- Multi-layered permission verification system in file access routes
+- Strict owner validation in permission management system
+- Comprehensive error handling for unauthorized access attempts
+- Proper separation of user contexts and access rights
+
+#### Test Case: Path Traversal
+**Description:** Conducted comprehensive testing of path traversal vulnerabilities in file operations, focusing on attempts to access files from outside the designated uploads directory.
+
+**Testing Method:**
+- Used Postman to send crafted path traversal payloads to file endpoints
+- Tested with various path traversal techniques targeting the uploads directory
+- Tested with URL encoding variations
+```
+  GET /api/files/../../uploads/other_user_file.txt
+  GET /api/files/..%2f..%2fuploads%2fother_user_file.txt
+  GET /api/files/..\..\uploads\other_user_file.txt
+  GET /api/files/....//....//uploads//other_user_file.txt
+  GET /api/files/%2e%2e%2f%2e%2e%2fuploads%2fother_user_file.txt
+```
+
+**Findings:**
+- All path traversal attempts were properly blocked
+- System correctly rejected attempts to access files outside the user's designated area in the uploads directory
+
+**Protection Mechanisms:**
+- Secure filename sanitisation using werkzeug.utils.secure_filename
+- Proper file path construction using os.path.join is in place
+- User-specific file path prefixes to prevent cross-user access
 
 ### 4. Cryptographic Issues
 
 #### Test Case: File Encryption Implementation
-**Description**: Analyzed file encryption and key management.
-
-**Testing Method**:
-- Used Wireshark to analyze key exchange
-- Tested encryption implementation
-- Analyzed key storage mechanisms
-
-**Findings**:
-- Proper implementation of asymmetric encryption
-- Secure key storage and transmission
-- No hardcoded keys found
-
-**Protection Mechanisms**:
-- Public/private key pair generation
-- Secure key exchange mechanism
-- Proper encryption key management
+TODO Client side encryption??
 
 ### 5. Injection
 
-#### Test Case: SQL Injection in File Queries
-**Description**: Attempted SQL injection through file operations.
+#### Test Case: SQL Injection in Login
+**Description**: Conducted comprehensive testing of SQL injection vulnerabilities in authentication endpoints, focusing on login and password management functionality.
 
 **Testing Method**:
-- Used OWASP ZAP for automated SQL injection testing
-- Manual testing with common SQL injection payloads
-- Tested all database interaction points
+- Manual testing with common SQL injection payloads such as
+   ```
+   #Tested login endpoint with payloads
+    {
+    "username": "admin' OR '1'='1",
+    "password": "anything"
+    }
+    {
+    "username": "admin'--",
+    "password": "anything"
+    }
+   #Attempted to bypass password verification
+   {
+    "username": "valid_user",
+    "password": "' OR '1'='1"
+   }
+   ```
+- Tested database interaction points such as login, change password
 
 **Findings**:
 - No SQL injection vulnerabilities found
@@ -195,6 +211,32 @@ The testing was performed with the assumption that neither client nor server can
 - SQLAlchemy ORM usage
 - Parameterized queries
 - Input validation
+
+#### Test Case: SQL Injection in File Queries
+**Description**: Conducted testing of common SQL injections when retrieving files, in attempt to retrieve another users file
+
+**Testing Method**:
+- Manual testing with common SQL injections in the url
+   ```
+   GET /api/files/1' OR '1'='1
+   GET /api/files/1'--
+   GET /api/files/1' OR 1=1--
+   GET /api/files/1' UNION SELECT * FROM files--
+   GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR '1'='1
+   GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c'--
+   GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR 1=1--
+   ```
+
+**Findings**:
+- No SQL injection vulnerabilities found
+- Input sanitisation is in place - file UUID is validated before use using the Python UUID libary
+- Proper use of parameterized queries
+
+**Protection Mechanisms**:
+- SQLAlchemy ORM usage
+- Parameterized queries
+-Secure error handling
+- Input validation at multiple levels
 
 ### 6. Security Misconfiguration
 
@@ -253,14 +295,14 @@ The testing was performed with the assumption that neither client nor server can
 - Tested file access controls
 
 **Findings**:
-- Proper file encryption
-- Secure storage implementation
-- No sensitive data exposure
+- Files are transmitted over TLS 1.3 
 
 **Protection Mechanisms**:
-- File content encryption
-- Secure storage mechanisms
-- Proper access controls
+- File content encryption during transit
+
+    <img src="../src/pen_test_screenshots/wireshark_file_upload.png" style="width:80%;" />
+
+
 
 ### 8. Vulnerable Components
 
@@ -284,6 +326,7 @@ The testing was performed with the assumption that neither client nor server can
 - Regular dependency audits as new vunerabilities may be found over tiem
 - Version pinning in requirements (already implemented)
 
+TODO maybe get rid of this
 ## Recommendations
 1. Implement rate limiting for API endpoints
 2. Add additional logging for security events
@@ -298,10 +341,12 @@ The application demonstrates strong security measures across all tested areas. N
 
 ## Appendix
 ### Ratings and Risk Score
+TODO explain risk scores, maybe put a table from cvss
 
 ### Vunerability Details
+TODO list of tested for vunerabilities
 
-### Test Environment Details
+### Test Environment Details TODO
 - Local development environment
 - Production-like staging environment
 - Isolated testing network
