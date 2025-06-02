@@ -2,23 +2,41 @@
 #define CONSTANTS_H
 
 #include <QString>
+#include <QRegularExpression>
 
 using namespace std;
 
-constexpr qint64 MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024;  // 100 MB in bytes
+// File upload constants
+namespace FileUpload {
+    // encryption overhead:
+    // - XChaCha20-Poly1305 nonce (24 bytes)
+    // - Authentication tag (16 bytes)
+    constexpr qint64 ENCRYPTION_OVERHEAD_BYTES = 40;
+    
+    // Exact database constraint (100MB)
+    constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;
+    
+    // File size constants
+    constexpr qint64 KB = 1024;
+    constexpr qint64 MB = 1024 * 1024;
+    constexpr qint64 GB = 1024 * 1024 * 1024;
+}
+
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
+const QString friendsPath = "/friends_";
+
+const QString jsonExtension = ".json";
 const QString binaryExtension = ".bin";
 const int MAX_LOGIN_ATTEMPTS = 5;
 const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
-const int fileSizeLabelWidth = 60;
+const int fileSizeLabelWidth = 80;
 const QString serverPath = "https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000
-const QString loginEndpoint = serverPath + "/login";
-const QString registerEndpoint = serverPath + "/sign_up";
+
 const int fileOwnerLabelWidth = 200;
 
 const QString previewIconPath = ":/images/eye-bold.svg";
@@ -49,14 +67,22 @@ const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000";
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";
 const std::string SIGN_UP_ENDPOINT = "/sign_up";
+const std::string FILES_API_ENDPOINT = "/api/files";
+const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
+const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
 const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
+const std::string GET_USER_FILES_ENDPOINT =  FILES_API_ENDPOINT + "/";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-constexpr string_view RESTRICTED_CHARS = R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )";
+const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");
+inline const QRegularExpression RESTRICTED_CHARS_REGEX("[" + QRegularExpression::escape(RESTRICTED_CHARS) + "]");
 
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;
+
+const int FIND_FRIEND_INDEX = 0;
+const int VERIFY_PUBLIC_KEY_INDEX = 1;
 
 namespace Styles {
 const QString CentralWidget = R"(
@@ -101,6 +127,18 @@ const QString SelectedSidebarButton = R"(
 const QString UnselectedSidebarButton = R"(
     background-color: transparent; 
     color: #424242;
+)";
+
+const QString SuccessMessage = R"(
+    color: #4CAF50; 
+    font-weight: bold;
+    font-size: 14px;
+)";
+
+const QString ErrorMessage = R"(
+    color: #F44336; 
+    font-weight: bold;
+    font-size: 14px;
 )";
 }
 

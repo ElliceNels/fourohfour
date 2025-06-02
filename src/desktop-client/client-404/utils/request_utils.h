@@ -63,6 +63,9 @@ public:
     Response post(const std::string& url, const QJsonObject& data = QJsonObject());
     Response del(const std::string& url, const QJsonObject& data = QJsonObject());
 
+    // Resets the RequestUtils instance to its initial state
+    void reset();
+
 private:
     // Static members
     static bool s_globalInitialized;
@@ -76,6 +79,12 @@ private:
     optional<string> m_refreshToken;
     std::atomic<bool> m_tokenRefreshInProgress{false};  
 
+    // Storage for the last generated JSON data string
+    // This ensures the data remains valid while CURL uses its pointer
+    std::string m_lastJsonData;
+    
+    void cleanup();
+    
     // Private utility methods
     void setupCurl();
     void resetHeaders();

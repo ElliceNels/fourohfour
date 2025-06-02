@@ -48,14 +48,20 @@ void LoginSessionManager::setBaseUrl(const QString& baseUrl) {
 RequestUtils::Response LoginSessionManager::post(const std::string& url, const QJsonObject& data) {
     return this->m_requestUtils.post(url, data);
 }
-
 RequestUtils::Response LoginSessionManager::get(const std::string& url, const QJsonObject& data) {
     return this->m_requestUtils.get(url, data);
+}
+
+RequestUtils::Response LoginSessionManager::del(const std::string& url, const QJsonObject& data) {
+    return this->m_requestUtils.del(url, data);
 }
 
 void LoginSessionManager::clearSession() {
     this->m_masterKey.clear();  // SecureVector handles secure zeroing
     this->m_username.clear();
+    
+    // Use dedicated reset method instead of recreating the object
+    this->m_requestUtils.reset();
 
     qDebug() << "Session cleaned up when called";
 }

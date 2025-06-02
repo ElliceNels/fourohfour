@@ -232,7 +232,6 @@ def get_current_user() -> dict:
         tuple: (user_info, status_code) where user_info is a dictionary containing:
             - user_id: The user's ID
             - username: The user's username
-            - password: The user's hashed password
             - public_key: The user's public key
             - salt: The user's salt
             - created_at: Account creation timestamp
@@ -252,6 +251,7 @@ def get_current_user() -> dict:
         return jsonify({"error": "User not found"}), 404
 
     user_info = {
+        "user_id": user.id,
         "username": user.username,
         "public_key": user.public_key,
         "salt": base64.b64encode(user.salt).decode() if isinstance(user.salt, bytes) else user.salt,

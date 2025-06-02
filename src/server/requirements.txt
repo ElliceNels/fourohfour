@@ -11,3 +11,4 @@ gunicorn==21.2.0
 pytest==8.3.5
 pytest-mock==3.14.0
 PyNaCl==1.5.0
+alembic==1.16.1

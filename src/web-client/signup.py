@@ -1,3 +1,4 @@
+import os
 import unicodedata
 from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
 from session_manager import LoginSessionManager
@@ -11,7 +12,8 @@ def load_dictionary_words(filepath):
         return set(line.strip().lower() for line in f if line.strip())
 
 def validate_registration(account_name, password, confirm_password):
-    dictionary_words = load_dictionary_words('common_passwords.txt')
+    common_pw_path = os.path.join(os.path.dirname(__file__), 'common_passwords.txt')
+    dictionary_words = load_dictionary_words(common_pw_path)
 
     if password != confirm_password:
         return False, "Passwords do not match!"

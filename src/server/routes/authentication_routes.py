@@ -217,7 +217,13 @@ def get_current_user():
         user_info, status_code = auth.get_current_user()
         if status_code != 200:
             logger.warning("Get current user failed: Missing or malformed token")
-            return user_info, status_code
+            return {
+                "username": user_info["username"],
+                "public_key": user_info["public_key"],
+                "salt": user_info["salt"],
+                "created_at": user_info["created_at"],
+                "updated_at": user_info["updated_at"]
+            }, status_code
         return jsonify(user_info), 200
     except JWTError as e:
         return jsonify({"error": e.message}), e.status
