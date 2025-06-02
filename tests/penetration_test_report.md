@@ -20,8 +20,8 @@ Below is a list of all major vunerabilities discovered during penetration testin
 - **TDependency audit**
 - **Proof of Concept:**
 - **Likelihood of exploitation:**
-- **Potential Impact:**
-- **Risk Assessment :**
+- **Potential Impact:** As cryptographic libraries contain known vunerabilities, an attacker could potentially read and alter sensitive information
+- **Risk Assessment :** CVSS Score of (High) 
 - **Update dependency packages, periodically audit going forward**
 
 
@@ -118,18 +118,22 @@ The testing was performed with the assumption that neither client nor server can
 
 **Testing Method**:
 - Used Burp Suite to analyze token structure
-- Attempted token manipulation
-- Tested token expiration and refresh mechanisms
+- Tested token invalidation and refresh mechanisms:
+    - Attempted to perform file uploads with a logged out user's token
+   - Attempted token manipulation to change the timestamp of a logged out user's token, and tries to fetch files from another user
+   - Attempted to resign manipulated tokens to pass integrity checks
+
 
 **Findings**:
-- JWT tokens properly implemented with expiration
-- Secure token storage in client
-- Proper refresh token rotation
+- When accessing files with a logged out user's token the request is rejected with message `'Token has been invalidated', 401`
+- After changing the Issued At timestamp of an invalidated token, we recieve an error `Missing or malformed token`, as integrity checks fail
+- TODO when we resign
 
 **Protection Mechanisms**:
+- Ensure that JWT_SECRET_KEY is properly configured
+- Token signing is in place, to protect against token manipulation
 - JWT_SECRET_KEY properly configured
-- Token expiration and refresh mechanisms
-- Secure cookie handling
+- Token expiration and refresh mechanisms are properly configured
 
 ### 3. Broken Access Control
 
@@ -219,15 +223,25 @@ The testing was performed with the assumption that neither client nor server can
 
 **Testing Method**:
 - Used Wireshark to monitor network traffic and verify that transmitted requests were encrypted
-- Captured network packets during sign up and login
-- Analyzed transmission protocol (HTTPS/TLS)
-- Attempted to send to http??
+- Sent requests via Postman, testing sign up and login
+- Analysed the transmission protocol
+- Captured packets and analysed that they are unreadable and sent over a secure protocol
+- Attempted to send the same request to a HTTP URL
 
 **Findings**:
-- Login and signup requests could be intercepted, but their contents were unreadable
+- Login and signup requests could be easily intercepted, but their contents were unreadable
+- Application data packets were transmitted via TLS 1.3
+- The client/server handshake packets were visible, confirming that a key exchange takes place *(see fig TODO)
+- The request to the HTTP URL was rejected
+
+    <img src="../src/pen_test_screenshots/application_data_tls_1_3.png" style="width:45%;" />       <img src="../src/pen_test_screenshots/server_client_hello.png" style="width:45%;" />
+
+
 
 **Protection Mechanisms in Place**:
-- SSL/TLS communication over HTTPS is enforced by the server. 
+- SSL/TLS communication over HTTPS is enforced by the server.
+- Requests that do not use HTTPS are rejected, ensuring that a poorly configured client cannot communicate. 
+
 
 #### Test Case: File Content Protection
 **Description**: Analyzed file content handling and storage.
