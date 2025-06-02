@@ -62,12 +62,15 @@ class FilePermissions(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
-    encryption_key = Column(BLOB, nullable=False)
+    encryption_key = Column(BLOB, nullable=False) #the symmetric key, encrypted with derived shared secret
+    otpk_id = Column(Integer, ForeignKey('one_time_pre_keys.id'), nullable=True) #The ID of the one-time pre key used for this permission
+    ephemeral_key = Column(BLOB, nullable=False) #The ephemeral key used for this permission    
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
 
     user = relationship("Users", back_populates="file_permissions")
     file = relationship("Files", back_populates="file_permissions")
+    otpk = relationship("OTPK")
 
 class Files(Base):
     """Files table to store file information."""
