@@ -134,8 +134,7 @@ QString FriendStorageUtils::getUserPublicKey(const QString& username, QWidget* p
     // Use existing method to read the JSON data
     QJsonObject friendsData = readFriendsJson(filepath, parent);
     
-    // Look for the current user's own key in their friends file
-
+    // Look for the specified username's public key in the friends data
     if (friendsData.contains(username)) {
         return friendsData[username].toString();
     }
