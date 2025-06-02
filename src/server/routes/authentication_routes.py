@@ -254,3 +254,24 @@ def get_public_key():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@authentication_routes.route('/count_otpk', methods=['GET'])
+def count_otpk():
+    """Count OTKs route to retrieve the count of one-time pre keys for the current user.
+
+    Expected response:
+    {
+        "otpk_count": <number_of_otpk>
+    }
+    """
+    logger.debug("Received request to count OTKs")
+    try:
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+        
+        otpk_count = auth.get_count_otpk(user_info)
+        return jsonify({"otpk_count": otpk_count}), 200
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

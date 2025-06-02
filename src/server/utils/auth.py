@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import jsonify, request
 from server.utils.db_setup import get_session
-from server.models.tables import Users
+from server.models.tables import OTPK, Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
 import logging
 import nacl.pwhash
@@ -317,3 +317,21 @@ def verify_password(hashed_password: bytes, password: str) -> bool:
         return nacl.pwhash.verify(hashed_password, password.encode())
     except nacl.exceptions.InvalidkeyError:
         return False
+    
+def get_count_otpk(user_info : dict) -> int:
+    """Count the number of unused one-time pre keys (OTPK) for the current user.
+
+    Returns:
+        int: The count of unused OTPKs for the user.
+    """
+    user_id = user_info.get("user_id")
+    username = user_info.get("username")
+    if not user_id:
+        logger.warning("Count OTPK failed: Missing required fields")
+        raise ValueError("Missing required fields: user_id")
+
+    with get_session() as db:
+        # Count only unused OTPKs (where used = 0) - database count is most efficient
+        otpk_count = db.query(OTPK).filter_by(user_id=user_id, used=0).count()
+        logger.info(f"Counted {otpk_count} unused OTPKs for user {username})")
+    return otpk_count
