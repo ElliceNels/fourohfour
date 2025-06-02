@@ -22,16 +22,16 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->downloadButton = createIconButton(downloadIconPath);
     if(isOwner){
         this->shareButton = createIconButton(shareIconPath);  // only owners can share files
+        this->deleteButton = createIconButton(deleteIconPath);
     }
-    this->deleteButton = createIconButton(deleteIconPath);
-
+  
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
 
     if (isOwner) {
         connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare); // only owners can share files
+        connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     } 
 
-    connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     connect(this->previewButton, &QPushButton::clicked, this, &FileItemWidget::handlePreview);
 
     // Layout
@@ -43,9 +43,10 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     layout->addWidget(this->downloadButton);
     if (isOwner) {
         layout->addWidget(this->shareButton);
+        layout->addWidget(this->deleteButton);
     }
     layout->addWidget(this->previewButton);
-    layout->addWidget(this->deleteButton);
+
 
     this->setLayout(layout);
 
