@@ -5,6 +5,7 @@ from uploadfile import validate_file_size, validate_file_type
 from resetpassword import manage_reset_password
 from session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
+from constants import GET_USER_ENDPOINT
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -43,6 +44,7 @@ def login():
         password = request.form.get('password')
 
         login_success, message = manage_login(password, username)
+        print("RESPONSE FROM IMMEDIATE CALL:" + LoginSessionManager.getInstance().get(GET_USER_ENDPOINT))
         if login_success:
             print(f"Login successful for {username}")
             clear_flashes()
@@ -126,11 +128,7 @@ def reset_password():
 
         username = LoginSessionManager.getInstance().getUsername()
         
-        success, message = validate_registration(
-            account_name=username,
-            password=new_password,
-            confirm_password=confirm_password
-        )
+        success, message = validate_registration(username, new_password, confirm_password)
         
         if not success:
             flash(message, 'error')

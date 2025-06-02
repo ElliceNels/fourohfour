@@ -13,15 +13,19 @@ def manage_reset_password(old_password, new_password):
     except Exception as e:
         return False, f"Failed to encrypt and save key: {str(e)}"
     
-
     try:
-        reset_password(new_password, new_salt)
+        result = reset_password(new_password, new_salt)
+        if result:
+            return True, "Password reset successful!"
+        else:
+            return False, "Failed to reset password on server."
     except Exception as e:
         return False, f"Failed to reset password on server: {str(e)}"
 
 
 
 def get_salt():
+
     try:
         response = LoginSessionManager.getInstance().get(GET_USER_ENDPOINT)
         if response is None:

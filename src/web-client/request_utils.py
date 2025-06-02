@@ -2,7 +2,7 @@ import requests
 import json
 from exceptions import UsernameAlreadyExistsError, ServerError, UserNotFoundError, InvalidPasswordError
 
-def get_request(url, params=None):
+def get_request(url, access_token, refresh_token, params=None):
     """
     Make a GET request (HTTP or HTTPS) with exception handling.
     :param url: The URL to send the GET request to.
@@ -12,7 +12,14 @@ def get_request(url, params=None):
     try:
         if params is not None and isinstance(params, dict):
             params = {'data': json.dumps(params)}
-        response = requests.get(url, params=params)
+        
+        headers = {}
+        if access_token:
+            headers['Authorization'] = f'Bearer {access_token}'
+        if refresh_token:
+            headers['X-Refresh-Token'] = refresh_token  
+
+        response = requests.get(url, params=params, headers=headers)
         response.raise_for_status()
         return response
     except requests.exceptions.HTTPError as http_err:
