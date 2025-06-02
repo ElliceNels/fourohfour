@@ -75,12 +75,6 @@ def manage_registration(account_name, password):
             else:
                 print("Server registration failed")
                 return False, "Failed to register with server"
-        except UsernameAlreadyExistsError as e:
-            print(f"Username already exists: {str(e)}")
-            return False, str(e)
-        except ServerError as e:
-            print(f"Server error: {str(e)}")
-            return False, str(e)
         except Exception as e:
             print(f"Unexpected error during server registration: {str(e)}")
             return False, f"Failed to register with server: {str(e)}"
@@ -90,7 +84,6 @@ def manage_registration(account_name, password):
         return False, f"Unexpected error during registration: {str(e)}"
     
 
-    
 def register_user(username, password, public_key, salt):
     data = {
         "username": username,
@@ -98,39 +91,25 @@ def register_user(username, password, public_key, salt):
         "public_key": public_key,
         "salt": salt
     }
-    try:
-        response = LoginSessionManager.getInstance().post(SIGN_UP_ENDPOINT, data)
-        print(f"Server response: {response}")
-        
-        if response is None:
-            print("No response received from server")
-            return False
-            
-        if response.ok:
-            json_data = response.json()
-            jwt_token = json_data.get("token")
-            if jwt_token:
-                LoginSessionManager.getInstance().setJwtToken(jwt_token)
-                return True
-        elif response.status_code == 409:
-            print("Username already exists")
-            raise UsernameAlreadyExistsError("Username already exists.")
-        elif response.status_code >= 500:
-            print(f"Server error: {response.status_code}")
-            raise ServerError("Server error occurred.")
-        else:
-            print(f"Unexpected response status: {response.status_code}")
-            return False
-            
-    except UsernameAlreadyExistsError as e:
-        print(f"Username already exists error: {str(e)}")
-        raise e
-    except ServerError as e:
-        print(f"Server error: {str(e)}")
-        raise e
-    except Exception as e:
-        print(f"An error occurred during registration: {str(e)}")
-        return False
+    
+    response = LoginSessionManager.getInstance().post(SIGN_UP_ENDPOINT, data)
+    
+    # Parse response data
+    response_data = response.json()
+    print(f"Server response: {response_data}")
+    
+    # Check for tokens
+    access_token = response_data.get("access_token")
+    refresh_token = response_data.get("refresh_token")
+    
+    if access_token and refresh_token:
+        LoginSessionManager.getInstance().setTokens(access_token, refresh_token)
+        LoginSessionManager.getInstance().setUsername(username)
+        return True
+    
+    print("Missing tokens in response")
+    return False
+
 
 
 

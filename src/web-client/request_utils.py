@@ -1,5 +1,6 @@
 import requests
 import json
+from exceptions import UsernameAlreadyExistsError, ServerError
 
 def get_request(url, params=None):
     """
@@ -30,6 +31,7 @@ def post_request(url, json_data=None):
     :param url: The URL to send the POST request to.
     :param json_data: (Optional) JSON data to send in the body.
     :return: Response object or None if an error occurs.
+    :raises: UsernameAlreadyExistsError, ServerError
     """
     try:
         if json_data is not None and isinstance(json_data, dict):
@@ -40,14 +42,24 @@ def post_request(url, json_data=None):
             )
         else:
             response = requests.post(url, data=json_data)
+            
+        if response.status_code == 409:
+            raise UsernameAlreadyExistsError()
+            
         response.raise_for_status()
         return response
+        
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
+        if "409" in str(http_err):
+            raise UsernameAlreadyExistsError()
+        raise ServerError()
     except requests.exceptions.ConnectionError as conn_err:
         print(f"Connection error occurred: {conn_err}")
+        raise ServerError()
     except requests.exceptions.Timeout as timeout_err:
         print(f"Timeout error occurred: {timeout_err}")
+        raise ServerError()
     except requests.exceptions.RequestException as req_err:
         print(f"An error occurred: {req_err}")
-    return None
+        raise ServerError()
