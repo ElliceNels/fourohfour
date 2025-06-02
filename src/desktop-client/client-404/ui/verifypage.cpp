@@ -11,6 +11,7 @@
 #include <QTimer>
 #include "utils/request_utils.h"
 #include "loginsessionmanager.h"
+#include "utils/friend_storage_utils.h"
 
 VerifyPage::VerifyPage(QWidget *parent)
     : BasePage(parent)
@@ -187,11 +188,6 @@ bool VerifyPage::validateUsername(const QString& username) {
     return true;
 }
 
-QString VerifyPage::buildFriendStorageFilePath() {
-    const QString username = LoginSessionManager::getInstance().getUsername();
-    return QCoreApplication::applicationDirPath() + friendsPath + username + jsonExtension;
-}
-
 bool VerifyPage::validateFriendData() {
     if (this->otherUsername.isEmpty()) {
         QMessageBox::warning(this, "Error", "No username to save");
@@ -206,79 +202,14 @@ bool VerifyPage::validateFriendData() {
     return true;
 }
 
-QJsonObject VerifyPage::readFriendsJson(const QString& filepath) {
-    QJsonObject friendsData;
-    
-    if (!QFile::exists(filepath)) {
-        // Create the file if it doesn't exist
-        QFile file(filepath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            QMessageBox::warning(this, "Error", "Could not create friend storage file.");
-            return friendsData;
-        }
-        file.close();
-        return friendsData;
-    }
-    
-    // Read file data
-    QFile file(filepath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, "File Opening Error", 
-                            "Failed to open friend file: " + file.errorString());
-        return friendsData;
-    }
-    
-    // Read the existing data
-    const QByteArray jsonData = file.readAll();
-    file.close();
-    
-    // Parse existing JSON data
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
-    if (parseError.error == QJsonParseError::NoError && doc.isObject()) {
-        friendsData = doc.object();
-    } else if (!jsonData.isEmpty()) {
-        QMessageBox::warning(this, "Parse Error", 
-                            "Failed to parse friends data: " + parseError.errorString());
-    }
-    
-    return friendsData;
-}
-
-bool VerifyPage::writeFriendsJson(const QString& filepath, const QJsonObject& friendsData) {
-    QJsonDocument updatedDoc(friendsData);
-    QFile writeFile(filepath);
-    if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, "File Writing Error", 
-                           "Failed to write to friend file: " + writeFile.errorString());
-        return false;
-    }
-    
-    writeFile.write(updatedDoc.toJson());
-    writeFile.close();
-    
-    return true;
-}
-
 bool VerifyPage::saveFriendPairToJSON() {
     // Validate we have the required data
     if (!validateFriendData()) {
         return false;
     }
 
-    // Get the filepath
-    QString filepath = buildFriendStorageFilePath();
-    
-    // Read existing data
-    QJsonObject friendsData = readFriendsJson(filepath);
-    
-    // Add or update username and public key pair
     QString publicKeyBase64 = QString::fromUtf8(this->otherPublicKey);
-    friendsData[this->otherUsername] = publicKeyBase64;
-    qDebug() << "Saving friend pair: " << this->otherUsername << " with public key: " << publicKeyBase64;
-    
-    // Write back to file
-    return writeFriendsJson(filepath, friendsData);
+    return FriendStorageUtils::saveFriendPairToJSON(this->otherUsername, publicKeyBase64, this);
 }
 
 
