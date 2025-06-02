@@ -218,7 +218,17 @@ def test_get_current_user_cases(token_error, user_exists, expected_status, expec
     elif user_exists is None:
         mock_db.query().filter_by().first.return_value = None
     elif user_exists:
-        user = Users(id=1, username="user", password="pw", public_key="pk", salt=b"salt", created_at="now", updated_at="now")
+        user = Users(
+            id=1, 
+            username="user", 
+            password="pw", 
+            public_key="pk", 
+            spk="c3BrX2tleQ==",  # Add base64 encoded spk
+            spk_signature="c2lnbmF0dXJl",  # Add base64 encoded spk_signature
+            salt=b"salt", 
+            created_at="now", 
+            updated_at="now"
+        )
         mock_db.query().filter_by().first.return_value = user
     else:
         mock_db.query().filter_by().first.return_value = None

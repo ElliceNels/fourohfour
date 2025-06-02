@@ -45,9 +45,9 @@ def test_user():
     unique_public_key = base64.b64encode(random_bytes).decode()
     # Generate SPK and signature (mock values for testing)
     spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    unique_spk = base64.b64encode(spk_bytes)  # Keep as bytes
+    unique_spk = base64.b64encode(spk_bytes).decode()  # Encode as string for JSON
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    unique_spk_signature = base64.b64encode(signature_bytes)  # Keep as bytes
+    unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
     
     return {
         "username": unique_username,
