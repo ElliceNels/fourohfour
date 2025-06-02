@@ -68,7 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToUploadFilePageRequested, Pages::UploadFilePageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToVerifyPageRequested, Pages::VerifyPageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToLoginPageRequested, Pages::LoginPageIndex);
-    this->connectPageNavigation(this->mainMenu, &MainMenu::goToViewFilesPageRequested, Pages::ViewFilesPageIndex);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToViewFilesPageRequested, Pages::ViewFilesPageIndex, this->viewFilesPage,&ViewFilesPage::fetchUserFiles);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToResetPasswordRequested, Pages::ResetPasswordPage);
 
     this->setCentralWidget(this->stackedWidget);

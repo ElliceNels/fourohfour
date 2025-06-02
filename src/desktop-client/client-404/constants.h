@@ -15,6 +15,11 @@ namespace FileUpload {
     
     // Exact database constraint (100MB)
     constexpr qint64 SERVER_MAX_SIZE_BYTES = 104857600;
+    
+    // File size constants
+    constexpr qint64 KB = 1024;
+    constexpr qint64 MB = 1024 * 1024;
+    constexpr qint64 GB = 1024 * 1024 * 1024;
 }
 
 const QString keysPath = "/encryptedKeys_";
@@ -27,7 +32,7 @@ const int MAX_LOGIN_ATTEMPTS = 5;
 const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
-const int fileSizeLabelWidth = 60;
+const int fileSizeLabelWidth = 80;
 const QString serverPath = "https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000
@@ -67,6 +72,7 @@ const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
 const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
 const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
+const std::string GET_USER_FILES_ENDPOINT =  FILES_API_ENDPOINT + "/";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");
