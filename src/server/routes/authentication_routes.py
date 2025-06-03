@@ -277,6 +277,9 @@ def count_otpk():
         return jsonify({"otpk_count": otpk_count}), 200
     except JWTError as e:
         return jsonify({"error": e.message}), e.status
+    except ValueError as e:
+        logger.warning(f"Count OTKs failed: {str(e)}")
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
