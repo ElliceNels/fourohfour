@@ -15,6 +15,7 @@
 #include <QHostInfo>
 #include "constants.h"
 #include "loginsessionmanager.h"
+#include "key_utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -70,7 +71,14 @@ void LoginPage::onLoginButtonClicked()
 
     LoginSessionManager::getInstance().setUsername(username);
 
-    if (sendLogInRequest(username, password)) {
+    sendLogInRequest(username, password);
+
+
+    QString salt = getSaltRequest();
+
+
+
+    if (decryptMasterKey(username, password, salt)) {
         // Switch to main menu after login
         emit this->goToMainMenuRequested();
     } else {
@@ -126,6 +134,32 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
+
+QString LoginPage::getSaltRequest(){
+    // Set base URL for the server
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
+
+
+
+    // Make the GET request to the get_current_user endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_USER_ENDPOINT);
+
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+
+        // Extract salt from the response
+        QString oldSalt = jsonObj["salt"].toString();
+        QByteArray decodedSalt = QByteArray::fromBase64(oldSalt.toUtf8());
+        oldSalt = QString::fromUtf8(decodedSalt);  // Convert back to QString
+
+
+        return oldSalt;
+    } else {
+        qDebug() << "Error getting salt:" <<response.errorMessage;
+        return NULL;
+    }
+}
 
 bool LoginPage::isRateLimited(const QString& ip)
 {
