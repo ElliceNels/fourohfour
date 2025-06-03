@@ -12,6 +12,7 @@
 #include "crypto/encryptionhelper.h"
 #include "utils/securebufferutils.h"
 #include "constants.h"
+#include "utils/file_crypto_utils.h"
 
 /**
  * @brief Generates multiple one-time pre-key pairs for secure communication
@@ -77,17 +78,17 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
     }
 
     // Get master key and validate it
-    const SecureVector masterKey = getMasterKey();
-    if (masterKey.empty()) {
+    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
+    if (!FileCryptoUtils::validateMasterKey(masterKey)) {
         return false; 
     }
 
     // Build file path for the key storage
-    const QString filepath = buildKeyStorageFilePath();
+    const QString filepath = FileCryptoUtils::buildKeyStorageFilePath();
 
     // Read existing encrypted file
     QByteArray jsonData;
-    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+    if (!FileCryptoUtils::readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
         return false;
     }
     
@@ -98,7 +99,7 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
     }
     
     // Encrypt and save the updated JSON data
-    if (!encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
+    if (!FileCryptoUtils::encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
         return false;
     }
     
@@ -119,90 +120,6 @@ bool FileSharingUtils::validateKeyPairs(const QVector<QByteArray>& publicKeys, c
         return false;
     }
     return true;
-}
-
-/**
- * @brief Retrieves the user's master encryption key
- *
- * @return SecureVector The user's master key or empty vector if invalid
- */
-SecureVector FileSharingUtils::getMasterKey() {
-    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
-    if (masterKey.empty() || masterKey.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
-        qWarning() << "Invalid master key for encryption";
-        return SecureVector();
-    }
-    return masterKey;
-}
-
-/**
- * @brief Constructs the file path for the key storage file
- *
- * @return QString Path to the user's key storage file
- */
-QString FileSharingUtils::buildKeyStorageFilePath() {
-    const QString username = LoginSessionManager::getInstance().getUsername();
-    return QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension;
-}
-
-/**
- * @brief Reads and decrypts the key storage file
- *
- * @param filepath Path to the encrypted key storage file
- * @param masterKey The user's master key for decryption
- * @param jsonData Output parameter that will contain the decrypted JSON data
- * @return bool True if successful, false otherwise
- */
-bool FileSharingUtils::readAndDecryptKeyStorage(const QString &filepath, const SecureVector &masterKey, QByteArray &jsonData) {
-    
-    QFile file(filepath);
-    
-    // if the file doesn't exist, we create an empty new one
-    if (!file.exists()) {
-        jsonData = QByteArray();
-        return true;
-    }
-    
-    if (!file.open(QIODevice::ReadOnly)) {
-        qWarning() << "Failed to open encrypted keys file:" << file.errorString();
-        return false;
-    }
-    
-    const QByteArray fileData = file.readAll();
-    file.close();
-    
-    // Validate file data
-    if (fileData.size() <= crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
-        qWarning() << "Encrypted file is too small or corrupted";
-        return false;
-    }
-    
-    // Extract nonce and ciphertext
-    const int ciphertextSize = fileData.size() - crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
-    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-    SecureVector ciphertext(ciphertextSize);
-    
-    std::copy(fileData.constData(), fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, nonce.get());
-    std::copy(fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, fileData.constData() + fileData.size(), ciphertext.begin());
-    
-    // Decrypt data
-    EncryptionHelper crypto;
-    try {
-        SecureVector plaintext = crypto.decrypt(
-            ciphertext.data(),
-            ciphertextSize,
-            masterKey.data(),
-            nonce.get(),
-            nullptr,
-            0
-        );
-        
-        jsonData = QByteArray(reinterpret_cast<const char*>(plaintext.data()), static_cast<int>(plaintext.size()));
-        return true;
-    } catch (const std::exception& e) {
-        qWarning() << "Decryption failed:" << e.what();
-        return false;
-    }
 }
 
 /**
@@ -245,46 +162,5 @@ bool FileSharingUtils::updateJsonWithPrekeys(const QByteArray &jsonData, const Q
     // Prepare for encryption
     doc.setObject(json);
     updatedJsonData = doc.toJson(QJsonDocument::Compact);
-    return true;
-}
-
-/**
- * @brief Encrypts and saves the key storage data to a file
- *
- * @param filepath Path where the encrypted file should be saved
- * @param jsonData JSON data to encrypt and save
- * @param masterKey The user's master key for encryption
- * @return bool True if successful, false otherwise
- */
-bool FileSharingUtils::encryptAndSaveKeyStorage(const QString &filepath, const QByteArray &jsonData, const SecureVector &masterKey) {
-    // Encrypt and save
-    EncryptionHelper crypto;
-    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-    crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-    
-    SecureVector ciphertext = crypto.encrypt(
-        reinterpret_cast<const unsigned char*>(jsonData.constData()),
-        jsonData.size(),
-        masterKey.data(),
-        nonce.get(),
-        nullptr,
-        0
-    );
-    
-    // Combine nonce and ciphertext
-    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
-    std::copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());
-    std::copy(ciphertext.data(), ciphertext.data() + ciphertext.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-    
-    // Save to file
-    QFile file(filepath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        qWarning() << "Failed to open file for writing:" << file.errorString();
-        return false;
-    }
-    
-    file.write(reinterpret_cast<const char*>(combinedData.data()), static_cast<qint64>(combinedData.size()));
-    file.close();
-    
     return true;
 }

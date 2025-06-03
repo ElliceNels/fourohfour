@@ -14,18 +14,10 @@ class FileSharingUtils {
         
         // Helper methods for key storage
         bool validateKeyPairs(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);
-        SecureVector getMasterKey();
-        QString buildKeyStorageFilePath();
-        bool readAndDecryptKeyStorage(const QString &filepath, 
-                                     const SecureVector &masterKey, 
-                                     QByteArray &jsonData);
         bool updateJsonWithPrekeys(const QByteArray &jsonData, 
                                   const QVector<QByteArray>& publicKeys, 
                                   const QVector<QByteArray>& privateKeys,
                                   QByteArray &updatedJsonData);
-        bool encryptAndSaveKeyStorage(const QString &filepath, 
-                                     const QByteArray &jsonData, 
-                                     const SecureVector &masterKey);
 };
 
 #endif // FILE_SHARING_UTILS_H
