@@ -37,7 +37,7 @@ def validate_registration(account_name, password, confirm_password, old_password
     if any(char in RESTRICTED_CHARS for char in account_name):
         return False, "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens."
 
-    return True, "Account created successfully!"
+    return True, "Credentials are valid"
 
 def manage_registration(account_name, password):
     try:

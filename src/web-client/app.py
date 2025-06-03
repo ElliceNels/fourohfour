@@ -16,6 +16,7 @@ def title_page():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    clear_flashes()
     if request.method == 'POST':
         account_name = request.form['username']
         password = request.form['password']
@@ -28,6 +29,7 @@ def signup():
         else:
             registration_success, error_message = manage_registration(account_name, password)
             if registration_success:
+                session['username'] = account_name
                 print(f"Registration successful for {account_name}")  
                 clear_flashes()
                 flash(message, "success")
@@ -39,12 +41,17 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    clear_flashes()
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
 
+        clear_flashes()
+        flash("Logging in", "info")
+
         login_success, message = manage_login(password, username)
         if login_success:
+            session['username'] = username
             print(f"Login successful for {username}")
             clear_flashes()
             flash(message, "success")
@@ -62,6 +69,7 @@ def main_menu():
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.clear()
+    LoginSessionManager.getInstance().clearSession()
     return redirect(url_for('title_page'))
 
 @app.route('/upload_file', methods=['GET', 'POST'])
@@ -120,32 +128,44 @@ def verify_user():
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
+    clear_flashes()
     if request.method == 'POST':
         old_password = request.form.get('old_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')  
 
-        username = LoginSessionManager.getInstance().getUsername()
+
+        if not old_password:
+            clear_flashes()
+            flash('Please provide your old password', 'error')
+            return render_template('resetpassword.html') 
+
+
+        username = session.get('username')
+        if not username:
+            clear_flashes()
+            flash('Session expired or not logged in. Please log in again.', 'error')
+            return redirect(url_for('login'))
+
         
-        success, message = validate_registration(username, new_password, confirm_password)
+        success, message = validate_registration(username, new_password, confirm_password, old_password)
         
         if not success:
+            clear_flashes()
             flash(message, 'error')
-            return render_template('resetpassword.html')
+            return render_template('resetpassword.html') 
             
-        if not old_password:
-            flash('Please provide your old password', 'error')
-            return render_template('resetpassword.html')
             
         # If validation passes, proceed with password reset
         success, message = manage_reset_password(old_password, new_password)
         
         if success:
+            clear_flashes()
             flash('Password reset successful!', 'success')
             return redirect(url_for('main_menu'))
         else:
+            clear_flashes()
             flash(message, 'error')
-            return render_template('resetpassword.html')
             
     return render_template('resetpassword.html')
 
