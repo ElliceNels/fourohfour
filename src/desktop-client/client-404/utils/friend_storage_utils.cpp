@@ -188,10 +188,21 @@ QMap<QString, QString> FriendStorageUtils::getAllFriendsExceptSelf(QWidget* pare
     // Read existing data
     QJsonObject friendsData = readFriendsJson(currentUsername, parent);
     
+    // Validate the structure of the JSON object
+    if (friendsData.isEmpty()) {
+        qWarning() << "Empty or invalid friends data structure for user:" << currentUsername;
+        return friendsList;
+    }
+    
     // Iterate through all keys and add to the map, excluding the current user
     for (auto it = friendsData.constBegin(); it != friendsData.constEnd(); ++it) {
         const QString& username = it.key();
         if (username != currentUsername) {
+            // Validate that the value is actually a string
+            if (!it.value().isString()) {
+                qWarning() << "Invalid public key format for friend:" << username;
+                continue;
+            }
             friendsList.insert(username, it.value().toString());
         }
     }
