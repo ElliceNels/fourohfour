@@ -23,6 +23,13 @@ public:
 
 public slots:
     void fetchUserFiles();
+    void switchMainPage(int pageIndex); // New method to switch between main pages
+    void onShareRequested(); // New slot to handle share requests
+    void navigateToFilesListPage();
+    void navigateToSharingPage();
+    void navigateToFriendsPage();
+    void switchToOwnedFiles();
+    void switchToSharedFiles();
 
 private:
     Ui::ViewFilesPage *ui;
@@ -33,10 +40,15 @@ private:
 
     void switchFileListPage(int pageIndex);
     void displayFiles(const QJsonArray& ownedFiles, const QJsonArray& sharedFiles);
-    void addFileItem(const QJsonObject& fileObj, QListWidget* listWidget, const QString& ownerLabel); // Removed isOwner parameter
+    void addFileItem(const QJsonObject& fileObj, QListWidget* listWidget, const QString& ownerLabel); 
 
 signals:
     void goToMainMenuRequested();
+    void goToFilesListPageRequested();
+    void goToSharingPageRequested();
+    void goToFriendsPageRequested();
+    void switchToOwnedFilesRequested();
+    void switchToSharedFilesRequested();
 };
 
 #endif // VIEWFILESPAGE_H
