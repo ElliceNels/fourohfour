@@ -15,6 +15,7 @@
 #include "core/loginsessionmanager.h"
 #include "utils/request_utils.h"
 #include "utils/file_sharing_utils.h"
+#include "utils/friend_storage_utils.h"
 
 using namespace std;
 
@@ -199,6 +200,8 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
         
         // Set tokens in the LoginSessionManager
         LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+        // Save the user's public key to their friends list
+        FriendStorageUtils::saveFriendPairToJSON(username, publicKey, this);
         
         qDebug() << "Registration successful. Tokens saved in session manager.";
         return true;

@@ -25,7 +25,8 @@ namespace FileUpload {
 const qint64 KEY_GEN_COUNT = 50; // Number of one-time pre-keys to generate
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
-const QString friendsPath = "/friends_";
+const QString friendsDirectory = "friends";
+const QString friendsPath = "friends_";
 
 const QString jsonExtension = ".json";
 const QString binaryExtension = ".bin";
