@@ -19,7 +19,6 @@ LoginSessionManager& LoginSessionManager::getInstance() {
 }
 
 void LoginSessionManager::setSession(const QString& username, const unsigned char* masterKey, size_t keyLength) {
-    this->clearSession();
     this->m_username = username;
     
     // Create new SecureVector and copy the key
