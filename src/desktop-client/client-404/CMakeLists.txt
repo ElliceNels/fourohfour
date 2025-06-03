@@ -78,6 +78,8 @@ set(UTILS_SOURCES
     utils/file_sharing_utils.cpp
     utils/friend_storage_utils.h
     utils/friend_storage_utils.cpp
+    utils/file_crypto_utils.h
+    utils/file_crypto_utils.cpp
 )
 
 set(CORE_SOURCES
