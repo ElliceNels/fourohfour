@@ -8,6 +8,8 @@ from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
 
 from utils.verify_user import generate_code, save_friend
+from utils.view_files import my_files
+
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 from logger import setup_logger
@@ -118,7 +120,17 @@ def upload_file():
 
 @app.route('/view_files')
 def view_files():
-    return render_template('viewfiles.html', owned_files=[], shared_files=[])
+    try:
+        owned, shared = my_files()
+        if not owned and not shared:
+            logger.info("No files found for the user.")
+            flash("No files found!", "info")
+            return render_template('viewfiles.html', files_owned=[], files_shared=[])
+    except Exception as e:
+        flash(f"Error fetching files: {str(e)}", "error")
+        logger.error(f"Error fetching files: {str(e)}")
+        return render_template('viewfiles.html', files_owned=[], files_shared=[])
+    return render_template('viewfiles.html', files_owned=owned, files_shared=shared)
 
 @app.route('/verify_user', methods=['GET', 'POST'])
 def verify_user():
@@ -190,6 +202,11 @@ def reset_password():
 
 def clear_flashes():
     session.pop('_flashes', None)
+@app.route('/view_file/<filename>')
+def view_file(filename):
+    # Placeholder for file viewing logic
+    # Retrieve the file content from the server or database
+    return render_template('viewfile.html', filename=filename, file_content=" This is a placeholder for file content.")
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

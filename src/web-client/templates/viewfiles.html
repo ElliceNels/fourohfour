@@ -49,17 +49,23 @@
                                 <th>Name</th>
                                 <th>Size</th>
                                 <th>Owner</th>
-                                <th>Actions</th>
+                                <th>Uploaded At</th>
+                                <th></th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <!-- Example row, remove or replace with Jinja loop -->
-                            <!-- <tr>
-                                <td>example.txt</td>
-                                <td>1 KB</td>
-                                <td>me</td>
+                            {% for file in files_owned %}
+                            <tr>
+                                <td><a href="{{ url_for('view_file', filename=file['filename']) }}" class="btn">{{ file["filename"] }}</a></td>
+                                <td>{{ file["file_size"] }}</td>
+                                <td>{{ file["owner"] }}</td>
+                                <td><{{file["uploaded_at"]}}</td>
                                 <td><button>Download</button></td>
-                            </tr> -->
+                                <td><button>Share</button></td>
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                     <div class="files-table-empty"></div>
@@ -73,11 +79,22 @@
                                 <th>Name</th>
                                 <th>Size</th>
                                 <th>Owner</th>
-                                <th>Actions</th>
+                                <th>Uploaded At</th>
+                                <th></th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <!-- Example row, remove or replace with Jinja loop -->
+                            {% for file in files_shared %}
+                            <tr>
+                                <td><a href="{{ url_for('view_file', filename=file['filename']) }}" class="btn">{{ file["filename"] }}</a></td>
+                                <td>{{ file["file_size"] }}</td>
+                                <td>{{ file["owner"] }}</td>
+                                <td><{{file["uploaded_at"]}}</td>
+                                <td><button>Download</button></td>
+                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                     <div class="files-table-empty"></div>
