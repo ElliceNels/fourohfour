@@ -228,3 +228,40 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, stored
     # Make the removal request
     response = client.delete("/api/permissions", json=remove_data, headers=headers)
     assert response.status_code == expected_status
+
+@pytest.mark.parametrize("expected_status, is_owner", [
+    pytest.param(SUCCESS, True,  marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),           # Success: user is owner
+    pytest.param(NOT_FOUND, False,  marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),        # Error: file not found
+])
+def test_get_permissions(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, is_owner):
+    """Test getting file permissions."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # Get the second user's ID
+    with get_session() as db:
+        user = db.query(Users).filter_by(username=second_signed_up_user["username"]).first()
+        user_id = user.id
+    
+    # Create a permission first so we have something to retrieve
+    key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    permission_data = {
+        "file_uuid": stored_file_data["file_uuid"],
+        "user_id": user_id,
+        "key_for_recipient": base64.b64encode(key_bytes).decode(),
+        "ephemeral_key": base64.b64encode(ephemeral_key_bytes).decode()
+    }
+    response = client.post("/api/permissions", json=permission_data, headers=headers)
+    assert response.status_code == CREATED
+    
+    # Make the GET request
+    file_uuid = stored_file_data["file_uuid"] if is_owner else str(uuid.uuid4())
+    response = client.get(f"/api/permissions/{file_uuid}", headers=headers)
+    assert response.status_code == expected_status
+    
+    if expected_status == SUCCESS:
+        data = response.json
+        assert "permissions" in data
+        assert isinstance(data["permissions"], list)
+        assert len(data["permissions"]) > 0
+        assert "username" in data["permissions"][0]

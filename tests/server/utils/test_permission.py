@@ -147,3 +147,61 @@ def test_remove_file_permission(file_exists, owner_matches, permission_exists, r
             assert "message" in data
         else:
             assert "error" in data
+
+@pytest.mark.parametrize("file_exists, owner_matches, raises, expected_status", [
+    (True, True, False, CODE_OK),           # Success
+    (False, True, False, CODE_NOT_FOUND),   # File not found
+    (True, False, False, CODE_FORBIDDEN),   # Not owner
+    (True, True, True, CODE_ERROR),         # Exception
+])
+def test_get_file_permissions(file_exists, owner_matches, raises, expected_status):
+    with patch("server.utils.permission.get_session") as mock_get_session:
+        mock_db = MagicMock()
+        mock_get_session.return_value.__enter__.return_value = mock_db
+        mock_file = MagicMock()
+        mock_file.owner_id = 1 if owner_matches else 2
+        mock_file.id = 123
+        mock_user = MagicMock()
+        mock_user.username = "testuser"
+        mock_perm = MagicMock()
+        mock_perm.user_id = 2
+        
+        # Mock the database queries
+        def query_side_effect(*args, **kwargs):
+            if args[0].__name__ == 'Files':
+                file_query = MagicMock()
+                if file_exists:
+                    file_query.filter_by().first.return_value = mock_file
+                else:
+                    file_query.filter_by().first.return_value = None
+                return file_query
+            elif args[0].__name__ == 'FilePermissions':
+                perm_query = MagicMock()
+                if file_exists and owner_matches:
+                    perm_query.filter_by().all.return_value = [mock_perm]
+                else:
+                    perm_query.filter_by().all.return_value = []
+                return perm_query
+            return MagicMock()
+        
+        mock_db.query.side_effect = query_side_effect
+        
+        # Mock the get method for Users
+        mock_db.get.return_value = mock_user
+        
+        # Simulate an exception if raises is True
+        if raises:
+            mock_db.query.side_effect = Exception("fail")
+
+        # Call the function with a UUID
+        resp, status = permission.get_file_permissions("test-uuid", 1)
+        data = resp.get_json()
+        assert status == expected_status
+
+        # For success, check for 'permissions'; for errors, check for 'error'
+        if status == CODE_OK:
+            assert "permissions" in data
+            assert len(data["permissions"]) == 1
+            assert data["permissions"][0]["username"] == "testuser"
+        else:
+            assert "error" in data
