@@ -10,9 +10,7 @@ def get_request(url, access_token, refresh_token, params=None):
     :return: Response object or None if an error occurs.
     """
     try:
-        if params is not None and isinstance(params, dict):
-            params = {'data': json.dumps(params)}
-        
+        # Do NOT wrap or encode params for GET requests
         headers = {}
         if access_token:
             headers['Authorization'] = f'Bearer {access_token}'
