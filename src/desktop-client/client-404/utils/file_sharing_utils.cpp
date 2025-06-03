@@ -29,6 +29,10 @@
 QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
     QVector<QByteArray> publicKeys;
     QVector<QByteArray> privateKeys;
+    
+    // Reserve space for the number of keys to be generated
+    publicKeys.reserve(KEY_GEN_COUNT);
+    privateKeys.reserve(KEY_GEN_COUNT);
 
     for (int i = 0; i < KEY_GEN_COUNT; ++i) {
    
