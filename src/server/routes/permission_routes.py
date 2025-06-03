@@ -3,6 +3,7 @@ from server.utils.auth import get_current_user
 from server.utils.permission import create_file_permission, remove_file_permission
 from server.utils.db_setup import get_session
 from server.models.tables import Files
+from server.utils.permission import get_file_permissions
 import logging
 
 logger = logging.getLogger(__name__)
@@ -96,4 +97,34 @@ def remove_permission():
         )
     except Exception as e:
         logger.error(f"Error removing file permission: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@permission_bp.route('/<file_uuid>', methods=['GET'])
+def get_permissions(file_uuid):
+    """Get all permissions for a specific file (only if the caller is owner)
+    
+    Returns:
+    {
+        "permissions": [
+            {
+                "username": <username>,
+            },
+            ...
+        ]
+    }
+    """
+    logger.debug(f"Received request to get permissions for file UUID: {file_uuid}")
+
+    if not file_uuid:
+        logger.warning("File UUID is required")
+        return jsonify({'error': 'File UUID is required'}), 400
+
+    try:
+        user_info, status_code = get_current_user()
+        if status_code != 200:
+            return jsonify({'error': 'Authentication failed'}), status_code
+
+        return get_file_permissions(file_uuid, user_info['id'])
+    except Exception as e:
+        logger.error(f"Error retrieving permissions: {str(e)}")
         return jsonify({'error': str(e)}), 500

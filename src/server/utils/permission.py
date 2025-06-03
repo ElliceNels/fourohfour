@@ -125,3 +125,47 @@ def remove_file_permission(file_uuid: str, user_id: int, owner_id: int) -> dict:
             db.rollback()
             logger.error(f"Error removing permission for file {file_uuid} and user {user_id}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500
+
+def get_file_permissions(file_uuid: str, user_id: int) -> dict:
+    """Get all permissions for a specific file.
+
+    Args:
+        file_uuid (str): UUID of the file to get permissions for
+        owner_id (int): ID of the file owner
+
+    Returns:
+        dict: Response containing permissions list or error
+    """
+    logger.info(f"Attempting to get permissions for file - file_uuid: {file_uuid}")
+    with get_session() as db:
+        try:
+            # Check if the file exists and belongs to the owner
+            logger.debug(f"Querying for file with UUID: {file_uuid}")
+            file = db.query(Files).filter_by(uuid=file_uuid).first()
+            if not file:
+                logger.warning(f"File with UUID {file_uuid} not found")
+                return jsonify({'error': 'File not found'}), 404
+
+            # Check if user is authorized to view permissions
+            if file.owner_id != user_id:
+                logger.warning(f"User is not authorized to view permissions for file {file_uuid}")
+                return jsonify({'error': 'Not authorized to view permissions for this file'}), 403
+
+            # Get all permissions for the file
+            permissions = db.query(FilePermissions).filter_by(file_id=file.id).all()
+            
+            # Format permissions for response
+            formatted_permissions = []
+            for perm in permissions:
+                user = db.get(Users, perm.user_id)
+                if user:
+                    formatted_permissions.append({
+                        'username': user.username,
+                    })
+
+            logger.info(f"Successfully retrieved {len(formatted_permissions)} permissions for file {file_uuid}")
+            return jsonify({'permissions': formatted_permissions}), 200
+
+        except Exception as e:
+            logger.error(f"Error getting permissions for file {file_uuid}: {str(e)}", exc_info=True)
+            return jsonify({'error': str(e)}), 500
