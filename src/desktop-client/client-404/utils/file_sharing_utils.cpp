@@ -21,7 +21,7 @@
  * The key pairs are generated, stored locally for future use, and the public keys
  * are returned to be uploaded to the server.
  *
- * @return QVector<QByteArray> A collection of public keys to be stored on the server
+ * @return QVector<QByteArray> A collection of public keys to be stored on the server, empty if failed
  *
  * @note The corresponding private keys are not returned but are securely stored locally
  * @see saveOneTimePreKeyPairsLocally()
@@ -50,10 +50,10 @@ QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
     }
     
     // Store these key pairs locally before returning
-    saveOneTimePreKeyPairsLocally(publicKeys, privateKeys);
+    bool savedSuccessfully = saveOneTimePreKeyPairsLocally(publicKeys, privateKeys);
     
-    // Return the list of public keys to be stored server-side
-    return publicKeys; 
+    // Return the list of public keys only if successful, otherwise return empty vector
+    return savedSuccessfully ? publicKeys : QVector<QByteArray>();
 }
 
 /**
@@ -65,20 +65,21 @@ QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
  *
  * @param publicKeys Vector of public keys to be stored
  * @param privateKeys Vector of corresponding private keys to be stored
+ * @return bool True if keys were successfully stored, false otherwise
  *
  * @note The keys are encrypted using XChaCha20-Poly1305 before being written to disk
  * @see generateOneTimePreKeyPairs()
  */
-void FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys){
+bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys) {
     // Validate inputs
     if (!validateKeyPairs(publicKeys, privateKeys)) {
-        return;
+        return false;
     }
 
     // Get master key and validate it
     const SecureVector masterKey = getMasterKey();
     if (masterKey.empty()) {
-        return; 
+        return false; 
     }
 
     // Build file path for the key storage
@@ -87,21 +88,22 @@ void FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
     // Read existing encrypted file
     QByteArray jsonData;
     if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
-        return;
+        return false;
     }
     
     // Create or update JSON structure with the prekeys
     QByteArray updatedJsonData;
     if (!updateJsonWithPrekeys(jsonData, publicKeys, privateKeys, updatedJsonData)) {
-        return;
+        return false;
     }
     
     // Encrypt and save the updated JSON data
     if (!encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
-        return;
+        return false;
     }
     
     qDebug() << "Successfully saved" << publicKeys.size() << "one-time prekey pairs";
+    return true;
 }
 
 /**

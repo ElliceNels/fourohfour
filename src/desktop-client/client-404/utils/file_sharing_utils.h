@@ -10,7 +10,7 @@ class FileSharingUtils {
     public:
         QVector<QByteArray> generateOneTimePreKeyPairs();
     private:
-        void saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);
+        bool saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);
         
         // Helper methods for key storage
         bool validateKeyPairs(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);
