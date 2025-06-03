@@ -14,6 +14,7 @@
 #include "constants.h"
 #include "core/loginsessionmanager.h"
 #include "utils/request_utils.h"
+#include "utils/file_sharing_utils.h"
 
 using namespace std;
 
@@ -121,9 +122,24 @@ void RegisterPage::onCreateAccountClicked()
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
-    saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json");
-    encryptAndSaveKey(this, privKeyBase64, key, accountName);
+    if (!saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json")) {
+        QMessageBox::critical(this, "Key Storage Error", 
+            "Failed to save cryptographic keys to file. Registration cannot proceed.");
+        return;
+    }
 
+    if (!encryptAndSaveKey(this, privKeyBase64, key, accountName)) {
+        QMessageBox::critical(this, "Key Encryption Error", 
+            "Failed to encrypt and store private key securely. Registration cannot proceed.");
+        return;
+    }
+
+    // Only show a message box here if pre-key generation fails
+    if (!generateAndSaveOneTimePreKeys()) {
+        QMessageBox::critical(this, "Security Error", 
+            "Failed to generate security keys. Registration cannot continue with compromised security.");
+        return;
+    }
 
     //Debug prints
     cout << sAccountName << endl;
@@ -199,6 +215,11 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
     }
 }
 
+bool RegisterPage::generateAndSaveOneTimePreKeys() {
+    FileSharingUtils fileSharingUtils;
+    QVector<QByteArray> generatedKeys = fileSharingUtils.generateOneTimePreKeyPairs();
+    return !generatedKeys.isEmpty();
+}
 
 RegisterPage::~RegisterPage()
 {

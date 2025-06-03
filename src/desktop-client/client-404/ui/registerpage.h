@@ -34,6 +34,7 @@ private:
     bool sendSignUpRequest(const QString& username, const QString& password, 
                                     const QString& publicKey, const QString& salt);
 
+    bool generateAndSaveOneTimePreKeys();
 
 signals:
     void goToLoginRequested();
