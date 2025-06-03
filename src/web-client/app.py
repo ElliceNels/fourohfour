@@ -44,7 +44,6 @@ def login():
         password = request.form.get('password')
 
         login_success, message = manage_login(password, username)
-        print("RESPONSE FROM IMMEDIATE CALL:" + LoginSessionManager.getInstance().get(GET_USER_ENDPOINT))
         if login_success:
             print(f"Login successful for {username}")
             clear_flashes()
@@ -143,7 +142,7 @@ def reset_password():
         
         if success:
             flash('Password reset successful!', 'success')
-            return redirect(url_for('login'))
+            return redirect(url_for('main_menu'))
         else:
             flash(message, 'error')
             return render_template('resetpassword.html')

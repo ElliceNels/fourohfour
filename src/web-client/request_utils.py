@@ -32,23 +32,32 @@ def get_request(url, access_token, refresh_token, params=None):
         print(f"An error occurred: {req_err}")
     return None
 
-def post_request(url, json_data=None):
+def post_request(url, json_data=None, access_token=None, refresh_token=None):
     """
     Make a POST request (HTTP or HTTPS) with exception handling.
     :param url: The URL to send the POST request to.
     :param json_data: (Optional) JSON data to send in the body.
+    :param access_token: (Optional) JWT access token for authentication.
+    :param refresh_token: (Optional) JWT refresh token for authentication.
     :return: Response object or None if an error occurs.
-    :raises: UsernameAlreadyExistsError, UserNotFoundError, InvalidPasswordError, ServerError
     """
     try:
+        headers = {'Content-Type': 'application/json'}
+        
+        # Add authentication headers
+        if access_token:
+            headers['Authorization'] = f'Bearer {access_token}'
+        if refresh_token:
+            headers['X-Refresh-Token'] = refresh_token
+
         if json_data is not None and isinstance(json_data, dict):
             response = requests.post(
                 url,
                 data=json.dumps(json_data),
-                headers={'Content-Type': 'application/json'}
+                headers=headers
             )
         else:
-            response = requests.post(url, data=json_data)
+            response = requests.post(url, data=json_data, headers=headers)
             
         # Check status codes before raise_for_status
         if response.status_code == 409:

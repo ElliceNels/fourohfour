@@ -156,16 +156,16 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
     
 
 
-def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: str, new_password: str, new_salt: str) -> bool:
+def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: bytes, new_password: str, new_salt: bytes) -> bool:
     """
     Decrypt a user's encrypted file using their old password and salt, then re-encrypt it with their new password and salt.
 
     Args:
         username (str): The username of the user
         old_password (str): The user's old password
-        old_salt (str): The user's old salt (base64 encoded)
+        old_salt (bytes): The user's old salt (already decoded from base64)
         new_password (str): The user's new password
-        new_salt (str): The user's new salt (base64 encoded)
+        new_salt (bytes): The user's new salt (already decoded from base64)
 
     Returns:
         bool: True if successful, False otherwise
@@ -174,6 +174,7 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
 
     # Read encrypted file
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
+    #file_path = os.path.join(os.getcwd(), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
     try:
         with open(file_path, 'rb') as file:
             encrypted_data = file.read()
@@ -183,12 +184,11 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
 
     # Extract nonce and ciphertext
     nonce_size = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
-    nonce = encrypted_data[-nonce_size:]
-    ciphertext = encrypted_data[:-nonce_size]
+    nonce = encrypted_data[:nonce_size]  # <-- CORRECT: reads from the start
+    ciphertext = encrypted_data[nonce_size:]  # <-- CORRECT: reads after the nonce
 
     # Derive old key
-    old_salt_raw = base64.b64decode(old_salt)
-    old_key = derive_key_from_password(old_password, old_salt_raw)
+    old_key = derive_key_from_password(old_password, old_salt)
 
     # Decrypt
     try:
@@ -196,16 +196,14 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
             ciphertext,
             old_key,
             nonce,
-            None,  # no additional data
-            0
+            None  # no additional data
         )
     except Exception as e:
         print(f"Decryption failed: {str(e)}")
         return False
 
     # Derive new key
-    new_salt_raw = base64.b64decode(new_salt)
-    new_key = derive_key_from_password(new_password, new_salt_raw)
+    new_key = derive_key_from_password(new_password, new_salt)
 
     # Re-encrypt and save
     return encrypt_and_save_master_key(decrypted_data, new_key, username)

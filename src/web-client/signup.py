@@ -11,12 +11,15 @@ def load_dictionary_words(filepath):
     with open(filepath, encoding='utf-8') as f:
         return set(line.strip().lower() for line in f if line.strip())
 
-def validate_registration(account_name, password, confirm_password):
+def validate_registration(account_name, password, confirm_password, old_password = None):
     common_pw_path = os.path.join(os.path.dirname(__file__), 'common_passwords.txt')
     dictionary_words = load_dictionary_words(common_pw_path)
 
     if password != confirm_password:
         return False, "Passwords do not match!"
+    if old_password is not None:
+        if password == old_password:
+            return False, "Old password is same as old one!"
     if len(password) < 8:
         return False, "Password must be at least 8 characters long."
     if len(password) > 64:
