@@ -130,12 +130,19 @@ def get_file(file_uuid):
         file_uuid: The UUID of the requested file
 
     Returns:
-    {
-        "encrypted_file": <base64_encoded_file_data>,
-        "encrypted_keys": {  # Only included if user is owner
-            <user_id>: <encryption_key>
+        If user is the owner:
+        {
+            "encrypted_file": <base64_encoded_file_data>
         }
-    }
+        
+        If file has been shared with the user:
+        {
+            "encrypted_file": <base64_encoded_file_data>,
+            "otpk": <otpk used, base64 encoded>,
+            "ephemeral_key": <ephemeral key, base64 encoded>,
+            "spk": <current user's signed pre key>,
+            "spk_sig": <spk signature>
+        }
     """
     logger.debug(f"Received request to get file with UUID: {file_uuid}")
 
@@ -144,8 +151,7 @@ def get_file(file_uuid):
         if status_code != 200:
             return jsonify({'error': 'Authentication failed'}), status_code
 
-        user_id = current_user_info['user_id'] 
-        return get_file_by_uuid(file_uuid, user_id)
+        return get_file_by_uuid(file_uuid, current_user_info)
     except Exception as e:
         logger.error(f"Error retrieving file {file_uuid}: {str(e)}")
         return jsonify({'error': str(e)}), 500
