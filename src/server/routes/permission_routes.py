@@ -62,7 +62,7 @@ def remove_permission():
     Expected JSON payload:
     {
         "file_uuid": <file_uuid>,
-        "user_id": <user_id>
+        "username": <username>
     }
 
     Returns:
@@ -77,7 +77,7 @@ def remove_permission():
         logger.warning("No data provided")
         return jsonify({'error': 'No data provided'}), 400
 
-    required_fields = ['file_uuid', 'user_id']
+    required_fields = ['file_uuid', 'username']
     for field in required_fields:
         if field not in data:
             logger.warning(f"{field} is required")
@@ -92,7 +92,7 @@ def remove_permission():
 
         return remove_file_permission(
             data['file_uuid'],
-            data['user_id'],
+            data['username'],
             user_id
         )
     except Exception as e:

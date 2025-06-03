@@ -77,7 +77,7 @@ def create_file_permission(file_uuid: str, user_id: int, key_for_recipient: str,
             logger.error(f"Error creating permission for file {file_uuid} and user {user_id}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
-def remove_file_permission(file_uuid: str, user_id: int, owner_id: int) -> dict:
+def remove_file_permission(file_uuid: str, username: str, owner_id: int) -> dict:
     """Remove a file permission for a user.
 
     Args:
@@ -88,7 +88,7 @@ def remove_file_permission(file_uuid: str, user_id: int, owner_id: int) -> dict:
     Returns:
         dict: Response containing success message or error
     """
-    logger.info(f"Attempting to remove file permission - file_uuid: {file_uuid}, user_id: {user_id}, owner_id: {owner_id}")
+    logger.info(f"Attempting to remove file permission - file_uuid: {file_uuid}, username: {username}, owner_id: {owner_id}")
     with get_session() as db:
         try:
             # Check if the file exists and belongs to the owner
@@ -105,7 +105,11 @@ def remove_file_permission(file_uuid: str, user_id: int, owner_id: int) -> dict:
                 return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
             # Find and delete the permission
-            logger.debug(f"Looking for permission - file_uuid: {file_uuid}, user_id: {user_id}")
+            user_id = db.query(Users).filter_by(username=username).first()
+            if not user_id:
+                logger.warning(f"User with username {username} not found")
+                return jsonify({'error': 'User not found'}), 404
+            logger.debug(f"Looking for permission - file_uuid: {file_uuid}, username: {username}")
             permission = db.query(FilePermissions).filter_by(
                 file_id=file.id,
                 user_id=user_id
