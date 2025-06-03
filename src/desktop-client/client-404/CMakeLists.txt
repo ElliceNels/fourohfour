@@ -74,6 +74,8 @@ set(UTILS_SOURCES
     utils/custom_deleter.h
     utils/json_sanitizer.h
     utils/json_sanitizer.cpp
+    utils/friend_storage_utils.h
+    utils/friend_storage_utils.cpp
 )
 
 set(CORE_SOURCES

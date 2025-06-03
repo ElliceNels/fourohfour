@@ -34,10 +34,7 @@ private:
 
 
     bool saveFriendPairToJSON();
-    QString buildFriendStorageFilePath();
     bool validateFriendData();
-    QJsonObject readFriendsJson(const QString& filepath);
-    bool writeFriendsJson(const QString& filepath, const QJsonObject& friendsData);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
