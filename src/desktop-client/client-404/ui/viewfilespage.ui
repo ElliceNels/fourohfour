@@ -127,219 +127,760 @@ QPushButton#backButton:pressed {
     <number>0</number>
    </property>
    <item>
-    <widget class="QFrame" name="topHeaderFrame">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>60</height>
-      </size>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>60</height>
-      </size>
-     </property>
-     <property name="frameShape">
-      <enum>QFrame::NoFrame</enum>
-     </property>
-     <property name="frameShadow">
-      <enum>QFrame::Plain</enum>
-     </property>
-     <layout class="QHBoxLayout" name="topHeaderLayout">
-      <property name="spacing">
-       <number>15</number>
-      </property>
-      <property name="leftMargin">
-       <number>20</number>
-      </property>
-      <property name="topMargin">
-       <number>1</number>
-      </property>
-      <property name="rightMargin">
-       <number>20</number>
-      </property>
-      <property name="bottomMargin">
-       <number>1</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="appLogoLabel">
-        <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt; font-weight:600; color:#2196F3;&quot;&gt;fourohfour&lt;/span&gt;&lt;span style=&quot; font-size:18pt; color:#424242;&quot;&gt; Files&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="topHeaderSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>1000</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item>
-       <widget class="QPushButton" name="backButton">
-        <property name="font">
-         <font>
-          <pointsize>10</pointsize>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="text">
-         <string>Back</string>
-        </property>
-        <property name="flat">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="userAvatarLabel">
-        <property name="minimumSize">
-         <size>
-          <width>30</width>
-          <height>30</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>30</width>
-          <height>30</height>
-         </size>
-        </property>
-        <property name="text">
-         <string/>
-        </property>
-        <property name="pixmap">
-         <pixmap>:/images/user_avatar.png</pixmap>
-        </property>
-        <property name="scaledContents">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="contentHorizontalLayout">
-     <property name="spacing">
+    <widget class="QStackedWidget" name="mainStackedWidget">
+     <property name="currentIndex">
       <number>0</number>
      </property>
-     <property name="leftMargin">
-      <number>0</number>
-     </property>
-     <property name="topMargin">
-      <number>0</number>
-     </property>
-     <property name="rightMargin">
-      <number>0</number>
-     </property>
-     <property name="bottomMargin">
-      <number>0</number>
-     </property>
-     <item>
-      <widget class="QFrame" name="leftSidebarFrame">
-       <property name="minimumSize">
-        <size>
-         <width>220</width>
-         <height>0</height>
-        </size>
+     <widget class="QWidget" name="filesListPage">
+      <layout class="QVBoxLayout" name="filesListPageLayout">
+       <property name="spacing">
+        <number>0</number>
        </property>
-       <property name="maximumSize">
-        <size>
-         <width>220</width>
-         <height>16777215</height>
-        </size>
+       <property name="leftMargin">
+        <number>0</number>
        </property>
-       <property name="frameShape">
-        <enum>QFrame::NoFrame</enum>
+       <property name="topMargin">
+        <number>0</number>
        </property>
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
+       <property name="rightMargin">
+        <number>0</number>
        </property>
-       <layout class="QVBoxLayout" name="sidebarVerticalLayout">
-        <property name="spacing">
-         <number>5</number>
-        </property>
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>20</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>20</number>
-        </property>
-        <item>
-         <widget class="QPushButton" name="ownedFilesButton">
-          <property name="text">
-           <string>Owned by me</string>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QFrame" name="topHeaderFrame">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>60</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::Shape::NoFrame</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Shadow::Plain</enum>
+         </property>
+         <layout class="QHBoxLayout" name="topHeaderLayout">
+          <property name="spacing">
+           <number>15</number>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="sharedFilesButton">
-          <property name="text">
-           <string>Shared with me</string>
+          <property name="leftMargin">
+           <number>20</number>
           </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="sidebarBottomSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
+          <property name="topMargin">
+           <number>1</number>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
+          <property name="rightMargin">
+           <number>20</number>
           </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-     </item>
-     <item>
-      <widget class="QFrame" name="fileListContainerFrame">
-       <property name="frameShape">
-        <enum>QFrame::NoFrame</enum>
-       </property>
-       <property name="frameShadow">
-        <enum>QFrame::Plain</enum>
-       </property>
-       <layout class="QVBoxLayout" name="fileListVerticalLayout">
-        <property name="spacing">
-         <number>10</number>
-        </property>
-        <property name="leftMargin">
-         <number>20</number>
-        </property>
-        <property name="topMargin">
-         <number>20</number>
-        </property>
-        <property name="rightMargin">
-         <number>20</number>
-        </property>
-        <property name="bottomMargin">
-         <number>20</number>
-        </property>
-        <item>
-         <layout class="QHBoxLayout" name="fileListTitleLayout">
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
           <item>
-           <widget class="QLabel" name="viewFilesLabel">
+           <widget class="QLabel" name="appLogoLabel">
+            <property name="text">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:18pt; font-weight:600; color:#2196F3;&quot;&gt;fourohfour&lt;/span&gt;&lt;span style=&quot; font-size:18pt; color:#424242;&quot;&gt; Files&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="topHeaderSpacer">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>1000</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="backButton">
             <property name="font">
              <font>
-              <pointsize>24</pointsize>
+              <pointsize>10</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Back</string>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="userAvatarLabel">
+            <property name="minimumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>30</width>
+              <height>30</height>
+             </size>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="pixmap">
+             <pixmap>:/images/user_avatar.png</pixmap>
+            </property>
+            <property name="scaledContents">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="contentHorizontalLayout">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QFrame" name="leftSidebarFrame">
+           <property name="minimumSize">
+            <size>
+             <width>220</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>220</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Shape::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Shadow::Plain</enum>
+           </property>
+           <layout class="QVBoxLayout" name="sidebarVerticalLayout">
+            <property name="spacing">
+             <number>5</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>20</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>20</number>
+            </property>
+            <item>
+             <widget class="QPushButton" name="ownedFilesButton">
+              <property name="text">
+               <string>Owned by me</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="sharedFilesButton">
+              <property name="text">
+               <string>Shared with me</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="sidebarBottomSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QFrame" name="fileListContainerFrame">
+           <property name="frameShape">
+            <enum>QFrame::Shape::NoFrame</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Shadow::Plain</enum>
+           </property>
+           <layout class="QVBoxLayout" name="fileListVerticalLayout">
+            <property name="spacing">
+             <number>10</number>
+            </property>
+            <property name="leftMargin">
+             <number>20</number>
+            </property>
+            <property name="topMargin">
+             <number>20</number>
+            </property>
+            <property name="rightMargin">
+             <number>20</number>
+            </property>
+            <property name="bottomMargin">
+             <number>20</number>
+            </property>
+            <item>
+             <layout class="QHBoxLayout" name="fileListTitleLayout">
+              <item>
+               <widget class="QLabel" name="viewFilesLabel">
+                <property name="font">
+                 <font>
+                  <pointsize>24</pointsize>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">color: #424242;</string>
+                </property>
+                <property name="text">
+                 <string>Owned by me</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="fileListTitleSpacer">
+                <property name="orientation">
+                 <enum>Qt::Orientation::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="QStackedWidget" name="fileListStackedWidget">
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <widget class="QWidget" name="ownedFilesPage">
+               <layout class="QVBoxLayout" name="ownedFilesLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayoutOwnedHeader" stretch="20,0,0,0,10,12">
+                  <property name="spacing">
+                   <number>70</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>8</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>4</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>8</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>4</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="nameLabelOwned">
+                    <property name="text">
+                     <string>Name</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>320</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="spacerAfterNameLabelOwned">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Policy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="sizeLabelOwned">
+                    <property name="text">
+                     <string>Size</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>60</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="ownerLabelOwned">
+                    <property name="text">
+                     <string>Owner</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>200</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="headerSpacerOwned">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="actionsLabelOwned">
+                    <property name="text">
+                     <string>Actions</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>90</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QListWidget" name="ownedFilesListWidget">
+                  <property name="styleSheet">
+                   <string notr="true">QListWidget {
+   
+   
+   
+   
+   
+   
+   
+    background-color: rgb(255, 255, 255);
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+}
+QListWidget::item {
+    padding: 0px;
+    height: 48px;
+}
+QListWidget::item:selected {
+    background-color: #E3F2FD;
+    color: #424242;
+}
+</string>
+                  </property>
+                  <property name="alternatingRowColors">
+                   <bool>true</bool>
+                  </property>
+                  <property name="flow">
+                   <enum>QListView::Flow::TopToBottom</enum>
+                  </property>
+                  <property name="resizeMode">
+                   <enum>QListView::ResizeMode::Adjust</enum>
+                  </property>
+                  <property name="layoutMode">
+                   <enum>QListView::LayoutMode::SinglePass</enum>
+                  </property>
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="sortingEnabled">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="sharedFilesPage">
+               <layout class="QVBoxLayout" name="sharedFilesLayout">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayoutSharedHeader" stretch="20,0,0,0,10,12">
+                  <property name="spacing">
+                   <number>70</number>
+                  </property>
+                  <property name="leftMargin">
+                   <number>8</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>4</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>8</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>4</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="nameLabelShared">
+                    <property name="text">
+                     <string>Name</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>320</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="spacerAfterNameLabelShared">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeType">
+                     <enum>QSizePolicy::Policy::Fixed</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="sizeLabelShared">
+                    <property name="text">
+                     <string>Size</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>60</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="ownerLabelShared">
+                    <property name="text">
+                     <string>Owner</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>200</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="headerSpacerShared">
+                    <property name="orientation">
+                     <enum>Qt::Orientation::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="actionsLabelShared">
+                    <property name="text">
+                     <string>Actions</string>
+                    </property>
+                    <property name="fixedWidth" stdset="0">
+                     <number>90</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QListWidget" name="sharedFilesListWidget">
+                  <property name="styleSheet">
+                   <string notr="true">QListWidget {
+    background-color: rgb(255, 255, 255);
+    border: 1px solid #E0E0E0;
+    border-radius: 4px;
+}
+QListWidget::item {
+    padding: 0px;
+    height: 48px;
+}
+QListWidget::item:selected {
+    background-color: #E3F2FD;
+    color: #424242;
+}
+</string>
+                  </property>
+                  <property name="alternatingRowColors">
+                   <bool>true</bool>
+                  </property>
+                  <property name="flow">
+                   <enum>QListView::Flow::TopToBottom</enum>
+                  </property>
+                  <property name="resizeMode">
+                   <enum>QListView::ResizeMode::Adjust</enum>
+                  </property>
+                  <property name="layoutMode">
+                   <enum>QListView::LayoutMode::SinglePass</enum>
+                  </property>
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="sortingEnabled">
+                   <bool>false</bool>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+            <item>
+             <spacer name="listBottomSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="sharingPage">
+      <layout class="QVBoxLayout" name="sharingPageLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>20</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>20</number>
+       </property>
+       <property name="bottomMargin">
+        <number>20</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="sharePageHeaderLayout">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="sharePageTitleLabel">
+           <property name="font">
+            <font>
+             <pointsize>24</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #424242;</string>
+           </property>
+           <property name="text">
+            <string>Share File</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="sharePageHeaderSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="sharePageBackButton">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    background-color: #757575;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    min-width: 80px;
+    min-height: 35px;
+}
+QPushButton:hover {
+    background-color: #616161;
+}
+QPushButton:pressed {
+    background-color: #424242;
+}</string>
+           </property>
+           <property name="text">
+            <string>Back</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QWidget" name="sharedWithContainer" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>1</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>300</height>
+          </size>
+         </property>
+         <layout class="QVBoxLayout" name="sharedWithLayout">
+          <property name="spacing">
+           <number>15</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="divider">
+            <property name="frameShape">
+             <enum>QFrame::Shape::HLine</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Sunken</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QListWidget" name="sharedWithListWidget"/>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="shareWithFriendContainer" native="true">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <layout class="QVBoxLayout" name="shareWithFriendLayout">
+          <property name="spacing">
+           <number>15</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>10</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QLabel" name="shareWithFriendLabel">
+            <property name="font">
+             <font>
+              <pointsize>18</pointsize>
               <bold>true</bold>
              </font>
             </property>
@@ -347,156 +888,213 @@ QPushButton#backButton:pressed {
              <string notr="true">color: #424242;</string>
             </property>
             <property name="text">
-             <string>Owned by me</string>
+             <string>Share with a Friend</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignmentFlag::AlignCenter</set>
             </property>
            </widget>
           </item>
           <item>
-           <spacer name="fileListTitleSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
+           <layout class="QHBoxLayout" name="shareButtonLayout">
+            <property name="topMargin">
+             <number>10</number>
             </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
+            <property name="bottomMargin">
+             <number>10</number>
             </property>
-           </spacer>
+            <item>
+             <spacer name="horizontalSpacer">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="shareButton">
+              <property name="minimumSize">
+               <size>
+                <width>120</width>
+                <height>40</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QPushButton {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+}
+QPushButton:hover {
+    background-color: #1976D2;
+}
+QPushButton:pressed {
+    background-color: #0D47A1;
+}</string>
+              </property>
+              <property name="text">
+               <string>Share</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Orientation::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </item>
          </layout>
-        </item>
-        <item>
-         <widget class="QStackedWidget" name="fileListStackedWidget">
-          <property name="currentIndex">
-           <number>0</number>
-          </property>
-          <widget class="QWidget" name="ownedFilesPage">
-           <layout class="QVBoxLayout" name="ownedFilesLayout">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QWidget" name="ownedFilesHeaderWidget">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>40</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>40</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">background-color: #F5F5F5; font-weight: bold;</string>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayoutOwnedHeader">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>8</number>
-               </property>
-               <property name="topMargin">
-                <number>4</number>
-               </property>
-               <property name="rightMargin">
-                <number>8</number>
-               </property>
-               <property name="bottomMargin">
-                <number>4</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="nameLabelOwned">
-                 <property name="text">
-                  <string>Name</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>320</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="spacerAfterNameLabelOwned">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Fixed</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="sizeLabelOwned">
-                 <property name="text">
-                  <string>Size</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>60</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="ownerLabelOwned">
-                 <property name="text">
-                  <string>Owner</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>200</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="headerSpacerOwned">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="actionsLabelOwned">
-                 <property name="text">
-                  <string>Actions</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>90</number>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
-             <widget class="QListWidget" name="ownedFilesListWidget">
-              <property name="styleSheet">
-               <string notr="true">QListWidget {
+        </widget>
+       </item>
+       <item>
+        <spacer name="bottomSpacer">
+         <property name="orientation">
+          <enum>Qt::Orientation::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>60</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="friendsPage">
+      <layout class="QVBoxLayout" name="friendsPageLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <property name="leftMargin">
+        <number>20</number>
+       </property>
+       <property name="topMargin">
+        <number>20</number>
+       </property>
+       <property name="rightMargin">
+        <number>20</number>
+       </property>
+       <property name="bottomMargin">
+        <number>20</number>
+       </property>
+       <item>
+        <layout class="QHBoxLayout" name="friendsPageHeaderLayout">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="friendsPageTitleLabel">
+           <property name="font">
+            <font>
+             <pointsize>24</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">color: #424242;</string>
+           </property>
+           <property name="text">
+            <string>Friends</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="friendsPageHeaderSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="friendsPageBackButton">
+           <property name="minimumSize">
+            <size>
+             <width>80</width>
+             <height>35</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    background-color: #757575;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    min-width: 80px;
+    min-height: 35px;
+}
+QPushButton:hover {
+    background-color: #616161;
+}
+QPushButton:pressed {
+    background-color: #424242;
+}</string>
+           </property>
+           <property name="text">
+            <string>Back</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QFrame" name="friendsDivider">
+         <property name="frameShape">
+          <enum>QFrame::Shape::HLine</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Shadow::Sunken</enum>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="friendsContentLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QListWidget" name="friendsListWidget">
+           <property name="styleSheet">
+            <string notr="true">QListWidget {
     background-color: rgb(255, 255, 255);
     border: 1px solid #E0E0E0;
     border-radius: 4px;
@@ -510,215 +1108,54 @@ QListWidget::item:selected {
     color: #424242;
 }
 </string>
-              </property>
-              <property name="alternatingRowColors">
-               <bool>true</bool>
-              </property>
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="flow">
-               <enum>QListView::TopToBottom</enum>
-              </property>
-              <property name="resizeMode">
-               <enum>QListView::Adjust</enum>
-              </property>
-              <property name="layoutMode">
-               <enum>QListView::SinglePass</enum>
-              </property>
-              <property name="sortingEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
+           </property>
+           <property name="alternatingRowColors">
+            <bool>true</bool>
+           </property>
           </widget>
-          <widget class="QWidget" name="sharedFilesPage">
-           <layout class="QVBoxLayout" name="sharedFilesLayout">
-            <property name="spacing">
-             <number>0</number>
-            </property>
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QWidget" name="sharedFilesHeaderWidget">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>40</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>16777215</width>
-                <height>40</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">background-color: #F5F5F5; font-weight: bold;</string>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayoutSharedHeader">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>8</number>
-               </property>
-               <property name="topMargin">
-                <number>4</number>
-               </property>
-               <property name="rightMargin">
-                <number>8</number>
-               </property>
-               <property name="bottomMargin">
-                <number>4</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="nameLabelShared">
-                 <property name="text">
-                  <string>Name</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>320</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="spacerAfterNameLabelShared">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeType">
-                  <enum>QSizePolicy::Fixed</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="sizeLabelShared">
-                 <property name="text">
-                  <string>Size</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>60</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="ownerLabelShared">
-                 <property name="text">
-                  <string>Owner</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>200</number>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="headerSpacerShared">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="actionsLabelShared">
-                 <property name="text">
-                  <string>Actions</string>
-                 </property>
-                 <property name="fixedWidth">
-                  <number>90</number>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-            <item>
-             <widget class="QListWidget" name="sharedFilesListWidget">
-              <property name="styleSheet">
-               <string notr="true">QListWidget {
-    background-color: rgb(255, 255, 255);
-    border: 1px solid #E0E0E0;
-    border-radius: 4px;
-}
-QListWidget::item {
-    padding: 0px;
-    height: 48px;
-}
-QListWidget::item:selected {
-    background-color: #E3F2FD;
-    color: #424242;
-}
-</string>
-              </property>
-              <property name="alternatingRowColors">
-               <bool>true</bool>
-              </property>
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="flow">
-               <enum>QListView::TopToBottom</enum>
-              </property>
-              <property name="resizeMode">
-               <enum>QListView::Adjust</enum>
-              </property>
-              <property name="layoutMode">
-               <enum>QListView::SinglePass</enum>
-              </property>
-              <property name="sortingEnabled">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </widget>
-        </item>
-        <item>
-         <spacer name="listBottomSpacer">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </widget>
-     </item>
-    </layout>
+         </item>
+         <item>
+          <layout class="QVBoxLayout" name="friendsActionLayout">
+           <item>
+            <spacer name="friendsActionSpacer">
+             <property name="orientation">
+              <enum>Qt::Orientation::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </widget>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="icons.qrc"/>
- </resources>
- <connections/>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>shareButton</sender>
+   <signal>clicked()</signal>
+   <receiver>mainStackedWidget</receiver>
+   <slot>setCurrentIndex(2)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>550</x>
+     <y>500</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>550</x>
+     <y>350</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

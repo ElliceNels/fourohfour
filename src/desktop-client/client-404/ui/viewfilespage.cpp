@@ -20,6 +20,10 @@ void ViewFilesPage::preparePage(){
     qDebug() << "Preparing View Files Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+  
+    // Start on the correct pages
+    switchMainPage(FILES_LIST_PAGE_INDEX);
+    switchFileListPage(OWNED_FILES_PAGE_INDEX);
 }
 
 void ViewFilesPage::initialisePageUi(){
@@ -31,8 +35,40 @@ void ViewFilesPage::initialisePageUi(){
 
 void ViewFilesPage::setupConnections(){
     connect(this->ui->backButton, &QPushButton::clicked, this, &ViewFilesPage::goToMainMenuRequested);
-    connect(this->ui->ownedFilesButton, &QPushButton::clicked, this, [this]() { switchFileListPage(OWNED_FILES_PAGE_INDEX); });
-    connect(this->ui->sharedFilesButton, &QPushButton::clicked, this, [this]() { switchFileListPage(SHARED_FILES_PAGE_INDEX); });
+    connect(this->ui->sharePageBackButton, &QPushButton::clicked, this, &ViewFilesPage::goToFilesListPageRequested);
+    connect(this->ui->friendsPageBackButton, &QPushButton::clicked, this, &ViewFilesPage::goToSharingPageRequested);
+    connect(this->ui->ownedFilesButton, &QPushButton::clicked, this, &ViewFilesPage::switchToOwnedFilesRequested);
+    connect(this->ui->sharedFilesButton, &QPushButton::clicked, this, &ViewFilesPage::switchToSharedFilesRequested);
+    connect(this->ui->shareButton, &QPushButton::clicked, this, &ViewFilesPage::goToFriendsPageRequested);
+}
+
+void ViewFilesPage::navigateToFilesListPage() {
+    switchMainPage(FILES_LIST_PAGE_INDEX);
+}
+
+void ViewFilesPage::navigateToSharingPage() {
+    switchMainPage(SHARING_PAGE_INDEX);
+}
+
+void ViewFilesPage::navigateToFriendsPage() {
+    switchMainPage(FRIENDS_LIST_PAGE_INDEX);
+}
+
+void ViewFilesPage::switchToOwnedFiles() {
+    switchFileListPage(OWNED_FILES_PAGE_INDEX);
+}
+
+void ViewFilesPage::switchToSharedFiles() {
+    switchFileListPage(SHARED_FILES_PAGE_INDEX);
+}
+
+void ViewFilesPage::switchMainPage(int pageIndex) {
+    ui->mainStackedWidget->setCurrentIndex(pageIndex);
+}
+
+void ViewFilesPage::onShareRequested() {
+    // Switch to the sharing page
+    switchMainPage(SHARING_PAGE_INDEX);
 }
 
 void ViewFilesPage::switchFileListPage(int pageIndex) {
@@ -103,8 +139,10 @@ void ViewFilesPage::addFileItem(const QJsonObject& fileObj, QListWidget* listWid
         this
     );
     
-    // Connect to the  fileDeleted signal to refresh the file list
+    // Connect to file widget signals 
+    // Must be done internally after the widget is created
     connect(fileWidget, &FileItemWidget::fileDeleted, this, &ViewFilesPage::fetchUserFiles);
+    connect(fileWidget, &FileItemWidget::shareRequested, this, &ViewFilesPage::onShareRequested);
     
     QListWidgetItem* item = new QListWidgetItem(listWidget);
     listWidget->setItemWidget(item, fileWidget);
