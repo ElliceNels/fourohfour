@@ -3,12 +3,14 @@
 #include <qlistwidget.h>
 #include <qstackedwidget.h>
 #include "ui/fileitemwidget.h"
+#include "ui/frienditemwidget.h" 
 #include "constants.h"
 #include <QMessageBox>
 #include <QJsonObject>
 #include <QJsonArray>
 #include "core/loginsessionmanager.h"
 #include "utils/request_utils.h"
+#include "utils/friend_storage_utils.h" 
 
 ViewFilesPage::ViewFilesPage(QWidget *parent)
     : BasePage(parent)
@@ -40,6 +42,7 @@ void ViewFilesPage::setupConnections(){
     connect(this->ui->ownedFilesButton, &QPushButton::clicked, this, &ViewFilesPage::switchToOwnedFilesRequested);
     connect(this->ui->sharedFilesButton, &QPushButton::clicked, this, &ViewFilesPage::switchToSharedFilesRequested);
     connect(this->ui->shareButton, &QPushButton::clicked, this, &ViewFilesPage::goToFriendsPageRequested);
+    connect(this, &ViewFilesPage::goToFriendsPageRequested, this, &ViewFilesPage::loadFriendsList);
 }
 
 void ViewFilesPage::navigateToFilesListPage() {
@@ -52,6 +55,7 @@ void ViewFilesPage::navigateToSharingPage() {
 
 void ViewFilesPage::navigateToFriendsPage() {
     switchMainPage(FRIENDS_LIST_PAGE_INDEX);
+    loadFriendsList(); 
 }
 
 void ViewFilesPage::switchToOwnedFiles() {
@@ -176,6 +180,58 @@ void ViewFilesPage::displayFiles(const QJsonArray& ownedFiles, const QJsonArray&
             ui->sharedFilesListWidget,
             "Not you lol" // Owner label
         );
+    }
+}
+
+void ViewFilesPage::loadFriendsList() {
+    // Clear existing items in the list widget
+    ui->friendsListWidget->clear();
+    
+    // Get all friends except self
+    QMap<QString, QString> friends = FriendStorageUtils::getAllFriendsExceptSelf(this);
+    
+    if (friends.isEmpty()) {
+        // If no friends found, add a message item
+        QListWidgetItem* emptyItem = new QListWidgetItem("No friends found. Add friends using the verify page.", ui->friendsListWidget);
+        emptyItem->setTextAlignment(Qt::AlignCenter);
+        return;
+    }
+    
+    // Iterate through the map of friends
+    for (auto it = friends.constBegin(); it != friends.constEnd(); ++it) {
+        addFriendItem(it.key(), it.value());
+    }
+}
+
+
+void ViewFilesPage::addFriendItem(const QString &username, const QString &publicKey) {
+    // Create the friend item widget
+    FriendItemWidget* friendWidget = new FriendItemWidget(username, publicKey, this);
+    
+    // Connect the signals
+    connect(friendWidget, &FriendItemWidget::shareRequested, this, &ViewFilesPage::onFriendShareRequested);
+    connect(friendWidget, &FriendItemWidget::deleteRequested, this, &ViewFilesPage::onFriendDeleteRequested);
+    
+    // Create a list item and add to the list widget
+    QListWidgetItem* item = new QListWidgetItem(ui->friendsListWidget);
+    ui->friendsListWidget->setItemWidget(item, friendWidget);
+    
+    // Set the size hint to ensure proper display
+    item->setSizeHint(friendWidget->sizeHint());
+}
+
+void ViewFilesPage::onFriendShareRequested(const QString &username) {
+    qDebug() << "Share requested for friend:" << username;
+    // Future functionality will be added here
+    QMessageBox::information(this, "Share", "Share functionality with " + username + " will be implemented soon.");
+}
+
+void ViewFilesPage::onFriendDeleteRequested(const QString &username) {
+    if (FriendStorageUtils::removeFriend(username, this)) {
+        QMessageBox::information(this, "Success", "Friend removed successfully.");
+        loadFriendsList(); // Reload the friends list to reflect changes
+    } else {
+        QMessageBox::warning(this, "Error", "Failed to remove friend.");
     }
 }
 
