@@ -25,25 +25,38 @@ ResetPasswordPage::ResetPasswordPage(QWidget *parent) :
     ui(new Ui::ResetPasswordPage)
 {
     qDebug() << "Constructing and setting up Password Reset Page";
-
+    ui->setupUi(this);
+    initialisePageUi();
+    setupConnections();
+    preparePage();
 }
 
 void ResetPasswordPage::preparePage(){
-    qDebug() << "Preparing Register Page";
-    this->initialisePageUi();    // Will call the derived class implementation
-    this->setupConnections();    // Will call the derived class implementation
+    qDebug() << "Preparing Reset Password Page";
+    this->ui->updatePasswordButton->setEnabled(true);
+    this->ui->updatePasswordButton->setText("Update Password");
+    this->ui->updatePasswordButton->repaint();
+    this->ui->oldPasswordLineEdit->clear();
+    this->ui->passwordLineEdit->clear();
+    this->ui->confirmPasswordLineEdit->clear();
 }
 
 void ResetPasswordPage::initialisePageUi(){
-    ui->setupUi(this);
     ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
     ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
     ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Password);
 }
 
 void ResetPasswordPage::setupConnections(){
-    connect(ui->updatePasswordButton, &QPushButton::clicked, this, &::ResetPasswordPage::onUpdatePasswordClicked);
+    connect(ui->updatePasswordButton, &QPushButton::clicked, this, &ResetPasswordPage::onUpdatePasswordClicked);
     connect(ui->showPasswordButton, &QPushButton::clicked, this, &ResetPasswordPage::onShowPasswordClicked);
+    connect(this->ui->backButton, &QPushButton::clicked, this, &ResetPasswordPage::onBackButtonClicked);
+}
+
+void ResetPasswordPage::showEvent(QShowEvent *event)
+{
+    BasePage::showEvent(event);
+    preparePage();
 }
 
 ResetPasswordPage::~ResetPasswordPage()
@@ -69,6 +82,13 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     //Validation checks
     if (newPassword != confirmPassword) {
         QMessageBox::warning(this, "Error", "New passwords do not match!");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
+        return;
+    }
+    if (oldPassword == newPassword) {
+        QMessageBox::warning(this, "Error", "New password is same as old one!");
         this->ui->updatePasswordButton->setEnabled(true);
         this->ui->updatePasswordButton->setText("Update Password");
         this->ui->updatePasswordButton->repaint();
@@ -125,13 +145,23 @@ void ResetPasswordPage::onUpdatePasswordClicked()
     QString newSalt = generateSalt(crypto_pwhash_SALTBYTES); //16 bytes
     QString oldSalt = getSaltRequest();
 
-    cout << "OLD SALT RECOEVERED:" << oldSalt.toStdString() << endl;
+
+    if (!decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt)) {
+        QMessageBox::warning(this, "Error", "Incorrect old password!");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
+        return;
+    }
 
 
-    decryptAndReencryptUserFile(username, oldPassword, oldSalt, newPassword, newSalt);
-
-
-    sendResetPasswordRequest(newPassword, newSalt);
+    if (!sendResetPasswordRequest(newPassword, newSalt)) {
+        QMessageBox::warning(this, "Error", "Error with server!");
+        this->ui->updatePasswordButton->setEnabled(true);
+        this->ui->updatePasswordButton->setText("Update Password");
+        this->ui->updatePasswordButton->repaint();
+        return;
+    }
 
 
     QMessageBox::information(this, "Success", "Password updated!");
@@ -158,13 +188,14 @@ void ResetPasswordPage::onShowPasswordClicked()
     } else {
         ui->passwordLineEdit->setEchoMode(QLineEdit::Password);
         ui->confirmPasswordLineEdit->setEchoMode(QLineEdit::Password);
-        ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Normal);
+        ui->oldPasswordLineEdit->setEchoMode(QLineEdit::Password);
         ui->showPasswordButton->setText("Show");
     }
 }
 
 
 bool ResetPasswordPage::sendResetPasswordRequest(const QString newPassword, const QString newSalt){
+
     // Set base URL for the server
     LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
@@ -203,13 +234,23 @@ QString ResetPasswordPage::getSaltRequest(){
 
         // Extract salt from the response
         oldSalt = jsonObj["salt"].toString();
+        QByteArray decodedSalt = QByteArray::fromBase64(oldSalt.toUtf8());
+        oldSalt = QString::fromUtf8(decodedSalt);  // Convert back to QString
 
-        cout << "GETTING SALT" << oldSalt.toStdString() << endl;
 
         return oldSalt;
     } else {
         qDebug() << "Error getting salt:" <<response.errorMessage;
         return NULL;
+    }
+}
+
+void ResetPasswordPage::onBackButtonClicked()
+{
+    // Switch to main menu
+    QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
+    if (stack) {
+        stack->setCurrentIndex(Pages::MainMenuIndex);
     }
 }
 

@@ -183,10 +183,6 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
     unsigned char oldKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
     deriveKeyFromPassword(oldPassword.toStdString(), reinterpret_cast<const unsigned char*>(oldSaltRaw.constData()), oldKey, sizeof(oldKey));
 
-    // Print oldKey in base64 format
-    QByteArray keyArray(reinterpret_cast< const char*>(oldKey), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    cout << "Old Key (base64): " << keyArray.toBase64().toStdString() << endl;
-
 
     //Decrypt
     SecureVector decryptedData;

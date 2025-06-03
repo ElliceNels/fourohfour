@@ -28,6 +28,9 @@ void LoginPage::preparePage(){
     qDebug() << "Preparing Login Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+    this->ui->loginButton->setEnabled(true);
+    this->ui->loginButton->setText("Log In");
+    this->ui->loginButton->repaint();
 }
 
 void LoginPage::initialisePageUi(){

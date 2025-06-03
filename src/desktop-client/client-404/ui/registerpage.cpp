@@ -28,6 +28,9 @@ void RegisterPage::preparePage(){
     qDebug() << "Preparing Register Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+    this->ui->createAccountButton->setEnabled(true);
+    this->ui->createAccountButton->setText("Create Account");
+    this->ui->createAccountButton->repaint();
 }
 
 void RegisterPage::initialisePageUi(){
@@ -215,8 +218,6 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
     requestData["password"] = password;
     requestData["public_key"] = publicKey;
     requestData["salt"] = salt;
-
-    cout << "SENDING SALT" << salt.toStdString() << endl;
     
     // Make the POST request to the sign_up endpoint
     RequestUtils::Response response = LoginSessionManager::getInstance().post(SIGN_UP_ENDPOINT, requestData);

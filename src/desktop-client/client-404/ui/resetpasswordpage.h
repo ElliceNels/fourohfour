@@ -19,18 +19,21 @@ public:
     void preparePage() override;
     ~ResetPasswordPage();
 
+protected:
+    void showEvent(QShowEvent *event) override;
+    void initialisePageUi() override;
+    void setupConnections() override;
+
 private slots:
     void onUpdatePasswordClicked();
     void onShowPasswordClicked();
     bool sendResetPasswordRequest(const QString password, const QString newSalt);
     QString getSaltRequest();
+    void onBackButtonClicked();
 
 private:
     Ui::ResetPasswordPage *ui;
 
-    // Overridden methods from BasePage abstract class
-    void initialisePageUi() override;
-    void setupConnections() override;
 
     QString oldSalt;
 
