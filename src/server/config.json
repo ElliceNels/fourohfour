@@ -23,5 +23,13 @@
     "jwt": {
       "access_token_expires_hours": 1,
       "refresh_token_expires_days": 7
+    },
+
+    "spk": {
+      "max_age_days": 7
+    },
+
+    "otpk": {
+      "min_unused_count": 10
     }
 }

@@ -3,6 +3,7 @@ from flask import jsonify, request
 from server.utils.db_setup import get_session
 from server.models.tables import OTPK, Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
+from server.config import config
 from typing import List, Dict
 import logging
 import nacl.pwhash
@@ -18,7 +19,9 @@ def login(username: str, password: str) -> dict:
         password (str): Password of the user.
 
     Returns:
-        dict: response containing access and refresh tokens or error message.
+        dict: A tuple containing (response_dict, status_code) where response_dict is either:
+            - On success: {"access_token": str, "refresh_token": str}
+            - On error: {"error": str} with additional fields for specific error cases
     """
 
     if not username or not password:
@@ -39,11 +42,41 @@ def login(username: str, password: str) -> dict:
         logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
+    # Check if SPK is too old
+    spk_age = datetime.now(UTC) - user.spk_updated_at
+    if spk_age > config.spk.max_age:
+        logger.warning(f"Login failed for user {username}: SPK is too old (age: {spk_age.days} days)")
+        return jsonify({
+            "error": "SPK is too old",
+            "spk_updated_at": user.spk_updated_at.isoformat(),
+            "max_age_days": config.spk.max_age_days
+        }), 403
+
+    # Check if there are enough unused OTPKs
+    user_info = {
+        "user_id": user.id,
+        "username": user.username
+    }
+    try:
+        otpk_count = get_count_otpk(user_info)
+        if otpk_count < config.otpk.min_unused_count:
+            logger.warning(f"Login failed for user {username}: Not enough unused OTPKs (count: {otpk_count})")
+            return jsonify({
+                "error": "Not enough unused OTPKs",
+                "current_count": otpk_count,
+                "min_required": config.otpk.min_unused_count
+            }), 403
+    except ValueError as e:
+        logger.warning(f"Login failed for user {username}: Error counting OTPKs - {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
     access_token, refresh_token = generate_token(user.id)
     logger.info(f"User {username} logged in successfully")
     return jsonify({
         "access_token": access_token,
-        "refresh_token": refresh_token
+        "refresh_token": refresh_token,
+        "spk_updated_at": user.spk_updated_at.isoformat(),
+        "unused_otpk_count": otpk_count
     }), 200
 
 def sign_up(username: str, password: str, public_key: str, spk: str, spk_signature: str, salt: bytes) -> dict:
@@ -95,6 +128,7 @@ def sign_up(username: str, password: str, public_key: str, spk: str, spk_signatu
             public_key=public_key,
             spk=spk,  # Store as base64 string
             spk_signature=spk_signature,  # Store as base64 string
+            spk_updated_at=datetime.now(UTC),
             salt=salt,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC)
@@ -455,6 +489,7 @@ def update_spk(user_info: Dict, spk: str, spk_signature: str) -> Dict:
         # Update the SPK and signature
         user.spk = spk
         user.spk_signature = spk_signature
+        user.spk_updated_at = datetime.now(UTC)
         user.updated_at = datetime.now(UTC)
         db.commit()
     

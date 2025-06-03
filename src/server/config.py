@@ -43,6 +43,19 @@ class JWTConfig(BaseModel):
         
         super().__init__(**data)
 
+class SPKConfig(BaseModel):
+    """SPK (Signed Pre Key) configuration class."""
+    max_age_days: int
+
+    def __init__(self, **data):
+        """Initialize SPK config with timedelta conversion."""
+        data['max_age'] = timedelta(days=data['max_age_days'])
+        super().__init__(**data)
+
+class OTPKConfig(BaseModel):
+    """OTPK (One-Time Pre Key) configuration class."""
+    min_unused_count: int
+
 class Config(BaseModel):
     """Singleton configuration class."""
 
@@ -53,6 +66,8 @@ class Config(BaseModel):
     logging: LoggingConfig
     database: DatabaseConfig
     jwt: JWTConfig
+    spk: SPKConfig
+    otpk: OTPKConfig
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern enforcing on Config class creation."""
