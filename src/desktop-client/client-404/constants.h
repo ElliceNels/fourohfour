@@ -76,11 +76,16 @@ const std::string GET_USER_ENDPOINT = "/get_current_user";
 const std::string GET_USER_FILES_ENDPOINT =  FILES_API_ENDPOINT + "/";
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
-const QString RESTRICTED_CHARS = QStringLiteral(R"(\/:*?"<>|'%;&=+$#@!~()[]{}., )");
+const QString RESTRICTED_CHARS = QStringLiteral("\\/:*?\"<>|'%;&=+$#@!~()[]{}., ");
 inline const QRegularExpression RESTRICTED_CHARS_REGEX("[" + QRegularExpression::escape(RESTRICTED_CHARS) + "]");
 
 const int OWNED_FILES_PAGE_INDEX = 0;
 const int SHARED_FILES_PAGE_INDEX = 1;
+
+// View Files Page Indices
+const int FILES_LIST_PAGE_INDEX = 0;
+const int SHARING_PAGE_INDEX = 1;
+const int FRIENDS_LIST_PAGE_INDEX = 2;
 
 const int FIND_FRIEND_INDEX = 0;
 const int VERIFY_PUBLIC_KEY_INDEX = 1;

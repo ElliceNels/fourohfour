@@ -97,8 +97,7 @@ void FileItemWidget::handleDownload() {
 }
 
 void FileItemWidget::handleShare() {
-    // share logic here
-    qDebug() << "Share clicked for file:" << this->fileNameLabel->toolTip();
+    emit shareRequested(); 
 }
 
 bool FileItemWidget::confirmAction(const QString& title, const QString& text) {
