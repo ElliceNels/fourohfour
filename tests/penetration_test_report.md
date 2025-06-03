@@ -1,5 +1,6 @@
-# Penetration Testing Report
 
+# Penetration Testing Report
+Below is a report of penetration testing carried out on our file sharing system. This report outlines the tests and vunerabilities found. After testing, the reccomendations listed in this report were applied to the system. 
 ## Executive Summary
 This report details the security assessment conducted on our file sharing application, covering both client and server-side components. 
 TODO BEEF UP
@@ -27,12 +28,12 @@ TODO file upload size etc
 
 
 ## Engagement Summary
-Testing was performed from 31/05/25 to 01/06/25, once all major components of the project were completed, and to give the team time to remediate the vunerabilities discovered. 
-The testing was performed with the assumption that neither client nor server can be fully trusted, implementing a zero-trust security model. Our testing methodology combined automated scanning tools with manual penetration testing to ensure comprehensive coverage of potential vulnerabilities, and applied OWASP and CVSS 3.1 standards to identify and catagorise vunerabilities. TODO TIDY UP
+Penetration testing was conducted between 31/05/2025 and 01/06/2025, following the completion of all major project components. This timing allowed the development team an opportunity to address any identified vulnerabilities before submission.
+
+The assessment was carried out under a zero-trust security model, operating on the assumption that neither client nor server components could be inherently trusted. Our approach combined automated vulnerability scanning with in-depth manual testing to ensure thorough coverage across the application surface. Vulnerabilities were identified, classified, and prioritised using OWASP guidelines and the CVSS v3.1 scoring system.
 
 **Scope of Testing**
 - Server-side API endpoints
-- Client-side web application
 - Authentication mechanisms
 - File handling and permissions
 - Database interactions
@@ -43,14 +44,11 @@ The testing was performed with the assumption that neither client nor server can
 1. **OWASP ZAP (Zed Attack Proxy)**
    - Automated vulnerability scanning
    - API endpoint testing
-   - Authentication testing
-   - Session management analysis
    - Configuration: Full scan with maximum alert levels
 
 2. **Burp Suite Professional**
    - API security testing
    - Authentication bypass attempts
-   - Session handling analysis
    - Configuration: Intercepting proxy with active scanning
 
 3. **Postman**
@@ -76,22 +74,27 @@ The testing was performed with the assumption that neither client nor server can
 ### 1. Security Misconfiguration
 
 #### Test Case: Server Configuration
-**Description**: Analyzed server and application configuration.
+**Description**: Analyzed server configuration through automated and manual analysis of HTTP headers, response behavior, and configuration settings.
 
 **Testing Method**:
-- Used OWASP ZAP to scan for misconfigurations
-- Manual review of security headers
-- Analysis of CORS implementation
+- Performed automated scanning with **OWASP ZAP** to identify server misconfigurations.
+- Conducted manual inspection of HTTP response headers, CORS policies, and general security directive
 
 **Findings**:
-- Proper CORS configuration
-- Secure headers implemented
-- Debug mode disabled in production
+- **Missing Content Security Policy (CSP)**: No CSP header was present, leaving the application more susceptible to XSS and injection attacks.
+- **CORS Misconfiguration**: The server allowed cross-domain requests from arbitrary origins on unauthenticated endpoints, which could allow data exposure under certain conditions.
+- **No Protection Against Clickjacking**: The application did not set `X-Frame-Options` or `Content-Security-Policy: frame-ancestors`, leaving it open to UI redress attacks.
+- **Missing HTTP Strict Transport Security (HSTS)**: The server did not enforce HTTPS-only access using HSTS, which weakens transport layer protection.
+- **Anti-MIME Sniffing Header Absent**: The `X-Content-Type-Options: nosniff` header was missing, increasing risk of MIME-based attacks in older browsers.
+- **Missing or Weak Cache-Control Headers**: Sensitive resources could be cached by browsers or intermediaries due to absent or loose cache-control settings.
 
 **Protection Mechanisms**:
-- Environment-based configuration
-- Secure default settings
-- Proper error handling
+- Consider implementing a restrictive CSP header to limit executable sources
+- Apply strict `Access-Control-Allow-Origin` rules, especially on sensitive routes.
+- Use either `X-Frame-Options: DENY` or a CSP frame-ancestors directive.
+- Add the `Strict-Transport-Security` header with appropriate max-age and subdomain directives.
+- Set `X-Content-Type-Options: nosniff` on all responses.
+- Apply `Cache-Control: no-store` or similar directives to sensitive endpoints and content.
 
 ### 2. Improper Input Validation
 
@@ -329,8 +332,8 @@ TODO Client side encryption??
 
 TODO maybe get rid of this
 ## Recommendations
-1. Implement rate limiting for API endpoints
-2. Add additional logging for security events
+1. Update all dependencies to secure versions or replace with secure alternatives
+2. Add server side size constraints on file uploads to avoid database errors
 3. Regular security audits of dependencies
 4. Implement automated security testing in CI/CD
 
@@ -342,33 +345,47 @@ The application demonstrates strong security measures across all tested areas. N
 
 ## Appendix
 ### Ratings and Risk Score
-TODO explain risk scores, maybe put a table from cvss
+Vulnerability severities in this report are assessed using the CVSS v3.1 (Common Vulnerability Scoring System), an industry-standard framework for evaluating the risk posed by software vulnerabilities.
+Each score is calculated based on multiple factors, grouped into the following categories:
+- **Attack Vector (AV)** – How the vulnerability is exploited (e.g., Network, Adjacent, Local, Physical)
+- **Attack Complexity (AC)** – The complexity of exploiting the vulnerability (Low or High)
+- **Privileges Required (PR)** – The level of access needed to exploit the vulnerability (None, Low, High)
+- **User Interaction (UI)** – Whether exploitation requires user involvement (None or Required)
+- **Scope (S)** – Whether the vulnerability affects resources beyond its original security scope (Unchanged or Changed)
+- **Confidentiality (C )** – The impact on confidentiality if exploited (None, Low, High)
+- **Integrity (I)** – The impact on data integrity (None, Low, High)
+- **Availability (A)** – The impact on system availability (None, Low, High)
 
+Each vulnerability is scored using a **vector string**, such as: `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:L`
+The final score is a number between **0.0 and 10.0**, categorised as
+| Score Range | Severity |
+|-------------|----------|
+| 0.0         | None     |
+| 0.1 – 3.9   | Low      |
+| 4.0 – 6.9   | Medium   |
+| 7.0 – 8.9   | High     |
+| 9.0 – 10.0  | Critical |
+*https://www.first.org/cvss/v4-0/specification-document*
+	
 ### Vunerability Details
-TODO list of tested for vunerabilities
+ 1. **Security Misconfiguration:** Occurs when systems are set up with insecure defaults, unnecessary features, or misapplied permissions, potentially exposing sensitive data or functionality to attackers.
+ 2. **Improper Input Validation:** Refers to the failure to properly validate user input, which can lead to unexpected behavior such as crashes, data corruption, or exploitation through malformed or malicious input.
+3. **Broken Authentication:** Involves flaws in login systems, session management, or credential handling that can allow attackers to impersonate other users or gain unauthorized access.
+ 4. **Broken Access Control:** Occurs when users can access resources or perform actions outside of their intended permissions, such as viewing or modifying another user's files.
+5. **Cryptographic Issues:** Includes the use of weak or outdated encryption algorithms, improper key management, or insecure implementations that may lead to data exposure or manipulation.
+6. **Injection:** Happens when untrusted input is interpreted as code or commands by the system (e.g., SQL injection), potentially allowing attackers to access, alter, or delete backend data.
+7. **Sensitive Data Exposure:** Refers to the unintentional leakage of sensitive information (e.g., passwords, personal data, files), especially when data is transmitted or stored without proper encryption.
+8. **Vulnerable Components:** Relates to the use of outdated or insecure third-party libraries, frameworks, or modules with known vulnerabilities that could be exploited if not patched or replaced.
 
-### Test Environment Details TODO
-- Local development environment
-- Production-like staging environment
-- Isolated testing network
-
-### Tools Used
-1. OWASP ZAP
-   - Version: 2.12.0
-   - Configuration: Full scan with maximum alert levels
-
-2. Burp Suite Professional
-   - Version: 2023.1.1
-   - Configuration: Intercepting proxy with active scanning
-
-3. Postman
-   - Version: 10.14.0
-   - Custom test collections
-   - Automated testing scripts
-
-4. Wireshark
-   - Version: 4.0.3
-   - Full packet capture
-   - TLS/SSL analysis
-
-
+### Test Environment Details 
+*All tests used non-sensitive, synthetic data to avoid exposure of real user information.*
+#### Local Testing Environment
+- **Application Stack**: The server was executed locally using the Flask development server in a controlled test environment.
+- **Client Interface**: API endpoints were accessed using tools such as Postman and Burp Suite.
+- **Configuration**: Environment variables and configurations such as database structure reflected production settings where applicable    
+- **Purpose**: This environment allowed for controlled testing of potentially destructive or invasive attack vectors without impacting live data or users.
+#### Production Environment Testing
+-   **Hosted Instance**: A production version of the application was deployed on `gobbler.info` for black-box and grey-box testing.
+-   **TLS/SSL Configuration**: Live HTTPS endpoints enabled full analysis of network-layer encryption, including TLS 1.3 verification via packet inspection.
+-   **Authentication & Permissions**: Realistic user accounts and workflows were used to simulate genuine user behavior and test access controls and token-based authentication.
+-   **Live File Handling**: File uploads, downloads, and permission enforcement were tested using real interactions in the production environment to ensure proper validation. 
