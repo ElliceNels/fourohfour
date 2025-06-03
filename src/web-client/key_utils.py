@@ -174,7 +174,6 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
 
     # Read encrypted file
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
-    #file_path = os.path.join(os.getcwd(), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
     try:
         with open(file_path, 'rb') as file:
             encrypted_data = file.read()
