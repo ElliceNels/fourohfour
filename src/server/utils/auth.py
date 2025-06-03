@@ -416,3 +416,47 @@ def get_otpk(username: str) -> Dict:
         
     logger.info(f"Retrieved and marked OTPK as used for user {username}")
     return {"otpk": otpk_key}, 200
+
+def update_spk(user_info: Dict, spk: str, spk_signature: str) -> Dict:
+    """Update the signed pre key (SPK) for a user.
+
+    Args:
+        user_info (Dict): Dictionary containing user information.
+        spk (str): Base64 encoded signed pre key.
+        spk_signature (str): Base64 encoded signature of the signed pre key.
+
+    Returns:
+        Dict: Response containing success message or error message.
+    """
+    
+    if not user_info or not spk or not spk_signature:
+        logger.warning("Update SPK failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    user_id = user_info.get("user_id")
+    if not user_id:
+        logger.warning("Update SPK failed: Missing user_id in user_info")
+        return {"error": "Missing user_id in user_info"}, 400
+
+    try:
+        # Validate base64 format
+        base64.b64decode(spk)
+        base64.b64decode(spk_signature)
+    except Exception as e:
+        logger.warning(f"Update SPK failed: Invalid base64 format - {str(e)}")
+        return {"error": "Invalid base64 format for cryptographic data"}, 400
+
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        if not user:
+            logger.warning(f"Update SPK failed for user {user_id}: User not found")
+            return {"error": "User not found"}, 404
+        
+        # Update the SPK and signature
+        user.spk = spk
+        user.spk_signature = spk_signature
+        user.updated_at = datetime.now(UTC)
+        db.commit()
+    
+    logger.info(f"Updated SPK for user {user_info['username']}")
+    return {"message": "Signed Pre Key updated successfully"}, 200

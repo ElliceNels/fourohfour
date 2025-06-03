@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from server.utils import auth, jwt
 from server.utils.jwt import JWTError
 import logging
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -337,4 +338,50 @@ def get_otpk():
         return jsonify(response), 200
     except Exception as e:
         logger.error(f"Error getting OTPK: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@authentication_routes.route('/update_spk', methods=['POST'])
+def update_spk():
+    """Update Signed Pre Key route to update the signed pre key for the current user.	
+    Expected JSON payload:
+    {
+        "spk": "<signed_pre_key>",
+        "spk_signature": "<spk_signature>"
+    }
+    Expected response:
+    {
+        "message": "Signed Pre Key updated successfully"
+    }
+    """
+    logger.debug("Received request to update signed pre key")
+    
+    try:
+        # Get current user info
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+
+        # Get SPK data from request
+        data = request.get_json()
+        if not data or 'spk' not in data or 'spk_signature' not in data:
+            logger.warning("Update SPK failed: Missing required fields")
+            return jsonify({"error": "Missing required fields"}), 400
+
+        spk = data['spk']
+        spk_signature = data['spk_signature']
+
+        # Validate base64 format
+        try:
+            base64.b64decode(spk)
+            base64.b64decode(spk_signature)
+        except Exception as e:
+            logger.warning(f"Update SPK failed: Invalid base64 format - {str(e)}")
+            return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
+
+        # Call auth function to update SPK
+        response, status_code = auth.update_spk(user_info, spk, spk_signature)
+        return jsonify(response), status_code
+
+    except Exception as e:
+        logger.error(f"Error updating signed pre key: {str(e)}")
         return jsonify({"error": str(e)}), 500
