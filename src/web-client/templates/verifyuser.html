@@ -6,15 +6,69 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <script>
         function updateHashOutput() {
-            const userKey = document.getElementById('user-key-input');
+            const friendUsername = document.getElementById('friend-username-input');
             const output = document.getElementById('hash-output');
-            
-            if (!userKey.files.length) {
-                output.value = "No key file selected...";
+            const verifyBtn = document.getElementById('verify-new-user-btn');
+            if (output.value !== "No friend username entered..." && output.value !== "Ready to generate hash") {
+                verifyBtn.disabled = false;
+                verifyBtn.style.display = 'inline-block';
+                return;
+            }
+            if (!friendUsername.value) {
+                output.value = "No friend username entered...";
+                verifyBtn.disabled = true;
+                verifyBtn.style.display = 'none';
             } else {
                 output.value = "Ready to generate hash";
+                verifyBtn.disabled = true;
+                verifyBtn.style.display = 'none';
             }
         }
+
+        // Call this after hash is generated and set in output.value
+        function onHashGenerated() {
+            const verifyBtn = document.getElementById('verify-new-user-btn');
+            verifyBtn.disabled = false;
+            verifyBtn.style.display = 'inline-block';
+        }
+
+        function verifyNewUser() {
+            const friendUsernameInput = document.getElementById('friend-username-input');
+            const output = document.getElementById('hash-output');
+            const verifyBtn = document.getElementById('verify-new-user-btn');
+            if (!friendUsernameInput.value) {
+                alert('Please enter a friend\'s username.');
+                return;
+            }
+            verifyBtn.disabled = true;
+            fetch('/verify_new_user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_username: friendUsernameInput.value })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message || data.error || 'Unknown response');
+                if (data.success) {
+                    // Hide the button and clear all fields
+                    verifyBtn.style.display = 'none';
+                    friendUsernameInput.value = '';
+                    output.value = 'No friend username entered...';
+                } else {
+                    verifyBtn.disabled = false;
+                }
+            })
+            .catch(() => {
+                verifyBtn.disabled = false;
+            });
+        }
+
+        window.onload = function() {
+            const output = document.getElementById('hash-output');
+            if (output && output.value !== "No friend username entered..." && output.value !== "Ready to generate hash") {
+                onHashGenerated();
+            }
+        };
     </script>
 </head>
 <body>
@@ -36,18 +90,19 @@
                 </h1>
             </div>
             <div class="verify-instructions">
-                Please upload your public key file to generate a hash of both your and your friends keys to verify each other's identity.
+                Please enter your friend's username to generate a hash for verifying each other's identity.
             </div>
             <form class="verify-form" method="POST" enctype="multipart/form-data" style="width:100%;display:flex;flex-direction:column;align-items:center;">
                 <div class="verify-row" style="margin-bottom: 10px;">
-                    <label class="verify-label" for="user-key-input">Your Public Key File:</label>
-                    <input type="file" id="user-key-input" name="user_key" accept=".pem,.txt,.pub" onchange="updateHashOutput()" style="margin-bottom: 10px;">
+                    <label class="verify-label" for="friend-username-input">Friend's Username:</label>
+                    <input type="text" id="friend-username-input" name="friend_username" placeholder="Enter friend's username" onchange="updateHashOutput()" style="margin-bottom: 10px;" required value="{{ request.form.friend_username or request.args.get('friend_username', '') }}">
                 </div>
                 <div class="verify-row">
                     <label class="verify-label" for="hash-output">Hash Output:</label>
-                    <input id="hash-output" class="verify-output" type="text" readonly value="No key file selected...">
+                    <input id="hash-output" class="verify-output" type="text" readonly value="{{ hash_output or 'No friend username entered...' }}">
                 </div>
-                <button type="submit" class="btn select-btn">Generate Hash</button>
+                <button type="submit" class="btn select-btn" id="generate-hash-btn">Generate Hash</button>
+                <button type="button" class="btn select-btn" id="verify-new-user-btn" onclick="verifyNewUser()" disabled style="display:none;">Verify This User</button>
             </form>
         </div>
     </div>
