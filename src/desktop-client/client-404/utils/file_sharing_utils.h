@@ -9,7 +9,35 @@ class FileSharingUtils {
 
     public:
         QVector<QByteArray> generateOneTimePreKeyPairs();
+        
+        bool generateSignedPreKey(
+            const QString& identityPublicKeyBase64,
+            const QString& identityPrivateKeyBase64,
+            QString& signedPreKeyPublic,
+            QString& signedPreKeyPrivate,
+            QString& signature);
+            
+        bool verifySignedPreKey(
+            const QString& identityPublicKeyBase64,
+            const QString& signedPreKeyPublicBase64,
+            const QString& signatureBase64);
+            
     private:
+        // Helper method to save signed pre-key pair
+        bool saveSignedPreKeyLocally(const QString& publicKeyBase64, 
+                                    const QString& privateKeyBase64);
+                                    
+        // Generic key storage method that can be used for different key types
+        bool saveKeyPairsLocally(const QString& keyType,
+                                const QVector<QByteArray>& publicKeys,
+                                const QVector<QByteArray>& privateKeys);
+                                
+        // Save a single key pair
+        bool saveKeyPairLocally(const QString& keyType,
+                              const QByteArray& publicKey,
+                              const QByteArray& privateKey);
+                              
+        // Original method - will be refactored to use the generic method
         bool saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);
         
         // Helper methods for key storage
@@ -19,10 +47,11 @@ class FileSharingUtils {
         bool readAndDecryptKeyStorage(const QString &filepath, 
                                      const SecureVector &masterKey, 
                                      QByteArray &jsonData);
-        bool updateJsonWithPrekeys(const QByteArray &jsonData, 
-                                  const QVector<QByteArray>& publicKeys, 
-                                  const QVector<QByteArray>& privateKeys,
-                                  QByteArray &updatedJsonData);
+        bool updateJsonWithKeysGeneric(const QByteArray &jsonData,
+                                     const QString& keyType, 
+                                     const QVector<QByteArray>& publicKeys, 
+                                     const QVector<QByteArray>& privateKeys,
+                                     QByteArray &updatedJsonData);
         bool encryptAndSaveKeyStorage(const QString &filepath, 
                                      const QByteArray &jsonData, 
                                      const SecureVector &masterKey);
