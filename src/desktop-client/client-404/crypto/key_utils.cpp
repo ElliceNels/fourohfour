@@ -52,10 +52,6 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     QJsonObject json;
     json["privateKey"] = privateKey;
 
-    // Print derivedKey in base64 format
-    QByteArray keyArray(reinterpret_cast<const char*>(derivedKey), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
-    cout << "Derived Key (base64): " << keyArray.toBase64().toStdString() << endl;
-
     QJsonDocument doc(json);
     QByteArray jsonData = doc.toJson();
 
@@ -182,7 +178,6 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
     QByteArray oldSaltRaw = QByteArray::fromBase64(oldSalt.toUtf8());
     unsigned char oldKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
     deriveKeyFromPassword(oldPassword.toStdString(), reinterpret_cast<const unsigned char*>(oldSaltRaw.constData()), oldKey, sizeof(oldKey));
-
 
     //Decrypt
     SecureVector decryptedData;

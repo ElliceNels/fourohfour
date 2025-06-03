@@ -72,7 +72,7 @@ void LoginPage::onLoginButtonClicked()
 
     if (sendLogInRequest(username, password)) {
         // Switch to main menu after login
-        emit goToMainMenuRequested();
+        emit this->goToMainMenuRequested();
     } else {
         // Only reset the button if login failed
         this->ui->loginButton->setEnabled(true);
