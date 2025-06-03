@@ -6,6 +6,11 @@ from resetpassword import manage_reset_password
 from session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
+import time
+
+login_attempts = {}
+MAX_ATTEMPTS = 5
+WINDOW_SECONDS = 300  # 5 minutes
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -45,11 +50,15 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        ip = request.remote_addr
 
-        clear_flashes()
-        flash("Logging in", "info")
-
+        if is_rate_limited(ip):
+            clear_flashes()
+            flash("Too many login attempts. Please try again in 5 minutes.", "error")
+            return render_template('login.html')
+        
         login_success, message = manage_login(password, username)
+        record_login_attempt(ip) 
         if login_success:
             session['username'] = username
             print(f"Login successful for {username}")
@@ -172,6 +181,20 @@ def reset_password():
 
 def clear_flashes():
     session.pop('_flashes', None)
+
+def is_rate_limited(ip):
+    now = time.time()
+    attempts = login_attempts.get(ip, [])
+    # Remove attempts outside the window
+    attempts = [t for t in attempts if now - t < WINDOW_SECONDS]
+    login_attempts[ip] = attempts
+    return len(attempts) >= MAX_ATTEMPTS
+
+def record_login_attempt(ip):
+    now = time.time()
+    attempts = login_attempts.get(ip, [])
+    attempts.append(now)
+    login_attempts[ip] = attempts
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

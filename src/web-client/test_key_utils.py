@@ -8,7 +8,7 @@ from nacl.bindings import (
     crypto_pwhash_SALTBYTES,
 )
 import re
-from key_utils import generate_sodium_keypair, generate_salt, decode_salt, derive_key_from_password,encrypt_and_save_key, encrypt_and_save_master_key
+from key_utils import generate_sodium_keypair, generate_salt, decode_salt, derive_key_from_password, encrypt_and_save_key, encrypt_and_save_master_key, decrypt_and_reencrypt_user_file
 
 
 def test_generate_sodium_keypair():
@@ -80,3 +80,24 @@ def test_derive_key_from_password_empty_password():
     assert isinstance(key, bytes)
     assert len(key) == crypto_aead_xchacha20poly1305_ietf_KEYBYTES
     assert any(b != 0 for b in key)
+
+def test_decrypt_and_reencrypt_user_file_wrong_password(tmp_path):
+    # Setup: create a file with a known password
+    global MASTER_KEY_PATH, BINARY_EXTENSION
+    MASTER_KEY_PATH = str(tmp_path) + "/"
+    BINARY_EXTENSION = ".bin"
+    username = "user"
+    password = "correct"
+    salt = nacl.utils.random(16)
+    new_password = "newpass"
+    new_salt = nacl.utils.random(16)
+    key = derive_key_from_password(password, salt)
+    # Save a master key file
+    encrypt_and_save_master_key(b"secretdata", key, username)
+    # Try to decrypt with wrong password
+    result = decrypt_and_reencrypt_user_file(username, "wrong", salt, new_password, new_salt)
+    assert result is False
+
+def test_generate_salt_zero_length():
+    salt = generate_salt(0)
+    assert salt == ""
