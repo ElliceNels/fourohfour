@@ -33,25 +33,34 @@
         }
 
         function verifyNewUser() {
-            const friendUsername = document.getElementById('friend-username-input').value;
-            if (!friendUsername) {
+            const friendUsernameInput = document.getElementById('friend-username-input');
+            const output = document.getElementById('hash-output');
+            const verifyBtn = document.getElementById('verify-new-user-btn');
+            if (!friendUsernameInput.value) {
                 alert('Please enter a friend\'s username.');
                 return;
             }
+            verifyBtn.disabled = true;
             fetch('/verify_new_user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ friend_username: friendUsername })
+                body: JSON.stringify({ friend_username: friendUsernameInput.value })
             })
             .then(response => response.json())
             .then(data => {
                 alert(data.message || data.error || 'Unknown response');
                 if (data.success) {
-                    location.reload();
-                    document.getElementById('verify-new-user-btn').style.display = 'inline-block';
+                    // Hide the button and clear all fields
+                    verifyBtn.style.display = 'none';
+                    friendUsernameInput.value = '';
+                    output.value = 'No friend username entered...';
+                } else {
+                    verifyBtn.disabled = false;
                 }
-
             })
+            .catch(() => {
+                verifyBtn.disabled = false;
+            });
         }
 
         window.onload = function() {
