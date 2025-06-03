@@ -110,8 +110,28 @@ bool FriendStorageUtils::writeFriendsJson(const QString& username, const QJsonOb
  * @return true if the save succeeded, false otherwise
  */
 bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QString& publicKey, QWidget* parent) {
+    if (username.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "Cannot save friend with empty username.");
+        }
+        return false;
+    }
+    
+    if (publicKey.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "Cannot save friend with empty public key.");
+        }
+        return false;
+    }
+    
     // Get the current logged in user
     QString currentUsername = LoginSessionManager::getInstance().getUsername();
+    if (currentUsername.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "No logged-in user found. Cannot save friend.");
+        }
+        return false;
+    }
     
     // Read existing data
     QJsonObject friendsData = readFriendsJson(currentUsername, parent);
@@ -122,4 +142,30 @@ bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QSt
     
     // Write back to file
     return writeFriendsJson(currentUsername, friendsData, parent);
+}
+
+/**
+ * @brief Retrieves a user's public key from the friends storage system
+ * @param username The username whose public key to retrieve
+ * @param parent Optional parent widget for displaying error messages
+ * @return The user's public key as a QString, or empty string if not found
+ */
+QString FriendStorageUtils::getUserPublicKey(const QString& username, QWidget* parent) {
+    // Use existing method to build the file path
+    QString currentUser = LoginSessionManager::getInstance().getUsername();
+    
+    // Use existing method to read the JSON data - FIXED: Pass username not filepath
+    QJsonObject friendsData = readFriendsJson(currentUser, parent);
+    
+    // Look for the specified username's public key in the friends data
+    if (friendsData.contains(username)) {
+        return friendsData[username].toString();
+    }
+    
+    // If the key is not found, show a warning
+    if (parent) {
+        QMessageBox::warning(parent, "Error", "Public key for " + username + " not found in storage.");
+    }
+    
+    return QString();
 }
