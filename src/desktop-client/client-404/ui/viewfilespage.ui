@@ -129,7 +129,7 @@ QPushButton#backButton:pressed {
    <item>
     <widget class="QStackedWidget" name="mainStackedWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="filesListPage">
       <layout class="QVBoxLayout" name="filesListPageLayout">
@@ -1085,6 +1085,73 @@ QPushButton:pressed {
           <enum>QFrame::Shadow::Sunken</enum>
          </property>
         </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="friendsHeaderLayout">
+         <property name="spacing">
+          <number>70</number>
+         </property>
+         <property name="leftMargin">
+          <number>8</number>
+         </property>
+         <property name="topMargin">
+          <number>4</number>
+         </property>
+         <property name="rightMargin">
+          <number>20</number> <!-- Increased from 8 to 20 to provide more space -->
+         </property>
+         <property name="bottomMargin">
+          <number>4</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="friendsNameLabel">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Name</string>
+           </property>
+           <property name="fixedWidth" stdset="0">
+            <number>400</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="friendsHeaderSpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QLabel" name="friendsActionsLabel">
+           <property name="font">
+            <font>
+             <pointsize>10</pointsize>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Actions</string>
+           </property>
+           <property name="fixedWidth" stdset="0">
+            <number>100</number> <!-- Increased from 80 to 100 -->
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignVCenter</set> <!-- Added right alignment -->
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="friendsContentLayout">
