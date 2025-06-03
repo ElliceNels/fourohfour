@@ -1,6 +1,6 @@
 from datetime import datetime, UTC
 from flask import jsonify
-from server.models.tables import Users, Files, FilePermissions
+from server.models.tables import Users, Files, FilePermissions, OTPK
 from server.utils.db_setup import get_session
 import logging
 import base64
@@ -66,11 +66,22 @@ def create_file_permission(file_uuid: str, username: str, key_for_recipient: str
                 logger.error(f"Error validating encryption keys: {str(e)}")
                 return jsonify({'error': 'Invalid encryption key format'}), 400
 
+            # Create OTPK record first
+            new_otpk = OTPK(
+                user_id=recipient.id,
+                key=otpk,
+                used=1,  # Mark as used since it's being used for this permission
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
+            )
+            db.add(new_otpk)
+            db.flush()  # Flush to get the ID without committing
+
             new_permission = FilePermissions(
                 file_id=file.id,
                 user_id=recipient.id,
                 encryption_key=key_for_recipient,
-                otpk=otpk,
+                otpk_id=new_otpk.id,  # Use the ID of the newly created OTPK
                 ephemeral_key=ephemeral_key,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC)
@@ -90,7 +101,7 @@ def remove_file_permission(file_uuid: str, username: str, owner_id: int) -> dict
 
     Args:
         file_uuid (str): UUID of the file to remove permission from
-        user_id (int): ID of the user to remove permission for
+        username (str): Username of the user to remove permission for
         owner_id (int): ID of the file owner
 
     Returns:
@@ -113,29 +124,29 @@ def remove_file_permission(file_uuid: str, username: str, owner_id: int) -> dict
                 return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
             # Find and delete the permission
-            user_id = db.query(Users).filter_by(username=username).first()
-            if not user_id:
+            user = db.query(Users).filter_by(username=username).first()
+            if not user:
                 logger.warning(f"User with username {username} not found")
                 return jsonify({'error': 'User not found'}), 404
             logger.debug(f"Looking for permission - file_uuid: {file_uuid}, username: {username}")
             permission = db.query(FilePermissions).filter_by(
                 file_id=file.id,
-                user_id=user_id
+                user_id=user.id
             ).first()
             
             if not permission:
-                logger.warning(f"Permission not found for file {file_uuid} and user {user_id}")
+                logger.warning(f"Permission not found for file {file_uuid} and user {username}")
                 return jsonify({'error': 'Permission not found'}), 404
 
             db.delete(permission)
             db.commit()
 
-            logger.info(f"Permission removed for file {file_uuid} and user {user_id} successfully")
+            logger.info(f"Permission removed for file {file_uuid} and user {username} successfully")
             return jsonify({'message': 'Permission removed successfully'}), 200
 
         except Exception as e:
             db.rollback()
-            logger.error(f"Error removing permission for file {file_uuid} and user {user_id}: {str(e)}", exc_info=True)
+            logger.error(f"Error removing permission for file {file_uuid} and user {username}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
 def get_file_permissions(file_uuid: str, user_id: int) -> dict:
@@ -169,7 +180,7 @@ def get_file_permissions(file_uuid: str, user_id: int) -> dict:
             # Format permissions for response
             formatted_permissions = []
             for perm in permissions:
-                user = db.get(Users, perm.user_id)
+                user = db.query(Users).filter_by(id=perm.user_id).first()
                 if user:
                     formatted_permissions.append({
                         'username': user.username,

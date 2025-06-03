@@ -131,9 +131,6 @@ def stored_file_data(logged_in_user, test_file_data, client):
     }
     response = client.post("/api/files/upload", headers=headers, json=test_file_data)
     
-    if response.status_code != 201:
-        pytest.skip(f"File upload failed with status {response.status_code}: {response.json}")
-    
     data = response.json
     return {
         "file_uuid": data["uuid"],  # Changed from "file_uuid" to "uuid" based on API response
@@ -148,20 +145,15 @@ def second_signed_up_user(client, second_test_user):
     return second_test_user
 
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
-    pytest.param(CREATED, True, True, True, True, marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),  # Success: all fields included
-    pytest.param(CONFLICT, True, True, True, True, marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),  # Conflict: all fields included
+    (CREATED, True, True, True, True),  # Success: all fields included
+    (CONFLICT, True, True, True, True),  # Conflict: all fields included
     (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
-    (BAD_REQUEST, True, True, False, True),      # Error: missing user_id
+    (BAD_REQUEST, True, True, False, True),      # Error: missing username
     (BAD_REQUEST, False, True, True, True),      # Error: missing key_for_recipient
     (NOT_FOUND, True, True, True, False),        # Error: file not found
 ])
 def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
     """Test creating file permissions with various scenarios."""
-    # Get the second user's ID
-    with get_session() as db:
-        user = db.query(Users).filter_by(username=second_signed_up_user["username"]).first()
-        user_id = user.id
-    
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     permission_data = {}
     
@@ -169,12 +161,17 @@ def test_create_permission(client, logged_in_user, second_signed_up_user, stored
         permission_data["file_uuid"] = uuid.uuid4() if not is_owner else stored_file_data["file_uuid"]
     
     if include_key:
-        # Generate random bytes for key and encode as base64
+        # Generate random bytes for keys and encode as base64
         key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        
         permission_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
+        permission_data["otpk"] = base64.b64encode(otpk_bytes).decode()
+        permission_data["ephemeral_key"] = base64.b64encode(ephemeral_key_bytes).decode()
     
     if include_user_id:
-        permission_data["user_id"] = user_id
+        permission_data["username"] = second_signed_up_user["username"]
     
     if expected_status == CONFLICT:
         # Create permission first time
@@ -186,28 +183,28 @@ def test_create_permission(client, logged_in_user, second_signed_up_user, stored
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
-    pytest.param(SUCCESS, True, True, True, True, marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),  # Success: all fields included
+    (SUCCESS, True, True, True, True),  # Success: all fields included
     (NOT_FOUND, True, True, True, True),         # Error: permission not found
     (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
-    (BAD_REQUEST, True, True, False, True),      # Error: missing user_id
+    (BAD_REQUEST, True, True, False, True),      # Error: missing username
     (NOT_FOUND, True, True, True, False),        # Error: file not found
 ])
 def test_remove_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
     """Test removing file permissions with various scenarios."""
-    # Get the second user's ID
-    with get_session() as db:
-        user = db.query(Users).filter_by(username=second_signed_up_user["username"]).first()
-        user_id = user.id
-    
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     
     if expected_status == SUCCESS:
         # Create permission first
         key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        
         permission_data = {
             "file_uuid": stored_file_data["file_uuid"],
-            "user_id": user_id,
-            "key_for_recipient": base64.b64encode(key_bytes).decode()
+            "username": second_signed_up_user["username"],
+            "key_for_recipient": base64.b64encode(key_bytes).decode(),
+            "otpk": base64.b64encode(otpk_bytes).decode(),
+            "ephemeral_key": base64.b64encode(ephemeral_key_bytes).decode()
         }
         response = client.post("/api/permissions", json=permission_data, headers=headers)
         assert response.status_code == CREATED
@@ -223,32 +220,30 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, stored
         remove_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
     
     if include_user_id:
-        remove_data["user_id"] = user_id
+        remove_data["username"] = second_signed_up_user["username"]
     
     # Make the removal request
     response = client.delete("/api/permissions", json=remove_data, headers=headers)
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, is_owner", [
-    pytest.param(SUCCESS, True,  marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),           # Success: user is owner
-    pytest.param(NOT_FOUND, False,  marks=pytest.mark.skip(reason="Requires ephemeral_key field in permission routes - to be implemented in future PR")),        # Error: file not found
+    (SUCCESS, True),           # Success: user is owner
+    (NOT_FOUND, False),        # Error: file not found
 ])
 def test_get_permissions(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, is_owner):
     """Test getting file permissions."""
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     
-    # Get the second user's ID
-    with get_session() as db:
-        user = db.query(Users).filter_by(username=second_signed_up_user["username"]).first()
-        user_id = user.id
-    
     # Create a permission first so we have something to retrieve
     key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    
     permission_data = {
         "file_uuid": stored_file_data["file_uuid"],
-        "user_id": user_id,
+        "username": second_signed_up_user["username"],
         "key_for_recipient": base64.b64encode(key_bytes).decode(),
+        "otpk": base64.b64encode(otpk_bytes).decode(),
         "ephemeral_key": base64.b64encode(ephemeral_key_bytes).decode()
     }
     response = client.post("/api/permissions", json=permission_data, headers=headers)

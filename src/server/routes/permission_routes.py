@@ -128,7 +128,7 @@ def get_permissions(file_uuid):
         if status_code != 200:
             return jsonify({'error': 'Authentication failed'}), status_code
 
-        return get_file_permissions(file_uuid, user_info['id'])
+        return get_file_permissions(file_uuid, user_info['user_id'])
     except Exception as e:
         logger.error(f"Error retrieving permissions: {str(e)}")
         return jsonify({'error': str(e)}), 500

@@ -184,7 +184,6 @@ def test_list_files(client, logged_in_user, setup_test_db):
         assert "owner_username" in file
         assert isinstance(file["owner_username"], str)
 
-@pytest.mark.skip(reason="Waiting for ephemeral_key fix in permission creation")
 def test_get_file(client, logged_in_user, stored_file_data, setup_test_db):
     """Test retrieving a specific file by UUID."""
     headers = {
@@ -228,9 +227,10 @@ def test_get_file(client, logged_in_user, stored_file_data, setup_test_db):
     }
     share_data = {
         "file_uuid": stored_file_data['uuid'],
-        "user_id": other_user_id,
+        "username": other_user["username"],
         "key_for_recipient": "mock_encrypted_key",
-        "ephemeral_key": base64.b64encode(uuid.uuid4().bytes).decode()  # Add ephemeral key
+        "otpk": base64.b64encode(uuid.uuid4().bytes).decode(),
+        "ephemeral_key": base64.b64encode(uuid.uuid4().bytes).decode()
     }
     share_response = client.post("/api/permissions", headers=share_headers, json=share_data)
     assert share_response.status_code == 201
