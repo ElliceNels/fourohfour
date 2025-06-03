@@ -33,6 +33,8 @@ private:
     // Function to send sign-up request to the server
     bool sendSignUpRequest(const QString& username, const QString& password, 
                                     const QString& publicKey, const QString& salt);
+
+
 signals:
     void goToLoginRequested();
     void goToMainMenuRequested();
