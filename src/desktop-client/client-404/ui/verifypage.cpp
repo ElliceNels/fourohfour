@@ -35,40 +35,18 @@ void VerifyPage::setupConnections(){
     connect(this->ui->findFriend_backButton, &QPushButton::clicked, this, &VerifyPage::goToMainMenuRequested);
 }
 
-QString VerifyPage::fetch_local_public_key(){
-    QString filePath = QFileDialog::getOpenFileName(this, "Open File", "", "JSON Files (*.json)");
+QString VerifyPage::fetch_local_public_key() {
+    // Get public key directly from the file system for the current logged-in user
+    QString publicKey = FriendStorageUtils::getUserPublicKey(LoginSessionManager::getInstance().getUsername(), this);
+    qDebug() << "Local public key fetched: " << publicKey << " for user: " << LoginSessionManager::getInstance().getUsername();
     
-    if (!filePath.isEmpty()) {
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, "Error", "Could not open the file.");
+    if (publicKey.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Unable to retrieve your public key.");
         return QString();
     }
-
-    // Parsing of the keys from the JSON file
-    QByteArray jsonData = file.readAll();
-    file.close();
-
-    QJsonParseError parseError;
-    QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-
-    if (parseError.error != QJsonParseError::NoError) {
-        QMessageBox::warning(this, "Parse Error", "Failed to parse JSON: " + parseError.errorString());
-        return QString();
-    }
-
-    if (jsonDoc.isObject()){
-        QJsonObject jsonObj = jsonDoc.object();
-
-        if (jsonObj.contains("publicKey") && jsonObj["publicKey"].isString()) {
-            return jsonObj["publicKey"].toString();
-        } else {
-                QMessageBox::warning(this, "Error", "Unable to fetch your public key");
-            return QString();
-        }
-    }
-    }
-    return QString();
+    
+    qDebug() << "Successfully retrieved local public key";
+    return publicKey;
 }
 
 bool VerifyPage::fetch_server_public_key(const QString& username){
@@ -88,7 +66,7 @@ bool VerifyPage::fetch_server_public_key(const QString& username){
             // Store the public key for later use
             this->otherPublicKey = publicKey.toUtf8();
             
-            qDebug() << "Public key retrieved for user: " << this->otherPublicKey;
+            qDebug() << "Public key retrieved " << this->otherPublicKey << " for user: " << username;
             
             QMessageBox::information(this, "Success", 
                 "Successfully retrieved public key for: " + username);
