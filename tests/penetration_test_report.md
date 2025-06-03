@@ -1,6 +1,3 @@
-
-  
-
 # Penetration Testing Report
 
 ## Executive Summary
@@ -91,7 +88,7 @@ Below is a list of all major vunerabilities discovered during penetration testin
 
 -  **Reccomendations:**
 
-	- Enforce upload limits at the application layer using Flask’s `MAX_CONTENT_LENGTH`
+	- Enforce upload limits at the application layer using Flask's `MAX_CONTENT_LENGTH`
 	- Implement proper error handling and reject oversized requests with a 413 Payload Too Large response
 
   
@@ -613,13 +610,19 @@ GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR 1=1--
 
 - Application data packets were transmitted via TLS 1.3
 
-- The client/server handshake packets were visible, confirming that a key exchange takes place *(see fig TODO)
+- The client/server handshake packets were visible, confirming that a key exchange takes place
 
 - The request to the HTTP URL was rejected
 
   
 
-<img  src="../src/pen_test_screenshots/application_data_tls_1_3.png"  style="width:45%;"  />  <img  src="../src/pen_test_screenshots/server_client_hello.png"  style="width:45%;"  />
+**Figure 1:** TLS 1.3 Application Data Packet Analysis
+
+<img  src="pen_test_screenshots/application_data_tls_1_3.png"  style="width:45%;"  />  
+
+**Figure 2:** Server-Client TLS Handshake Analysis
+
+<img  src="pen_test_screenshots/server_client_hello.png"  style="width:45%;"  />
 
   
   
@@ -662,9 +665,9 @@ GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR 1=1--
 
 - File content encryption during transit
 
-  
+**Figure 3:** Wireshark Analysis of File Upload Traffic
 
-<img  src="../src/pen_test_screenshots/wireshark_file_upload.png"  style="width:80%;"  />
+<img  src="pen_test_screenshots/wireshark_file_upload.png"  style="width:80%;"  />
 
   
   
@@ -693,7 +696,9 @@ GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR 1=1--
 
   
 
-<img  src="../src/pen_test_screenshots/pip-audit_output.png"  style="width:50%;"  />
+**Figure 4:** Results of pip-audit Dependency Vulnerability Scan
+
+<img  src="pen_test_screenshots/pip-audit_output.png"  style="width:50%;"  />
 
   
   
