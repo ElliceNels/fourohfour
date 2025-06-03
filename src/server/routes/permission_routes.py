@@ -17,8 +17,10 @@ def create_permission():
     Expected JSON payload:
     {
         "file_uuid": <file_uuid>,
-        "user_id": <user_id>,
-        "key_for_recipient": "<encrypted_symmetric_key>"
+        "username": <username>,
+        "key_for_recipient": "<encrypted_symmetric_key>",
+        "otpk": "<one_time_pre_key>", #The otpk used
+        "ephemeral_key": "<ephemeral_key>" #The ephemeral key used
     }
 
     Returns:
@@ -32,7 +34,7 @@ def create_permission():
         logger.warning("No data provided")
         return jsonify({'error': 'No data provided'}), 400
 
-    required_fields = ['file_uuid', 'user_id', 'key_for_recipient']
+    required_fields = ['file_uuid', 'username', 'key_for_recipient', "otpk", "ephemeral_key"]
     for field in required_fields:
         if field not in data:
             logger.warning(f"{field} is required")
@@ -47,8 +49,10 @@ def create_permission():
 
         return create_file_permission(
             data['file_uuid'],
-            data['user_id'],
+            data['username'],
             data['key_for_recipient'],
+            data['otpk'],
+            data['ephemeral_key'],
             user_id
         )
     except Exception as e:

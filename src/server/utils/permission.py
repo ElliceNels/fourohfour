@@ -3,22 +3,25 @@ from flask import jsonify
 from server.models.tables import Users, Files, FilePermissions
 from server.utils.db_setup import get_session
 import logging
+import base64
 
 logger = logging.getLogger(__name__)
 
-def create_file_permission(file_uuid: str, user_id: int, key_for_recipient: str, owner_id: int) -> dict:
+def create_file_permission(file_uuid: str, username: str, key_for_recipient: str, otpk: str, ephemeral_key: str, owner_id: int) -> dict:
     """Create a new file permission for a user.
 
     Args:
         file_uuid (str): UUID of the file to share
-        user_id (int): ID of the user to share with
+        username (str): Username of the user to share with
         key_for_recipient (str): Symmetric file key encrypted with the recipient's public key
+        otpk (str): One-time pre-key used for encryption
+        ephemeral_key (str): Ephemeral key used for encryption
         owner_id (int): ID of the file owner
 
     Returns:
         dict: Response containing success message or error
     """
-    logger.info(f"Attempting to create file permission - file_uuid: {file_uuid}, user_id: {user_id}, owner_id: {owner_id}")
+    logger.info(f"Attempting to create file permission - file_uuid: {file_uuid}, username: {username}, owner_id: {owner_id}")
     with get_session() as db:
         try:
             # Check if the file exists and belongs to the owner
@@ -35,46 +38,51 @@ def create_file_permission(file_uuid: str, user_id: int, key_for_recipient: str,
                 return jsonify({'error': 'Not authorized to share this file'}), 403
 
             # Check if the recipient user exists
-            logger.debug(f"Querying for recipient user with ID: {user_id}")
-            recipient = db.get(Users, user_id)
+            logger.debug(f"Querying for recipient user with username: {username}")
+            recipient = db.query(Users).filter_by(username=username).first()
             if not recipient:
-                logger.warning(f"Recipient user with ID {user_id} not found")
+                logger.warning(f"Recipient user with username {username} not found")
                 return jsonify({'error': 'Recipient user not found'}), 404
 
             # Check if permission already exists
-            logger.debug(f"Checking for existing permission - file_uuid: {file_uuid}, user_id: {user_id}")
+            logger.debug(f"Checking for existing permission - file_uuid: {file_uuid}, username: {username}")
             existing_permission = db.query(FilePermissions).filter_by(
                 file_id=file.id,
-                user_id=user_id
+                user_id=recipient.id
             ).first()
             if existing_permission:
-                logger.warning(f"Permission already exists for file {file_uuid} and user {user_id}")
+                logger.warning(f"Permission already exists for file {file_uuid} and user {username}")
                 return jsonify({'error': 'Permission already exists'}), 409
 
             # Create new permission
             logger.debug("Creating new permission record")
-            # Encode the encryption key as bytes
+            # Validate the keys are valid base64 strings
             try:
-                encryption_key_bytes = key_for_recipient.encode('utf-8')
+                # Just validate the format without converting to bytes
+                base64.b64decode(key_for_recipient)
+                base64.b64decode(otpk)
+                base64.b64decode(ephemeral_key)
             except Exception as e:
-                logger.error(f"Error encoding encryption key: {str(e)}")
+                logger.error(f"Error validating encryption keys: {str(e)}")
                 return jsonify({'error': 'Invalid encryption key format'}), 400
 
             new_permission = FilePermissions(
                 file_id=file.id,
-                user_id=user_id,
-                encryption_key=encryption_key_bytes,
+                user_id=recipient.id,
+                encryption_key=key_for_recipient,
+                otpk=otpk,
+                ephemeral_key=ephemeral_key,
                 created_at=datetime.now(UTC),
                 updated_at=datetime.now(UTC)
             )
             db.add(new_permission)
             db.commit()
-            logger.info(f"Permission created for file {file_uuid} and user {user_id} successfully")
+            logger.info(f"Permission created for file {file_uuid} and user {username} successfully")
             return jsonify({'message': 'Permission created successfully'}), 201
 
         except Exception as e:
             db.rollback()
-            logger.error(f"Error creating permission for file {file_uuid} and user {user_id}: {str(e)}", exc_info=True)
+            logger.error(f"Error creating permission for file {file_uuid} and user {username}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
 def remove_file_permission(file_uuid: str, username: str, owner_id: int) -> dict:
