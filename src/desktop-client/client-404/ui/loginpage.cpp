@@ -70,6 +70,7 @@ void LoginPage::onLoginButtonClicked()
     string sPassword = password.toStdString();
 
     LoginSessionManager::getInstance().setUsername(username);
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
     sendLogInRequest(username, password);
 
@@ -80,6 +81,11 @@ void LoginPage::onLoginButtonClicked()
 
     if (decryptMasterKey(username, password, salt)) {
         // Switch to main menu after login
+        this->ui->usernameLineEdit->clear();
+        this->ui->passwordLineEdit->clear();
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
         emit this->goToMainMenuRequested();
     } else {
         // Only reset the button if login failed
@@ -92,8 +98,6 @@ void LoginPage::onLoginButtonClicked()
 bool LoginPage::sendLogInRequest(const QString& username, const QString& password)
 {
 
-    // Set base URL for the server
-    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
     // Prepare JSON payload for registration
     QJsonObject requestData;
@@ -136,10 +140,6 @@ void LoginPage::onShowPasswordClicked()
 
 
 QString LoginPage::getSaltRequest(){
-    // Set base URL for the server
-    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
-
-
 
     // Make the GET request to the get_current_user endpoint
     RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_USER_ENDPOINT);

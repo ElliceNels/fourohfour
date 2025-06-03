@@ -166,15 +166,15 @@ void ResetPasswordPage::onUpdatePasswordClicked()
 
     QMessageBox::information(this, "Success", "Password updated!");
 
+    this->ui->updatePasswordButton->setEnabled(true);
+    this->ui->updatePasswordButton->setText("Update Password");
+    this->ui->updatePasswordButton->repaint();
+
 
     // Switch to main menu after reset
     QStackedWidget *stack = qobject_cast<QStackedWidget *>(this->parentWidget());
     if (stack) {
         stack->setCurrentIndex(Pages::MainMenuIndex);
-    } else {
-        this->ui->updatePasswordButton->setEnabled(true);
-        this->ui->updatePasswordButton->setText("Update Password");
-        this->ui->updatePasswordButton->repaint();
     }
 }
 
