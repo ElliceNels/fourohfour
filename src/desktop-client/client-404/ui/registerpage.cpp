@@ -134,13 +134,6 @@ void RegisterPage::onCreateAccountClicked()
         return;
     }
 
-    // Only show a message box here if pre-key generation fails
-    if (!generateAndSaveOneTimePreKeys()) {
-        QMessageBox::critical(this, "Security Error", 
-            "Failed to generate security keys. Registration cannot continue with compromised security.");
-        return;
-    }
-
     //Debug prints
     cout << sAccountName << endl;
     cout << "Salt: " << *saltPtr << endl;
