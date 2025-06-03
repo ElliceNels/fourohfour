@@ -101,7 +101,7 @@ bool FriendStorageUtils::writeFriendsJson(const QString& username, const QJsonOb
 }
 
 /**
- * @brief Saves a friend's username and public key pair to storage
+ * @brief Saves a friend's username and public key pair to the storage of the current user
  * @param username The friend's username
  * @param publicKey The friend's public key
  * @param parent Optional parent widget for displaying error messages
