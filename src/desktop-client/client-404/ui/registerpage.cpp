@@ -208,17 +208,6 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
     }
 }
 
-bool RegisterPage::generateAndSaveOneTimePreKeys() {
-    FileSharingUtils fileSharingUtils;
-    QVector<QByteArray> generatedKeys = fileSharingUtils.generateOneTimePreKeyPairs();
-    
-    if (generatedKeys.isEmpty()) {
-        qWarning() << "Failed to generate or save one-time prekeys";
-        return false;
-    }
-    return true;
-}
-
 RegisterPage::~RegisterPage()
 {
     qDebug() << "Destroying Register Page";
