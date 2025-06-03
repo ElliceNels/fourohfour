@@ -14,7 +14,7 @@
  * @return The complete file path for the friend storage file
  */
 QString FriendStorageUtils::buildFriendStorageFilePath(const QString& username) {
-   QDir friendsDir(QDir(QCoreApplication::applicationDirPath()).filePath(friendsDirectory));
+    QDir friendsDir(QDir(QCoreApplication::applicationDirPath()).filePath(friendsDirectory));
     if (!friendsDir.exists()) {
         if (!friendsDir.mkpath(".")) {
             qWarning() << "Failed to create directory:" << friendsDir;
@@ -25,12 +25,15 @@ QString FriendStorageUtils::buildFriendStorageFilePath(const QString& username) 
 
 /**
  * @brief Reads friend data from a JSON file
- * @param filepath Path to the JSON file to read
+ * @param username The username whose friends file to read
  * @param parent Optional parent widget for displaying error messages
  * @return JSON object containing the friend data
  */
-QJsonObject FriendStorageUtils::readFriendsJson(const QString& filepath, QWidget* parent) {
+QJsonObject FriendStorageUtils::readFriendsJson(const QString& username, QWidget* parent) {
     QJsonObject friendsData;
+    
+    // Get the filepath from the username
+    QString filepath = buildFriendStorageFilePath(username);
     
     if (!QFile::exists(filepath)) {
         // Create the file if it doesn't exist
@@ -74,12 +77,15 @@ QJsonObject FriendStorageUtils::readFriendsJson(const QString& filepath, QWidget
 
 /**
  * @brief Writes friend data to a JSON file
- * @param filepath Path to the JSON file to write
+ * @param username The username whose friends file to write to
  * @param friendsData JSON object containing the friend data to save
  * @param parent Optional parent widget for displaying error messages
  * @return true if the write succeeded, false otherwise
  */
-bool FriendStorageUtils::writeFriendsJson(const QString& filepath, const QJsonObject& friendsData, QWidget* parent) {
+bool FriendStorageUtils::writeFriendsJson(const QString& username, const QJsonObject& friendsData, QWidget* parent) {
+    // Get the filepath from the username
+    QString filepath = buildFriendStorageFilePath(username);
+    
     QJsonDocument updatedDoc(friendsData);
     QFile writeFile(filepath);
     if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -127,18 +133,15 @@ bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QSt
         return false;
     }
     
-    // Get the filepath
-    QString filepath = buildFriendStorageFilePath(currentUsername);
-    
     // Read existing data
-    QJsonObject friendsData = readFriendsJson(filepath, parent);
+    QJsonObject friendsData = readFriendsJson(currentUsername, parent);
     
     // Add or update username and public key pair
     friendsData[username] = publicKey;
     qDebug() << "Saving friend pair: " << username << " with public key: " << publicKey;
     
     // Write back to file
-    return writeFriendsJson(filepath, friendsData, parent);
+    return writeFriendsJson(currentUsername, friendsData, parent);
 }
 
 /**
@@ -150,10 +153,9 @@ bool FriendStorageUtils::saveFriendPairToJSON(const QString& username, const QSt
 QString FriendStorageUtils::getUserPublicKey(const QString& username, QWidget* parent) {
     // Use existing method to build the file path
     QString currentUser = LoginSessionManager::getInstance().getUsername();
-    QString filepath = buildFriendStorageFilePath(currentUser);
     
-    // Use existing method to read the JSON data
-    QJsonObject friendsData = readFriendsJson(filepath, parent);
+    // Use existing method to read the JSON data - FIXED: Pass username not filepath
+    QJsonObject friendsData = readFriendsJson(currentUser, parent);
     
     // Look for the specified username's public key in the friends data
     if (friendsData.contains(username)) {
