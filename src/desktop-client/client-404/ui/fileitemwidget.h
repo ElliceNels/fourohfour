@@ -11,6 +11,7 @@
 #include <QDebug>
 #include "core/loginsessionmanager.h"
 #include "constants.h"
+#include "utils/widget_utils.h"
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -34,14 +35,12 @@ private:
     QLabel *ownerLabel;
     QString fileExtension;
     QString fileUuid;
-    qint64 fileSizeBytes; 
+    qint64 fileSizeBytes;
     QPushButton *downloadButton;
     QPushButton *shareButton;
     QPushButton *deleteButton;
     QPushButton *previewButton;
 
-    QPushButton* createIconButton(const QString& iconPath);
-    QLabel* createElidedLabel(const QString &text, int width);
-    QString formatFileSize(qint64 bytes) const; 
-    bool confirmAction(const QString& title, const QString& text);
+    // Format file size in a human-readable form
+    QString formatFileSize(qint64 bytes) const;
 };
