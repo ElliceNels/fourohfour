@@ -1,0 +1,21 @@
+{
+    "app_name": "app",
+
+    "server": {
+      "host": "127.0.0.1",
+      "port": 5000,
+      "debug": false,
+      "url": "http://127.0.0.1:5000"
+    },
+
+    "friends": {
+      "file_path": "src/web-client/friend_file",
+      "extension": ".json"
+    },
+
+    "logging": {
+      "level": "INFO",
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+      "file_path": "logs/app.log"
+    }
+  }
