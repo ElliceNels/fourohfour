@@ -36,15 +36,6 @@ QJsonObject FriendStorageUtils::readFriendsJson(const QString& username, QWidget
     QString filepath = buildFriendStorageFilePath(username);
     
     if (!QFile::exists(filepath)) {
-        // Create the file if it doesn't exist
-        QFile file(filepath);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            if (parent) {
-                QMessageBox::warning(parent, "Error", "Could not create friend storage file.");
-            }
-            return friendsData;
-        }
-        file.close();
         return friendsData;
     }
     
@@ -88,6 +79,13 @@ bool FriendStorageUtils::writeFriendsJson(const QString& username, const QJsonOb
     
     QJsonDocument updatedDoc(friendsData);
     QFile writeFile(filepath);
+    
+    // Create directory if needed before trying to write the file
+    QDir dir = QFileInfo(filepath).dir();
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+    
     if (!writeFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
         if (parent) {
             QMessageBox::warning(parent, "File Writing Error", 
