@@ -714,21 +714,26 @@ GET /api/files/384c2f09-c878-42ca-a6c9-d4a826b65b5c' OR 1=1--
 TODO maybe get rid of this
 
 ## Recommendations
+1.  Missing Security Headers
+   Add CSP, X-Frame-Options, HSTS, X-Content-Type-Options, and Cache-Control headers to harden browser-side security.
 
-1. Update all dependencies to secure versions or replace with secure alternatives
+2. Tighten CORS Policy
+   Avoid using * and restrict access to trusted origins only.
 
-2. Add server side size constraints on file uploads to avoid database errors
+3. Limit File Upload Size
+   Enforce server-side upload limits to prevent crashes and abuse.
 
-3. Regular security audits of dependencies
+4. Update Vulnerable Dependencies
+   Replace or upgrade outdated packages flagged during testing.
 
-4. Implement automated security testing in CI/CD
+5. Automate and Schedule Security Checks
+   Integrate automated scans into development and perform regular security review
 
   
 
 ## Conclusion
 
-The application demonstrates strong security measures across all tested areas. No critical vulnerabilities were found, and existing protections effectively mitigate common attack vectors. Regular security testing and updates are recommended to maintain security posture.
-
+The penetration test confirmed that the core security mechanisms of the system — including authentication, access control, and protection against common injection attacks — are functioning as intended. Several moderate-risk issues were identified, primarily related to HTTP header configuration, upload validation, and third-party components.
   
   
   
@@ -764,19 +769,13 @@ Each vulnerability is scored using a **vector string**, such as: `CVSS:3.1/AV:N/
 
 The final score is a number between **0.0 and 10.0**, categorised as
 
-| Score Range | Severity |
-
-|-------------|----------|
-
-| 0.0 | None |
-
-| 0.1 – 3.9 | Low |
-
-| 4.0 – 6.9 | Medium |
-
-| 7.0 – 8.9 | High |
-
-| 9.0 – 10.0 | Critical |
+| Score Range   | Severity |
+|---------------|----------|
+| 0.0           | None     |
+| 0.1 – 3.9     | Low      |
+| 4.0 – 6.9     | Medium   |
+| 7.0 – 8.9     | High     |
+| 9.0 – 10.0    | Critical |
 
 *https://www.first.org/cvss/v4-0/specification-document*
 
