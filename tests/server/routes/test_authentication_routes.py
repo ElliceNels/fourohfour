@@ -228,3 +228,30 @@ def test_get_otpk(client: FlaskClient, logged_in_user):
     assert "otpk" in get_response_2.json
     assert get_response_2.json["otpk"] in test_otpks
     assert get_response_2.json["otpk"] != get_response.json["otpk"]
+
+def test_update_spk(client: FlaskClient, logged_in_user):
+    """Test updating signed pre key."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # Generate new SPK and signature
+    new_spk = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).decode()
+    new_signature = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).decode()
+    
+    # Update SPK
+    update_data = {
+        "spk": new_spk,
+        "spk_signature": new_signature
+    }
+    response = client.post("/update_spk", json=update_data, headers=headers)
+    assert response.status_code == 200
+    assert response.json["message"] == "Signed Pre Key updated successfully"
+    
+    # Verify the update by querying the database directly
+    from server.utils.db_setup import get_session
+    from server.models.tables import Users
+    
+    with get_session() as db:
+        user = db.query(Users).filter_by(username=logged_in_user["user"]["username"]).first()
+        assert user is not None
+        assert user.spk == new_spk
+        assert user.spk_signature == new_signature

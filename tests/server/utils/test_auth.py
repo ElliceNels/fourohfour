@@ -10,7 +10,10 @@ Some test explainations:
 import pytest
 from flask import Flask
 from unittest.mock import MagicMock
-from server.utils.auth import login, sign_up, change_password, delete_account, change_username, hash_password, get_count_otpk
+from server.utils.auth import (
+    login, sign_up, change_password, delete_account, change_username, 
+    hash_password, get_count_otpk, update_spk
+)
 from server.models.tables import Users, OTPK
 from server.app import create_app
 from server.utils.jwt import JWTError
@@ -360,6 +363,47 @@ def test_get_otpk_cases(username, user_exists, has_unused_otpk, expected_status,
         # Verify that the OTPK was marked as used
         assert otpk.used == 1
         assert otpk.updated_at is not None
+        # Verify that the database was committed
+        assert mock_db.commit.call_count == 1
+    else:
+        assert "error" in response[0]
+        # Verify that no database changes were made for error cases
+        assert mock_db.commit.call_count == 0
+
+@pytest.mark.parametrize(
+    "user_info, spk, spk_signature, user_exists, expected_status",
+    [
+        # Success case
+        ({"user_id": 1, "username": "user1"}, "c3BrX2tleQ==", "c2lnbmF0dXJl", True, CODE_SUCCESS),
+        # User not found
+        ({"user_id": 1, "username": "user1"}, "c3BrX2tleQ==", "c2lnbmF0dXJl", False, CODE_NOT_FOUND),
+        # Invalid base64 format
+        ({"user_id": 1, "username": "user1"}, "invalid_base64!", "c2lnbmF0dXJl", True, CODE_BAD_REQUEST),
+    ]
+)
+def test_update_spk_cases(user_info, spk, spk_signature, user_exists, expected_status, mock_db, app_ctx, mocker):
+    # Set up mock database responses
+    if user_exists:
+        user = Users(id=1, username="user1")
+        mock_db.query().filter_by().first.return_value = user
+    else:
+        mock_db.query().filter_by().first.return_value = None
+    
+    # Patch the database session
+    mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
+    
+    # Call the function
+    response = update_spk(user_info, spk, spk_signature)
+    
+    # Verify response status
+    assert response[1] == expected_status
+    
+    # Verify response content
+    if expected_status == CODE_SUCCESS:
+        # Verify that the SPK and signature were updated
+        assert user.spk == spk
+        assert user.spk_signature == spk_signature
+        assert user.updated_at is not None
         # Verify that the database was committed
         assert mock_db.commit.call_count == 1
     else:
