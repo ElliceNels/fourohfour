@@ -1,6 +1,11 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session
+from login import manage_login
 from signup import validate_registration, manage_registration
 from uploadfile import validate_file_size, validate_file_type
+from resetpassword import manage_reset_password
+from session_manager import LoginSessionManager
+from exceptions import UserNotFoundError
+from constants import GET_USER_ENDPOINT
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -18,21 +23,36 @@ def signup():
 
         valid, message = validate_registration(account_name, password, confirm_password)
         if not valid:
+            clear_flashes()
             flash(message, "error")
         else:
             registration_success, error_message = manage_registration(account_name, password)
             if registration_success:
+                print(f"Registration successful for {account_name}")  
+                clear_flashes()
                 flash(message, "success")
-                return redirect(url_for('login'))
+                return redirect(url_for('main_menu'))
             else:
+                clear_flashes()
                 flash(error_message, "error")
-
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        return redirect(url_for('main_menu'))
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        login_success, message = manage_login(password, username)
+        if login_success:
+            print(f"Login successful for {username}")
+            clear_flashes()
+            flash(message, "success")
+            return redirect(url_for('main_menu'))
+        else:
+            clear_flashes()
+            flash(message, "error")
+            
     return render_template('login.html')
 
 @app.route('/mainmenu')
@@ -101,8 +121,37 @@ def verify_user():
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
     if request.method == 'POST':
-        pass
+        old_password = request.form.get('old_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')  
+
+        username = LoginSessionManager.getInstance().getUsername()
+        
+        success, message = validate_registration(username, new_password, confirm_password)
+        
+        if not success:
+            flash(message, 'error')
+            return render_template('resetpassword.html')
+            
+        if not old_password:
+            flash('Please provide your old password', 'error')
+            return render_template('resetpassword.html')
+            
+        # If validation passes, proceed with password reset
+        success, message = manage_reset_password(old_password, new_password)
+        
+        if success:
+            flash('Password reset successful!', 'success')
+            return redirect(url_for('main_menu'))
+        else:
+            flash(message, 'error')
+            return render_template('resetpassword.html')
+            
     return render_template('resetpassword.html')
 
+
+def clear_flashes():
+    session.pop('_flashes', None)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8080)
