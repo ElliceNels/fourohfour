@@ -13,6 +13,19 @@
 #include "utils/securebufferutils.h"
 #include "constants.h"
 
+/**
+ * @brief Generates multiple one-time pre-key pairs for secure communication
+ *
+ * This function generates KEY_GEN_COUNT public/private key pairs using the X25519 elliptic-curve
+ * Diffie-Hellman algorithm. These keys are used for secure file sharing between users.
+ * The key pairs are generated, stored locally for future use, and the public keys
+ * are returned to be uploaded to the server.
+ *
+ * @return QVector<QByteArray> A collection of public keys to be stored on the server
+ *
+ * @note The corresponding private keys are not returned but are securely stored locally
+ * @see saveOneTimePreKeyPairsLocally()
+ */
 QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
     QVector<QByteArray> publicKeys;
     QVector<QByteArray> privateKeys;
@@ -39,6 +52,19 @@ QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
     return publicKeys; 
 }
 
+/**
+ * @brief Securely stores one-time pre-key pairs on the local device
+ *
+ * This method encrypts and saves the provided public/private key pairs to the user's
+ * local storage. The keys are encrypted using the user's master key and stored in a
+ * JSON format for future use in secure file sharing operations.
+ *
+ * @param publicKeys Vector of public keys to be stored
+ * @param privateKeys Vector of corresponding private keys to be stored
+ *
+ * @note The keys are encrypted using XChaCha20-Poly1305 before being written to disk
+ * @see generateOneTimePreKeyPairs()
+ */
 void FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys){
     // Validate inputs
     if (!validateKeyPairs(publicKeys, privateKeys)) {
@@ -74,6 +100,13 @@ void FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
     qDebug() << "Successfully saved" << publicKeys.size() << "one-time prekey pairs";
 }
 
+/**
+ * @brief Validates that the provided key pairs are valid and matched
+ *
+ * @param publicKeys Vector of public keys to validate
+ * @param privateKeys Vector of private keys to validate
+ * @return bool True if the key pairs are valid, false otherwise
+ */
 bool FileSharingUtils::validateKeyPairs(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys) {
     if (publicKeys.isEmpty() || privateKeys.isEmpty() || publicKeys.size() != privateKeys.size()) {
         qWarning() << "Invalid key pairs provided for storage";
@@ -82,6 +115,11 @@ bool FileSharingUtils::validateKeyPairs(const QVector<QByteArray>& publicKeys, c
     return true;
 }
 
+/**
+ * @brief Retrieves the user's master encryption key
+ *
+ * @return SecureVector The user's master key or empty vector if invalid
+ */
 SecureVector FileSharingUtils::getMasterKey() {
     const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
     if (masterKey.empty() || masterKey.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
@@ -91,11 +129,24 @@ SecureVector FileSharingUtils::getMasterKey() {
     return masterKey;
 }
 
+/**
+ * @brief Constructs the file path for the key storage file
+ *
+ * @return QString Path to the user's key storage file
+ */
 QString FileSharingUtils::buildKeyStorageFilePath() {
     const QString username = LoginSessionManager::getInstance().getUsername();
     return QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension;
 }
 
+/**
+ * @brief Reads and decrypts the key storage file
+ *
+ * @param filepath Path to the encrypted key storage file
+ * @param masterKey The user's master key for decryption
+ * @param jsonData Output parameter that will contain the decrypted JSON data
+ * @return bool True if successful, false otherwise
+ */
 bool FileSharingUtils::readAndDecryptKeyStorage(const QString &filepath, const SecureVector &masterKey, QByteArray &jsonData) {
     
     QFile file(filepath);
@@ -148,6 +199,15 @@ bool FileSharingUtils::readAndDecryptKeyStorage(const QString &filepath, const S
     }
 }
 
+/**
+ * @brief Updates the JSON structure with new prekey pairs
+ *
+ * @param jsonData Existing JSON data (may be empty)
+ * @param publicKeys Vector of public keys to add
+ * @param privateKeys Vector of private keys to add
+ * @param updatedJsonData Output parameter that will contain the updated JSON
+ * @return bool True if successful, false otherwise
+ */
 bool FileSharingUtils::updateJsonWithPrekeys(const QByteArray &jsonData, const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys, QByteArray &updatedJsonData) {
     // Parse or create JSON structure
     QJsonDocument doc;
@@ -182,6 +242,14 @@ bool FileSharingUtils::updateJsonWithPrekeys(const QByteArray &jsonData, const Q
     return true;
 }
 
+/**
+ * @brief Encrypts and saves the key storage data to a file
+ *
+ * @param filepath Path where the encrypted file should be saved
+ * @param jsonData JSON data to encrypt and save
+ * @param masterKey The user's master key for encryption
+ * @return bool True if successful, false otherwise
+ */
 bool FileSharingUtils::encryptAndSaveKeyStorage(const QString &filepath, const QByteArray &jsonData, const SecureVector &masterKey) {
     // Encrypt and save
     EncryptionHelper crypto;
