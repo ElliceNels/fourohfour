@@ -14,6 +14,8 @@
 #include <qstackedwidget.h>
 #include <QHostInfo>
 #include "constants.h"
+#include "loginsessionmanager.h"
+#include "key_utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -27,6 +29,9 @@ void LoginPage::preparePage(){
     qDebug() << "Preparing Login Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+    this->ui->loginButton->setEnabled(true);
+    this->ui->loginButton->setText("Log In");
+    this->ui->loginButton->repaint();
 }
 
 void LoginPage::initialisePageUi(){
@@ -42,6 +47,11 @@ void LoginPage::setupConnections(){
 
 void LoginPage::onLoginButtonClicked()
 {
+    // Disable button and change text at the start
+    this->ui->loginButton->setEnabled(false);
+    this->ui->loginButton->setText("Logging in...");
+    this->ui->loginButton->repaint();
+
     QString username = this->ui->usernameLineEdit->text();
     QString password = this->ui->passwordLineEdit->text();
 
@@ -49,6 +59,9 @@ void LoginPage::onLoginButtonClicked()
     QString clientIP = getClientIP();
     if (isRateLimited(clientIP)) {
         QMessageBox::warning(this, "Rate Limited", "Too many login attempts. Please try again in 5 minutes.");
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
         return;
     }
     recordLoginAttempt(clientIP);
@@ -56,10 +69,62 @@ void LoginPage::onLoginButtonClicked()
     string sUsername = username.toStdString();
     string sPassword = password.toStdString();
 
+    LoginSessionManager::getInstance().setUsername(username);
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
+
+    sendLogInRequest(username, password);
 
 
-    // Switch to main menu after login
-    emit this->goToMainMenuRequested();
+    QString salt = getSaltRequest();
+
+
+
+    if (decryptMasterKey(username, password, salt)) {
+        // Switch to main menu after login
+        this->ui->usernameLineEdit->clear();
+        this->ui->passwordLineEdit->clear();
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
+        emit this->goToMainMenuRequested();
+    } else {
+        // Only reset the button if login failed
+        this->ui->loginButton->setEnabled(true);
+        this->ui->loginButton->setText("Log In");
+        this->ui->loginButton->repaint();
+    }
+}
+
+bool LoginPage::sendLogInRequest(const QString& username, const QString& password)
+{
+
+
+    // Prepare JSON payload for registration
+    QJsonObject requestData;
+    requestData["username"] = username;
+    requestData["password"] = password;
+
+
+    // Make the POST request to the sign_up endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(LOGIN_ENDPOINT, requestData);
+
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+
+        // Extract tokens from the response
+        QString accessToken = jsonObj["access_token"].toString();
+        QString refreshToken = jsonObj["refresh_token"].toString();
+
+        // Set tokens in the LoginSessionManager
+        LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+
+        qDebug() << "Login successful. Tokens saved in session manager.";
+        return true;
+    } else {
+        QMessageBox::critical(this, "Login Error", QString::fromStdString(response.errorMessage));
+        return false;
+    }
 }
 
 void LoginPage::onShowPasswordClicked()
@@ -73,6 +138,28 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
+
+QString LoginPage::getSaltRequest(){
+
+    // Make the GET request to the get_current_user endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_USER_ENDPOINT);
+
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+
+        // Extract salt from the response
+        QString oldSalt = jsonObj["salt"].toString();
+        QByteArray decodedSalt = QByteArray::fromBase64(oldSalt.toUtf8());
+        oldSalt = QString::fromUtf8(decodedSalt);  // Convert back to QString
+
+
+        return oldSalt;
+    } else {
+        qDebug() << "Error getting salt:" <<response.errorMessage;
+        return NULL;
+    }
+}
 
 bool LoginPage::isRateLimited(const QString& ip)
 {

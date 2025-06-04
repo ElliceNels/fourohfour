@@ -167,3 +167,82 @@ QString FriendStorageUtils::getUserPublicKey(const QString& username, QWidget* p
     
     return QString();
 }
+
+/**
+ * @brief Gets all friends of the current user except the user themselves
+ * @param parent Optional parent widget for displaying error messages
+ * @return A map of usernames to their public keys, excluding the current user
+ */
+QMap<QString, QString> FriendStorageUtils::getAllFriendsExceptSelf(QWidget* parent) {
+    QMap<QString, QString> friendsList;
+    
+    // Get the current logged in user
+    QString currentUsername = LoginSessionManager::getInstance().getUsername();
+    if (currentUsername.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "No logged-in user found. Cannot retrieve friends.");
+        }
+        return friendsList;
+    }
+    
+    // Read existing data
+    QJsonObject friendsData = readFriendsJson(currentUsername, parent);
+    
+    // Validate the structure of the JSON object
+    if (friendsData.isEmpty()) {
+        qWarning() << "Empty or invalid friends data structure for user:" << currentUsername;
+        return friendsList;
+    }
+    
+    // Iterate through all keys and add to the map, excluding the current user
+    for (auto it = friendsData.constBegin(); it != friendsData.constEnd(); ++it) {
+        const QString& username = it.key();
+        if (username != currentUsername) {
+            // Validate that the value is actually a string
+            if (!it.value().isString()) {
+                qWarning() << "Invalid public key format for friend:" << username;
+                continue;
+            }
+            friendsList.insert(username, it.value().toString());
+        }
+    }
+    
+    qDebug() << "Retrieved" << friendsList.size() << "friends for user" << currentUsername;
+    
+    return friendsList;
+}
+
+/**
+ * @brief Removes a friend from the current user's friend list
+ * @param friendUsername The username of the friend to remove
+ * @param parent Optional parent widget for displaying error messages
+ * @return true if the friend was successfully removed, false otherwise
+ */
+bool FriendStorageUtils::removeFriend(const QString& friendUsername, QWidget* parent) {
+    // Get the current logged in user
+    QString currentUsername = LoginSessionManager::getInstance().getUsername();
+    if (currentUsername.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "No logged-in user found. Cannot remove friend.");
+        }
+        return false;
+    }
+    
+    // Read existing data
+    QJsonObject friendsData = readFriendsJson(currentUsername, parent);
+    
+    // Check if the friend exists
+    if (!friendsData.contains(friendUsername)) {
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "Friend not found in storage.");
+        }
+        return false;
+    }
+    
+    // Remove the friend
+    friendsData.remove(friendUsername);
+    qDebug() << "Removed friend" << friendUsername << "from user" << currentUsername << "friends list";
+    
+    // Write back to file
+    return writeFriendsJson(currentUsername, friendsData, parent);
+}

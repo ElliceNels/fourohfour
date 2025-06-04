@@ -32,7 +32,9 @@ private:
     QMap<QString, QList<QDateTime>> loginAttempts;  // IP -> list of attempt timestamps
     bool isRateLimited(const QString& ip);
     void recordLoginAttempt(const QString& ip);
+    QString getSaltRequest();
     QString getClientIP();
+    bool sendLogInRequest(const QString& username, const QString& password);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;

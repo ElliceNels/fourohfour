@@ -12,6 +12,7 @@
 #include "core/loginsessionmanager.h"
 #include "constants.h"
 #include "utils/securebufferutils.h"  // Added include for SodiumZeroDeleter
+#include "utils/widget_utils.h"
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -35,7 +36,7 @@ private:
     QLabel *ownerLabel;
     QString fileExtension;
     QString fileUuid;
-    qint64 fileSizeBytes; 
+    qint64 fileSizeBytes;
     QPushButton *downloadButton;
     QPushButton *shareButton;
     QPushButton *deleteButton;
@@ -59,4 +60,5 @@ private:
                    const QByteArray& metadataBytes,
                    SecureVector& decryptedFile);
     void saveDecryptedFile(const SecureVector& decryptedFile);
+
 };

@@ -30,6 +30,9 @@ void RegisterPage::preparePage(){
     qDebug() << "Preparing Register Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+    this->ui->createAccountButton->setEnabled(true);
+    this->ui->createAccountButton->setText("Create Account");
+    this->ui->createAccountButton->repaint();
 }
 
 void RegisterPage::initialisePageUi(){
@@ -46,6 +49,12 @@ void RegisterPage::setupConnections(){
 
 void RegisterPage::onCreateAccountClicked()
 {
+    // Disable the button and change text
+    this->ui->createAccountButton->setEnabled(false);
+    this->ui->createAccountButton->setText("Registration in progress...");
+    this->ui->createAccountButton->repaint();
+
+
     QString accountName = this->ui->accountNameLineEdit->text();
     QString password = this->ui->passwordLineEdit->text();
     QString confirmPassword = this->ui->confirmPasswordLineEdit->text();
@@ -56,40 +65,67 @@ void RegisterPage::onCreateAccountClicked()
     //Validation checks
     if (password != confirmPassword) {
         QMessageBox::warning(this, "Error", "Passwords do not match!");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     if (password.length() < 8) {
         QMessageBox::warning(this, "Error", "Password must be at least 8 characters long.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     if (password.length() > 64) {
         QMessageBox::warning(this, "Error", "Password must be no more than 64 characters long.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     if (accountName.trimmed().isEmpty()) {
         QMessageBox::warning(this, "Error", "Username cannot be empty or only spaces.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     if (password.trimmed().isEmpty()) {
         QMessageBox::warning(this, "Error", "Password cannot be empty or only spaces.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     if (password.compare(accountName, Qt::CaseInsensitive) == 0) {
         QMessageBox::warning(this, "Error", "Password cannot be the same as your username.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     QString normalizedPassword = password.normalized(QString::NormalizationForm_KC);     // Unicode normalization
     if (password != normalizedPassword) {
         QMessageBox::warning(this, "Error", "Your password contains characters that may look different on other devices.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+        return;
     }
     if (dictionaryWords.contains(password.toLower())) {
         QMessageBox::warning(this, "Error", "Password is too common or easily guessable.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
     
     if (RESTRICTED_CHARS_REGEX.match(accountName).hasMatch()) {
-        QMessageBox::warning(this, "Error", 
-            "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+        QMessageBox::warning(this, "Error", "Username contains invalid characters. Please use only letters, numbers, underscores, and hyphens.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
 
@@ -140,10 +176,22 @@ void RegisterPage::onCreateAccountClicked()
     cout << "Salt: " << *saltPtr << endl;
 
     if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
-    QMessageBox::information(this, "Success", "Account created and logged in!");
-    emit goToMainMenuRequested();
+        QMessageBox::information(this, "Success", "Account created and logged in!");
+        this->ui->accountNameLineEdit->clear();
+        this->ui->passwordLineEdit->clear();
+        this->ui->confirmPasswordLineEdit->clear();
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+        emit goToMainMenuRequested();
+    } else {
+
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+
     }
-    // Error to be thrown will be caught in the sendSignUpRequest function
+
 }
 
 void RegisterPage::onShowPasswordClicked()

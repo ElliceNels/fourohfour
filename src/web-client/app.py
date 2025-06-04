@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash, url_for, session
+from flask import Flask, render_template, request, redirect, flash, url_for, session, jsonify
 from login import manage_login
 from signup import validate_registration, manage_registration
 from uploadfile import validate_file_size, validate_file_type
@@ -7,8 +7,14 @@ from session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
 
+from utils.verify_user import generate_code, save_friend
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
+from logger import setup_logger
+import logging
+
+setup_logger()
+logger = logging.getLogger(__name__)
 
 @app.route('/')
 def title_page():
@@ -114,9 +120,41 @@ def upload_file():
 def view_files():
     return render_template('viewfiles.html', owned_files=[], shared_files=[])
 
-@app.route('/verify_user')
+@app.route('/verify_user', methods=['GET', 'POST'])
 def verify_user():
-    return render_template("verifyuser.html")
+    if request.method == 'POST':
+        friend_username = request.form.get('friend_username')
+        if not friend_username:
+            flash('No friend username provided!', 'error')
+            return render_template('verifyuser.html')
+        try:
+            logger.debug(f"Generating hash for friend: {friend_username}")
+            hash_data = generate_code(friend_username)
+            flash('Hash generated successfully!', 'success')
+            return render_template('verifyuser.html', hash_output=hash_data)
+        except Exception as e:
+            flash(f'Error generating hash: {str(e)}', 'error')
+            logger.error(f"Error generating hash: {str(e)}")
+            return render_template('verifyuser.html')
+    return render_template('verifyuser.html')
+
+@app.route('/verify_new_user', methods=['POST'])
+def verify_new_user():
+    data = request.get_json()
+    friend_username = data.get('friend_username') if data else None
+    if not friend_username:
+        logger.error('No friend username provided!')
+        flash('No friend username provided!', 'error')
+        return jsonify({'success': False, 'error': 'No friend username provided!'}), 400
+    try:
+        save_friend(friend_username)
+        flash('New friend saved successfully!', 'success')
+        logger.info('New friend saved successfully!')
+        return jsonify({'success': True, 'message': 'New friend saved successfully!'})
+    except Exception as e:
+        flash(f'Error saving new friend: {str(e)}', 'error')
+        logger.error(f"Error saving new friend: {str(e)}")
+        return jsonify({'success': False, 'error': f'Error saving new friend: {str(e)}'}), 500
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():

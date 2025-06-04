@@ -187,7 +187,7 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData, co
     qDebug() << "Uploading file:" << this->fileName << "." << this->fileType
              << (fileUuid.isEmpty() ? "" : " with UUID: " + fileUuid);
 
-
+    LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
     RequestUtils::Response response = LoginSessionManager::getInstance().post(UPLOAD_FILE_ENDPOINT, requestPayload);
 
     // Handle response

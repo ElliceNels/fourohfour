@@ -14,27 +14,27 @@
 #include "crypto/encryptionhelper.h"
 #include "utils/file_crypto_utils.h"
 #include "utils/securebufferutils.h"
+#include "utils/widget_utils.h"
 
 FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent)
     : QWidget(parent)
 {
-
     this->fileExtension = fileFormat;
     this->fileUuid = uuid;
     this->fileSizeBytes = fileSize;
-    this->fileNameLabel = this->createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth);
+    this->fileNameLabel = UIUtils::createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth, this);
     
     // Format file size for display
     QString formattedSize = formatFileSize(fileSize);
-    this->fileSizeLabel = this->createElidedLabel(formattedSize, fileSizeLabelWidth);
-    this->ownerLabel = this->createElidedLabel(owner, fileOwnerLabelWidth);
+    this->fileSizeLabel = UIUtils::createElidedLabel(formattedSize, fileSizeLabelWidth, this);
+    this->ownerLabel = UIUtils::createElidedLabel(owner, fileOwnerLabelWidth, this);
 
     // Buttons
-    this->previewButton = createIconButton(previewIconPath);
-    this->downloadButton = createIconButton(downloadIconPath);
+    this->previewButton = UIUtils::createIconButton(previewIconPath, this);
+    this->downloadButton = UIUtils::createIconButton(downloadIconPath, this);
     if(isOwner){
-        this->shareButton = createIconButton(shareIconPath);  // only owners can share files
-        this->deleteButton = createIconButton(deleteIconPath);
+        this->shareButton = UIUtils::createIconButton(shareIconPath, this);  // only owners can share files
+        this->deleteButton = UIUtils::createIconButton(deleteIconPath, this);
     }
   
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
@@ -63,32 +63,6 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->setLayout(layout);
 
     this->setStyleSheet(Styles::FileItem);
-}
-
-QPushButton* FileItemWidget::createIconButton(const QString& iconPath) {
-    QPushButton* button = new QPushButton();
-    button->setIcon(QIcon(iconPath));
-    button->setIconSize(QSize(20, 20));
-    button->setFixedSize(30, 30);
-    button->setStyleSheet(Styles::TransparentButton);
-    return button;
-}
-
-QLabel* FileItemWidget::createElidedLabel(const QString &text, int width) {
-    QLabel *label = new QLabel(text);
-    label->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    label->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    label->setMinimumWidth(width);
-    label->setMaximumWidth(width);
-    label->setWordWrap(false);
-    label->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    label->setToolTip(text);
-
-    QFontMetrics metrics(label->font());
-    QString elided = metrics.elidedText(text, Qt::ElideRight, width * truncationFactor);
-    label->setText(elided);
-
-    return label;
 }
 
 // format file size in appropriate units
@@ -275,18 +249,8 @@ void FileItemWidget::handleShare() {
     emit shareRequested(); 
 }
 
-bool FileItemWidget::confirmAction(const QString& title, const QString& text) {
-    QMessageBox msgBox;
-    msgBox.setWindowTitle(title);
-    msgBox.setText(text);
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-    msgBox.setDefaultButton(QMessageBox::No);
-    
-    return (msgBox.exec() == QMessageBox::Yes);
-}
-
 void FileItemWidget::handleDelete() {
-    if (confirmAction("Confirm Deletion", "Are you sure you want to delete this file?")) {
+    if (UIUtils::confirmAction("Confirm Deletion", "Are you sure you want to delete this file?", this)) {
         // Construct the endpoint URL with the file UUID
         std::string deleteUrl = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
         
