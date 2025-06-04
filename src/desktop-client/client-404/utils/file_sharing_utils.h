@@ -31,11 +31,6 @@ class FileSharingUtils {
         bool saveKeyPairsLocally(const QString& keyType,
                                 const QVector<QByteArray>& publicKeys,
                                 const QVector<QByteArray>& privateKeys);
-                                
-        // Save a single key pair
-        bool saveKeyPairLocally(const QString& keyType,
-                              const QByteArray& publicKey,
-                              const QByteArray& privateKey);
                               
         // Original method - will be refactored to use the generic method
         bool saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys);

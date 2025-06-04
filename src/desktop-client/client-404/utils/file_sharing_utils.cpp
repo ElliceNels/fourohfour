@@ -69,7 +69,7 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
  * @brief Generic method to save key pairs of any type to local storage
  *
  * @param keyType Type identifier for the keys (e.g., "oneTimePrekeys", "signedPreKey", "ephemeral")
- * @param publicKeys Vector of public keys to be stored
+ * @param publicKeys Vector of public keys to be stored (can contain a single key)
  * @param privateKeys Vector of corresponding private keys to be stored
  * @return bool True if keys were successfully stored, false otherwise
  */
@@ -110,21 +110,18 @@ bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector
 }
 
 /**
- * @brief Save a single key pair
+ * @brief Saves a signed pre-key pair to local storage
  *
- * @param keyType Type identifier for the key (e.g., "signedPreKey", "ephemeral")
- * @param publicKey Public key to be stored
- * @param privateKey Corresponding private key to be stored
- * @return bool True if the key was successfully stored, false otherwise
+ * @param publicKeyBase64 Base64-encoded signed pre-key public key
+ * @param privateKeyBase64 Base64-encoded signed pre-key private key
+ * @return bool True if successful, false otherwise
  */
-bool FileSharingUtils::saveKeyPairLocally(const QString& keyType,
-                                       const QByteArray& publicKey,
-                                       const QByteArray& privateKey) {
+bool FileSharingUtils::saveSignedPreKeyLocally(const QString& publicKeyBase64, 
+                                             const QString& privateKeyBase64) {
+    QByteArray publicKey = QByteArray::fromBase64(publicKeyBase64.toUtf8());
+    QByteArray privateKey = QByteArray::fromBase64(privateKeyBase64.toUtf8());
     
-    QVector<QByteArray> publicKeys = {publicKey};
-    QVector<QByteArray> privateKeys = {privateKey};
-    
-    return saveKeyPairsLocally(keyType, publicKeys, privateKeys);
+    return saveKeyPairsLocally("signedPreKey", QVector<QByteArray>{publicKey}, QVector<QByteArray>{privateKey});
 }
 
 /**
@@ -208,21 +205,6 @@ bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData,
     doc.setObject(json);
     updatedJsonData = doc.toJson(QJsonDocument::Compact);
     return true;
-}
-
-/**
- * @brief Saves a signed pre-key pair to local storage
- *
- * @param publicKeyBase64 Base64-encoded signed pre-key public key
- * @param privateKeyBase64 Base64-encoded signed pre-key private key
- * @return bool True if successful, false otherwise
- */
-bool FileSharingUtils::saveSignedPreKeyLocally(const QString& publicKeyBase64, 
-                                             const QString& privateKeyBase64) {
-    QByteArray publicKey = QByteArray::fromBase64(publicKeyBase64.toUtf8());
-    QByteArray privateKey = QByteArray::fromBase64(privateKeyBase64.toUtf8());
-    
-    return saveKeyPairLocally("signedPreKey", publicKey, privateKey);
 }
 
 /**
