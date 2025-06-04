@@ -13,9 +13,12 @@ class Users(Base):
     username = Column(String(50), unique=True, nullable=False)
     password = Column(BLOB, nullable=False)
     salt = Column(BLOB, nullable=False)
-    public_key = Column(String(191), nullable=False, unique=True)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    public_key = Column(String(191), nullable=False, unique=True) #Long term Identity Key
+    spk = Column(String(191), nullable=False) #Signed Pre Key
+    spk_signature = Column(String(191), nullable=False) #Signature of the Signed Pre Key
+    spk_updated_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
 
     files = relationship(
         "Files",
@@ -33,7 +36,26 @@ class Users(Base):
         uselist=False,
         cascade="all, delete-orphan"
     )
-    # Cascades: When a user is deleted, all their files, permissions, and token invalidation records are also deleted !!
+    otpks = relationship(
+        "OTPK",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+    # Cascades: When a user is deleted, all their files, permissions, token invalidation, otpk records are also deleted !!
+
+class OTPK(Base):
+    """One-Time Pre Key table to store one-time pre keys for users."""
+    __tablename__ = 'one_time_pre_keys'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    key = Column(String(191), nullable=False) #A SIGNED pre key
+    used = Column(Integer, nullable=False, default=0)  # 0 for unused, 1 for used
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
+    
+    user = relationship("Users", back_populates="otpks")
+
 
 class FilePermissions(Base):
     """File permissions table to store user-specific file access permissions."""
@@ -42,12 +64,15 @@ class FilePermissions(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     file_id = Column(Integer, ForeignKey('files.id'), nullable=False)
-    encryption_key = Column(BLOB, nullable=False)
-    created_at = Column(DateTime, nullable=False)
-    updated_at = Column(DateTime, nullable=False)
+    encryption_key = Column(String(191), nullable=False) #the symmetric key, encrypted with derived shared secret
+    otpk_id = Column(Integer, ForeignKey('one_time_pre_keys.id'), nullable=True) #The ID of the one-time pre key used for this permission
+    ephemeral_key = Column(String(191), nullable=False) #The ephemeral key used for this permission    
+    created_at = Column(DateTime(timezone=True), nullable=False)
+    updated_at = Column(DateTime(timezone=True), nullable=False)
 
     user = relationship("Users", back_populates="file_permissions")
     file = relationship("Files", back_populates="file_permissions")
+    otpk = relationship("OTPK")
 
 class Files(Base):
     """Files table to store file information."""
@@ -57,7 +82,7 @@ class Files(Base):
     uuid = Column(String(36), unique=True, nullable=False, default=lambda: str(uuid.uuid4()), index=True)
     name = Column(String(255), nullable=True)  # Can be null for files like .env
     path = Column(String(512), nullable=False)
-    uploaded_at = Column(DateTime, nullable=False, index=True)
+    uploaded_at = Column(DateTime(timezone=True), nullable=False, index=True)
     owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
 
     user = relationship("Users", back_populates="files")
@@ -85,7 +110,7 @@ class FileMetadata(Base):
         CheckConstraint('size <= 104857600', name='max_file_size_100mb'),
     )
     format = Column(String(50), nullable=False)
-    last_updated_at = Column(DateTime, nullable=False)
+    last_updated_at = Column(DateTime(timezone=True), nullable=False)
 
     file = relationship("Files", back_populates="file_metadata")
 

@@ -1,8 +1,10 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from flask import jsonify, request
 from server.utils.db_setup import get_session
-from server.models.tables import Users
+from server.models.tables import OTPK, Users
 from server.utils.jwt import generate_token, get_user_id_from_token, get_current_token, JWTError
+from server.config import config
+from typing import List, Dict
 import logging
 import nacl.pwhash
 import base64
@@ -17,7 +19,9 @@ def login(username: str, password: str) -> dict:
         password (str): Password of the user.
 
     Returns:
-        dict: response containing access and refresh tokens or error message.
+        dict: A tuple containing (response_dict, status_code) where response_dict is either:
+            - On success: {"access_token": str, "refresh_token": str}
+            - On error: {"error": str} with additional fields for specific error cases
     """
 
     if not username or not password:
@@ -38,36 +42,75 @@ def login(username: str, password: str) -> dict:
         logger.warning(f"Login failed for user {username}: Invalid password")
         return jsonify({"error": "Invalid password"}), 401
 
+    # Check if SPK is too old
+    current_time = datetime.now(UTC)
+    if user.spk_updated_at.tzinfo is None:
+        # If spk_updated_at is naive, make it timezone-aware
+        user.spk_updated_at = user.spk_updated_at.replace(tzinfo=UTC)
+    spk_age = current_time - user.spk_updated_at
+    if spk_age > config.spk.max_age:
+        logger.warning(f"Login failed for user {username}: SPK is too old (age: {spk_age.days} days)")
+        return jsonify({
+            "error": "SPK is too old",
+            "spk_updated_at": user.spk_updated_at.isoformat(),
+            "max_age_days": config.spk.max_age_days
+        }), 403
+
+    # Check if there are enough unused OTPKs
+    user_info = {
+        "user_id": user.id,
+        "username": user.username
+    }
+    try:
+        otpk_count = get_count_otpk(user_info)
+        if otpk_count < config.otpk.min_unused_count:
+            logger.warning(f"Login failed for user {username}: Not enough unused OTPKs (count: {otpk_count})")
+            return jsonify({
+                "error": "Not enough unused OTPKs",
+                "current_count": otpk_count,
+                "min_required": config.otpk.min_unused_count
+            }), 403
+    except ValueError as e:
+        logger.warning(f"Login failed for user {username}: Error counting OTPKs - {str(e)}")
+        return jsonify({"error": str(e)}), 400
+
     access_token, refresh_token = generate_token(user.id)
     logger.info(f"User {username} logged in successfully")
     return jsonify({
         "access_token": access_token,
-        "refresh_token": refresh_token
+        "refresh_token": refresh_token,
+        "spk_updated_at": user.spk_updated_at.isoformat(),
+        "unused_otpk_count": otpk_count
     }), 200
 
-def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
+def sign_up(username: str, password: str, public_key: str, spk: str, spk_signature: str, salt: bytes) -> dict:
     """Sign up route to register new users.
 
     Args:
         username (str): Username of the new user.
         password (str): validated password of the new user.
         public_key (str): base64 encoded public key of the new user.
+        spk (str): base64 encoded signed pre key of the new user.
+        spk_signature (str): base64 encoded signature of the signed pre key.
         salt (bytes): salt used for hashing the password.
 
     Returns:
         dict: validated response containing access and refresh tokens or error message.
     """
     
-    if not username or not password or not public_key or not salt:
+    if not username or not password or not public_key or not spk or not spk_signature or not salt:
         logger.warning("Sign up failed: Missing required fields")
         return jsonify({"error": "Missing required fields"}), 400
-    
     try:
         # Validate that the public key is a valid base64 string
         base64.b64decode(public_key)
+        # Validate that the spk is a valid base64 string
+        base64.b64decode(spk)
+        # Validate that the spk_signature is a valid base64 string
+        base64.b64decode(spk_signature)
     except Exception as e:
-        logger.warning(f"Sign up failed for user {username}: Invalid public key format - {str(e)}")
-        return jsonify({"error": "Invalid public key format - must be base64 encoded"}), 400
+        logger.warning(f"Sign up failed for user {username}: Invalid base64 format - {str(e)}")
+        return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
     
     with get_session() as db:
         # Cond 1: The username already exists
@@ -87,9 +130,12 @@ def sign_up(username: str, password: str, public_key: str, salt: bytes) -> dict:
             username=username,
             password=hash_password(password),
             public_key=public_key,
+            spk=spk,  # Store as base64 string
+            spk_signature=spk_signature,  # Store as base64 string
+            spk_updated_at=datetime.now(UTC),
             salt=salt,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC)
         )
 
         db.add(new_user)
@@ -144,7 +190,7 @@ def change_password(token: str, new_password: str, salt: bytes) -> dict:
         hashed_new_password = hash_password(new_password)
         user.password = hashed_new_password
         user.salt = salt
-        user.updated_at = datetime.now()
+        user.updated_at = datetime.now(UTC)
         db.commit()
         logger.info(f"User {user_id} changed password and salt successfully")
     return jsonify({"message": "Password updated successfully"}), 200
@@ -216,7 +262,7 @@ def change_username(token: str, new_username: str) -> dict:
         
         # Update the username
         user.username = new_username
-        user.updated_at = datetime.now()
+        user.updated_at = datetime.now(UTC)
         db.commit()
     logger.info(f"User {user_id} changed username successfully")
 
@@ -317,3 +363,147 @@ def verify_password(hashed_password: bytes, password: str) -> bool:
         return nacl.pwhash.verify(hashed_password, password.encode())
     except nacl.exceptions.InvalidkeyError:
         return False
+    
+def get_count_otpk(user_info : dict) -> int:
+    """Count the number of unused one-time pre keys (OTPK) for the current user.
+
+    Returns:
+        int: The count of unused OTPKs for the user.
+    """
+    user_id = user_info.get("user_id")
+    username = user_info.get("username")
+    if not user_id:
+        logger.warning("Count OTPK failed: Missing required fields")
+        raise ValueError("Missing required fields: user_id")
+
+    with get_session() as db:
+        # Count only unused OTPKs (where used = 0) - database count is most efficient
+        otpk_count = db.query(OTPK).filter_by(user_id=user_id, used=0).count()
+        logger.info(f"Counted {otpk_count} unused OTPKs for user {username})")
+    return otpk_count
+
+def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
+    """Add one-time pre keys (OTPKs) for the current user.
+
+    Args:
+        otpks (List[str]): List of base64 encoded one-time pre keys to add.
+        user_info (Dict): Dictionary containing user information.
+
+    Returns:
+        Dict: Response containing success message or error message.
+    """
+    
+    if not otpks or not user_info:
+        logger.warning("Add OTPKs failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    user_id = user_info.get("user_id")
+    if not user_id:
+        logger.warning("Add OTPKs failed: Missing user_id in user_info")
+        return {"error": "Missing user_id in user_info"}, 400
+
+    # Validate base64 format for all OTPKs
+    for otpk in otpks:
+        try:
+            base64.b64decode(otpk)
+        except Exception as e:
+            logger.warning(f"Add OTPKs failed: Invalid base64 format for OTPK: {str(e)}")
+            return {"error": "Invalid base64 format for OTPK"}, 400
+
+    with get_session() as db:
+        for otpk in otpks:            
+            new_otk = OTPK(
+                user_id=user_id,
+                key=otpk,
+                used=0,  # Initially unused
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC)
+            )
+            db.add(new_otk)
+        db.commit()
+    
+    logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
+    return {"message": f"Added {len(otpks)} OTPKs successfully"}, 201
+
+def get_otpk(username: str) -> Dict:
+    """Get one-time pre keys (OTPKs) for a selected user.
+
+    Args:
+        username (str): Username of the user whose OTPKs are requested.
+
+    Returns:
+        Dict: Response containing the OTPK or error message.
+    """
+    
+    if not username:
+        logger.warning("Get OTPK failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(username=username).first()
+        
+        if not user:
+            logger.warning(f"Get OTPK failed for user {username}: User not found")
+            return {"error": "User not found"}, 404
+            
+        #get the first unused OTPK for the user
+        otpk = db.query(OTPK).filter_by(user_id=user.id, used=0).first()
+        if not otpk:
+            logger.warning(f"Get OTPK failed for user {username}: No unused OTPK found")
+            return {"error": "No unused OTPK found"}, 404
+            
+        # Store the key before marking as used
+        otpk_key = otpk.key
+        
+        # Mark the OTPK as used
+        otpk.used = 1
+        otpk.updated_at = datetime.now(UTC)
+        db.commit()
+        
+    logger.info(f"Retrieved and marked OTPK as used for user {username}")
+    return {"otpk": otpk_key}, 200
+
+def update_spk(user_info: Dict, spk: str, spk_signature: str) -> Dict:
+    """Update the signed pre key (SPK) for a user.
+
+    Args:
+        user_info (Dict): Dictionary containing user information.
+        spk (str): Base64 encoded signed pre key.
+        spk_signature (str): Base64 encoded signature of the signed pre key.
+
+    Returns:
+        Dict: Response containing success message or error message.
+    """
+    
+    if not user_info or not spk or not spk_signature:
+        logger.warning("Update SPK failed: Missing required fields")
+        return {"error": "Missing required fields"}, 400
+    
+    user_id = user_info.get("user_id")
+    if not user_id:
+        logger.warning("Update SPK failed: Missing user_id in user_info")
+        return {"error": "Missing user_id in user_info"}, 400
+
+    try:
+        # Validate base64 format
+        base64.b64decode(spk)
+        base64.b64decode(spk_signature)
+    except Exception as e:
+        logger.warning(f"Update SPK failed: Invalid base64 format - {str(e)}")
+        return {"error": "Invalid base64 format for cryptographic data"}, 400
+
+    with get_session() as db:
+        user: Users = db.query(Users).filter_by(id=user_id).first()
+        if not user:
+            logger.warning(f"Update SPK failed for user {user_id}: User not found")
+            return {"error": "User not found"}, 404
+        
+        # Update the SPK and signature
+        user.spk = spk
+        user.spk_signature = spk_signature
+        user.spk_updated_at = datetime.now(UTC)
+        user.updated_at = datetime.now(UTC)
+        db.commit()
+    
+    logger.info(f"Updated SPK for user {user_info['username']}")
+    return {"message": "Signed Pre Key updated successfully"}, 200

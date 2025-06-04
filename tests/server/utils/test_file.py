@@ -215,16 +215,31 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
         elif owner:
             perm_query.filter_by().all.return_value = [MagicMock(user_id=1, encryption_key='key')]
         elif has_permission:
-            perm_query.filter_by().first.return_value = MagicMock()
+            # Create a mock permission with all required fields
+            mock_permission = MagicMock()
+            mock_permission.otpk = MagicMock()
+            mock_permission.otpk.key = "mock_otpk_key"
+            mock_permission.ephemeral_key = "mock_ephemeral_key"
+            perm_query.filter_by().first.return_value = mock_permission
         else:
             perm_query.filter_by().first.return_value = None
+
+        # Set up the user query mock for spk and spk_sig
+        user_query = MagicMock()
+        mock_user = MagicMock()
+        mock_user.spk = "mock_spk"
+        mock_user.spk_signature = "mock_spk_sig"
+        user_query.filter_by().first.return_value = mock_user
 
         # Make query() return different mocks based on the query
         def query_side_effect(*args, **kwargs):
             # If querying just Files, it's for owned files
             if len(args) == 1 and args[0].__name__ == 'Files':
                 return file_query
-            # If querying Files and Users.username, it's for shared files
+            # If querying Users, it's for spk and spk_sig
+            elif len(args) == 1 and args[0].__name__ == 'Users':
+                return user_query
+            # If querying FilePermissions, it's for permissions
             return perm_query
         
         mock_db.query.side_effect = query_side_effect
@@ -237,16 +252,24 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
         elif file_found and (owner or has_permission) and file_read_error:
             mocker.patch("builtins.open", side_effect=Exception("read error"))
     
-    response = get_file_by_uuid(str(file_uuid), user_id)
+    # Create user_info dictionary
+    user_info = {
+        'user_id': user_id,
+        'username': f'test_user_{user_id}'
+    }
     
-
+    response = get_file_by_uuid(str(file_uuid), user_info)
+    
     data, status = response
     assert status == expected_status
     if expected_status == CODE_SUCCESS:
         data = data.get_json()
         assert 'encrypted_file' in data
-        if owner:
-            assert 'encrypted_keys' in data
+        if not owner:  # If not owner, should have sharing keys
+            assert 'otpk' in data
+            assert 'ephemeral_key' in data
+            assert 'spk' in data
+            assert 'spk_sig' in data
     else:
         assert 'error' in data.get_json()
 
