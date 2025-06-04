@@ -59,18 +59,21 @@ QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
 /**
  * @brief Securely stores one-time pre-key pairs on the local device
  *
- * This method encrypts and saves the provided public/private key pairs to the user's
- * local storage. The keys are encrypted using the user's master key and stored in a
- * JSON format for future use in secure file sharing operations.
- *
- * @param publicKeys Vector of public keys to be stored
- * @param privateKeys Vector of corresponding private keys to be stored
- * @return bool True if keys were successfully stored, false otherwise
- *
- * @note The keys are encrypted using XChaCha20-Poly1305 before being written to disk
- * @see generateOneTimePreKeyPairs()
+ * This method is now a wrapper around the more generic saveKeyPairsLocally method
  */
 bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys) {
+    return saveKeyPairsLocally("oneTimePrekeys", publicKeys, privateKeys);
+}
+
+/**
+ * @brief Generic method to save key pairs of any type to local storage
+ *
+ * @param keyType Type identifier for the keys (e.g., "oneTimePrekeys", "signedPreKey", "ephemeral")
+ * @param publicKeys Vector of public keys to be stored (can contain a single key)
+ * @param privateKeys Vector of corresponding private keys to be stored
+ * @return bool True if keys were successfully stored, false otherwise
+ */
+bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys) {
     // Validate inputs
     if (!validateKeyPairs(publicKeys, privateKeys)) {
         return false;
@@ -91,9 +94,9 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
         return false;
     }
     
-    // Create or update JSON structure with the prekeys
+    // Create or update JSON structure with the keys
     QByteArray updatedJsonData;
-    if (!updateJsonWithPrekeys(jsonData, publicKeys, privateKeys, updatedJsonData)) {
+    if (!updateJsonWithKeysGeneric(jsonData, keyType, publicKeys, privateKeys, updatedJsonData)) {
         return false;
     }
     
@@ -102,7 +105,105 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
         return false;
     }
     
-    qDebug() << "Successfully saved" << publicKeys.size() << "one-time prekey pairs";
+    qDebug() << "Successfully saved" << publicKeys.size() << keyType << "key pairs";
+    return true;
+}
+
+/**
+ * @brief Saves a signed pre-key pair to local storage
+ *
+ * @param publicKeyBase64 Base64-encoded signed pre-key public key
+ * @param privateKeyBase64 Base64-encoded signed pre-key private key
+ * @return bool True if successful, false otherwise
+ */
+bool FileSharingUtils::saveSignedPreKeyLocally(const QString& publicKeyBase64, 
+                                             const QString& privateKeyBase64) {
+    QByteArray publicKey = QByteArray::fromBase64(publicKeyBase64.toUtf8());
+    QByteArray privateKey = QByteArray::fromBase64(privateKeyBase64.toUtf8());
+    
+    return saveKeyPairsLocally("signedPreKey", QVector<QByteArray>{publicKey}, QVector<QByteArray>{privateKey});
+}
+
+/**
+ * @brief Updates the JSON structure with new keys of any type
+ *
+ * @param jsonData Existing JSON data (may be empty)
+ * @param keyType Type identifier for the keys
+ * @param publicKeys Vector of public keys to add
+ * @param privateKeys Vector of private keys to add
+ * @param updatedJsonData Output parameter that will contain the updated JSON
+ * @return bool True if successful, false otherwise
+ */
+bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData, 
+                                              const QString& keyType,
+                                              const QVector<QByteArray>& publicKeys, 
+                                              const QVector<QByteArray>& privateKeys,
+                                              QByteArray &updatedJsonData) {
+    // Parse or create JSON structure
+    QJsonDocument doc;
+    if (!jsonData.isEmpty()) {
+        QJsonParseError parseError;
+        doc = QJsonDocument::fromJson(jsonData, &parseError);
+        
+        if (parseError.error != QJsonParseError::NoError) {
+            qWarning() << "Failed to parse JSON:" << parseError.errorString();
+            return false;
+        }
+    }
+    
+    QJsonObject json = doc.isObject() ? doc.object() : QJsonObject();
+    
+    // Handle different key types appropriately
+    if (keyType == "oneTimePrekeys") {
+        // For one-time pre-keys, store as a dictionary with public key as the key and private key as the value
+        QJsonObject preKeysObject = json.contains(keyType) ? 
+                                    json[keyType].toObject() : 
+                                    QJsonObject();
+        
+        for (int i = 0; i < publicKeys.size(); i++) {
+            QString publicKeyBase64 = QString(publicKeys[i].toBase64());
+            QString privateKeyBase64 = QString(privateKeys[i].toBase64());
+            preKeysObject[publicKeyBase64] = privateKeyBase64;
+        }
+        
+        json[keyType] = preKeysObject;
+    }
+    else if (keyType == "signedPreKey" || keyType == "ephemeral") {
+        // For signed pre-keys or ephemeral keys, store as an object with public keys as indexes
+        QJsonObject keyObject = json.contains(keyType) ?
+                                json[keyType].toObject() :
+                                QJsonObject();
+        
+        // Should only have one key of these types
+        if (!publicKeys.isEmpty() && !privateKeys.isEmpty()) {
+            QString publicKeyBase64 = QString(publicKeys[0].toBase64());
+            QString privateKeyBase64 = QString(privateKeys[0].toBase64());
+            
+            // Store private key indexed by public key
+            keyObject[publicKeyBase64] = privateKeyBase64;
+        }
+        
+        json[keyType] = keyObject;
+    }
+    else {
+        // Generic handling for other key types
+        QJsonObject keysObject = json.contains(keyType) ?
+                                json[keyType].toObject() :
+                                QJsonObject();
+        
+        for (int i = 0; i < publicKeys.size(); i++) {
+            QString publicKeyBase64 = QString(publicKeys[i].toBase64());
+            QString privateKeyBase64 = QString(privateKeys[i].toBase64());
+            
+            keysObject[publicKeyBase64] = privateKeyBase64;
+        }
+        
+        json[keyType] = keysObject;
+    }
+    
+    // Prepare for encryption
+    doc.setObject(json);
+    updatedJsonData = doc.toJson(QJsonDocument::Compact);
     return true;
 }
 
@@ -114,11 +215,30 @@ bool FileSharingUtils::saveOneTimePreKeyPairsLocally(const QVector<QByteArray>& 
  * @return bool True if the key pairs are valid, false otherwise
  */
 bool FileSharingUtils::validateKeyPairs(const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys) {
+    // First check: sizes of arrays must match and not be empty
     if (publicKeys.isEmpty() || privateKeys.isEmpty() || publicKeys.size() != privateKeys.size()) {
         qWarning() << "Invalid key pairs provided for storage";
         return false;
     }
-    return true;
+    
+    // Use constant-time validation to avoid timing attacks
+    bool allValid = true;
+    
+    for (int i = 0; i < publicKeys.size(); i++) {
+        // Use constant-time comparison for size validation
+        bool validPublicKeySize = (publicKeys[i].size() == crypto_box_PUBLICKEYBYTES);
+        bool validPrivateKeySize = (privateKeys[i].size() == crypto_box_SECRETKEYBYTES);
+        
+        // If any key fails validation, set allValid to false but continue processing
+        // This ensures constant-time operation regardless of which key pair might be invalid
+        if (!validPublicKeySize || !validPrivateKeySize) {
+            allValid = false;
+            qWarning() << "Key at index" << i << "has invalid size";
+            // Don't break or return here to maintain constant time
+        }
+    }
+    
+    return allValid;
 }
 
 /**
@@ -206,49 +326,6 @@ bool FileSharingUtils::readAndDecryptKeyStorage(const QString &filepath, const S
 }
 
 /**
- * @brief Updates the JSON structure with new prekey pairs
- *
- * @param jsonData Existing JSON data (may be empty)
- * @param publicKeys Vector of public keys to add
- * @param privateKeys Vector of private keys to add
- * @param updatedJsonData Output parameter that will contain the updated JSON
- * @return bool True if successful, false otherwise
- */
-bool FileSharingUtils::updateJsonWithPrekeys(const QByteArray &jsonData, const QVector<QByteArray>& publicKeys, const QVector<QByteArray>& privateKeys, QByteArray &updatedJsonData) {
-    // Parse or create JSON structure
-    QJsonDocument doc;
-    if (!jsonData.isEmpty()) {
-        QJsonParseError parseError;
-        doc = QJsonDocument::fromJson(jsonData, &parseError);
-        
-        if (parseError.error != QJsonParseError::NoError) {
-            qWarning() << "Failed to parse JSON:" << parseError.errorString();
-            return false;
-        }
-    }
-    
-    QJsonObject json = doc.isObject() ? doc.object() : QJsonObject();
-    
-    // Create oneTimePreKeys object (dictionary)
-    QJsonObject preKeysObject;
-    
-    // Add each key pair to the object with public key as the key and private key as the value
-    for (int i = 0; i < publicKeys.size(); i++) {
-        QString publicKeyBase64 = QString(publicKeys[i].toBase64());
-        QString privateKeyBase64 = QString(privateKeys[i].toBase64());
-        preKeysObject[publicKeyBase64] = privateKeyBase64;
-    }
-    
-    // Store in JSON with proper camelCase naming
-    json["oneTimePrekeys"] = preKeysObject;
-    
-    // Prepare for encryption
-    doc.setObject(json);
-    updatedJsonData = doc.toJson(QJsonDocument::Compact);
-    return true;
-}
-
-/**
  * @brief Encrypts and saves the key storage data to a file
  *
  * @param filepath Path where the encrypted file should be saved
@@ -286,5 +363,112 @@ bool FileSharingUtils::encryptAndSaveKeyStorage(const QString &filepath, const Q
     file.write(reinterpret_cast<const char*>(combinedData.data()), static_cast<qint64>(combinedData.size()));
     file.close();
     
+    return true;
+}
+
+/**
+ * @brief Generates a signed pre-key and its signature according to the X3DH protocol
+ *
+ * This function takes the user's Ed25519 identity key pair and generates a new X25519 
+ * signed pre-key pair. It then creates a signature of the X25519 public key using 
+ * the Ed25519 identity private key as specified in the X3DH protocol.
+ *
+ * @param identityPublicKeyBase64 Base64-encoded Ed25519 identity public key
+ * @param identityPrivateKeyBase64 Base64-encoded Ed25519 identity private key
+ * @param signedPreKeyPublic Output parameter for base64-encoded signed pre-key public key (X25519)
+ * @param signedPreKeyPrivate Output parameter for base64-encoded signed pre-key private key (X25519)
+ * @param signature Output parameter for base64-encoded signature (Ed25519)
+ * @return bool True if successful (including key storage), false otherwise
+ */
+bool FileSharingUtils::generateSignedPreKey(const QString& identityPublicKeyBase64, const QString& identityPrivateKeyBase64, QString& signedPreKeyPublic, QString& signedPreKeyPrivate, QString& signature) {
+   
+    // Decode Ed25519 identity keys from base64
+    QByteArray identityPublicKey = QByteArray::fromBase64(identityPublicKeyBase64.toUtf8());
+    QByteArray identityPrivateKey = QByteArray::fromBase64(identityPrivateKeyBase64.toUtf8());
+    
+    // Validate Ed25519 identity keys
+    if (identityPublicKey.size() != crypto_sign_PUBLICKEYBYTES ||
+        identityPrivateKey.size() != crypto_sign_SECRETKEYBYTES) {
+        qWarning() << "Invalid Ed25519 identity key length";
+        return false;
+    }
+    
+    // Generate a new X25519 key pair for the signed pre-key
+    auto spk_x25519_pk = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
+    auto spk_x25519_sk = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
+    
+    if (crypto_box_keypair(spk_x25519_pk.get(), spk_x25519_sk.get()) != 0) {
+        qWarning() << "Failed to generate signed pre-key pair";
+        return false;
+    }
+    
+    // Create signature of the signed pre-key public key
+    // X3DH spec: Sig(IKB, Encode(SPKB))
+    auto spk_signature = make_secure_buffer<crypto_sign_BYTES>();
+    
+    if (crypto_sign_detached(spk_signature.get(), nullptr, 
+                             spk_x25519_pk.get(), crypto_box_PUBLICKEYBYTES,
+                             reinterpret_cast<const unsigned char*>(identityPrivateKey.constData())) != 0) {
+        qWarning() << "Failed to create signature of signed pre-key";
+        return false;
+    }
+    
+    // Convert results to base64
+    signedPreKeyPublic = QByteArray(reinterpret_cast<char*>(spk_x25519_pk.get()), 
+                                   crypto_box_PUBLICKEYBYTES).toBase64();
+    signedPreKeyPrivate = QByteArray(reinterpret_cast<char*>(spk_x25519_sk.get()), 
+                                    crypto_box_SECRETKEYBYTES).toBase64();
+    signature = QByteArray(reinterpret_cast<char*>(spk_signature.get()), crypto_sign_BYTES).toBase64();
+    
+    // Add storage of the generated key pair automatically
+    bool keySaved = saveSignedPreKeyLocally(signedPreKeyPublic, signedPreKeyPrivate);
+    if (!keySaved) {
+        qWarning() << "Failed to save signed pre-key locally";
+        return false; // Return false if key storage fails
+    }
+    
+    return true;
+}
+
+/**
+ * @brief Verifies a signed pre-key signature according to X3DH protocol
+ *
+ * This function verifies that a signed pre-key was properly signed by the Ed25519 identity key.
+ *
+ * @param identityPublicKeyBase64 Base64-encoded Ed25519 identity public key
+ * @param signedPreKeyPublicBase64 Base64-encoded X25519 signed pre-key public key
+ * @param signatureBase64 Base64-encoded signature
+ * @return bool True if signature is valid, false otherwise
+ */
+bool FileSharingUtils::verifySignedPreKey(const QString& identityPublicKeyBase64, const QString& signedPreKeyPublicBase64, const QString& signatureBase64) {
+    // Decode from base64
+    QByteArray identityPublicKey = QByteArray::fromBase64(identityPublicKeyBase64.toUtf8());
+    QByteArray signedPreKeyPublic = QByteArray::fromBase64(signedPreKeyPublicBase64.toUtf8());
+    QByteArray signature = QByteArray::fromBase64(signatureBase64.toUtf8());
+    
+    // Validate sizes - note the identity key is now Ed25519
+    if (identityPublicKey.size() != crypto_sign_PUBLICKEYBYTES ||
+        signedPreKeyPublic.size() != crypto_box_PUBLICKEYBYTES ||
+        signature.size() != crypto_sign_BYTES) {
+        qWarning() << "Invalid key or signature length for verification";
+        return false;
+    }
+    
+    // No conversion needed - directly use Ed25519 identity public key
+    
+    // Verify the signature
+    int result = crypto_sign_verify_detached(
+        reinterpret_cast<const unsigned char*>(signature.constData()),
+        reinterpret_cast<const unsigned char*>(signedPreKeyPublic.constData()),
+        signedPreKeyPublic.size(),
+        reinterpret_cast<const unsigned char*>(identityPublicKey.constData())
+    );
+    
+    if (result != 0) {
+        qWarning() << "Signed pre-key signature verification failed with code:" << result;
+        return false;
+    }
+    
+    qDebug() << "Signed pre-key signature verified successfully";
     return true;
 }
