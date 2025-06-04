@@ -43,7 +43,11 @@ def login(username: str, password: str) -> dict:
         return jsonify({"error": "Invalid password"}), 401
 
     # Check if SPK is too old
-    spk_age = datetime.now(UTC) - user.spk_updated_at
+    current_time = datetime.now(UTC)
+    if user.spk_updated_at.tzinfo is None:
+        # If spk_updated_at is naive, make it timezone-aware
+        user.spk_updated_at = user.spk_updated_at.replace(tzinfo=UTC)
+    spk_age = current_time - user.spk_updated_at
     if spk_age > config.spk.max_age:
         logger.warning(f"Login failed for user {username}: SPK is too old (age: {spk_age.days} days)")
         return jsonify({
@@ -397,6 +401,14 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
     if not user_id:
         logger.warning("Add OTPKs failed: Missing user_id in user_info")
         return {"error": "Missing user_id in user_info"}, 400
+
+    # Validate base64 format for all OTPKs
+    for otpk in otpks:
+        try:
+            base64.b64decode(otpk)
+        except Exception as e:
+            logger.warning(f"Add OTPKs failed: Invalid base64 format for OTPK: {str(e)}")
+            return {"error": "Invalid base64 format for OTPK"}, 400
 
     with get_session() as db:
         for otpk in otpks:            

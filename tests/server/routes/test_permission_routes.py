@@ -5,8 +5,10 @@ from flask.testing import FlaskClient
 from sqlalchemy_utils import database_exists, drop_database
 from server.utils.db_setup import setup_db, get_session, teardown_db
 from server.app import create_app
-from server.models.tables import Base, Users, Files
+from server.models.tables import Base, Users, Files, OTPK
 import base64
+from datetime import datetime, UTC
+from server.utils.auth import hash_password
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -95,8 +97,43 @@ def second_test_user():
 @pytest.fixture
 def signed_up_user(client, test_user):
     """Sign up a user and return the user data and tokens."""
-    response = client.post("/sign_up", json=test_user)
-    assert response.status_code == 201
+    current_time = datetime.now(UTC)
+    with get_session() as db:
+        user = Users(
+            username=test_user["username"],
+            password=hash_password(test_user["password"]),  # Hash the password
+            public_key=test_user["public_key"],
+            spk=test_user["spk"],
+            spk_signature=test_user["spk_signature"],
+            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            spk_updated_at=current_time,
+            updated_at=current_time,
+            created_at=current_time
+        )
+        db.add(user)
+        db.flush()  # Ensure user.id is available
+        
+        # Add 10 OTPKs for the user
+        test_otpks = [
+            base64.b64encode(f"test_otpk_{i}".encode()).decode()
+            for i in range(10)
+        ]
+        
+        for otpk in test_otpks:
+            new_otpk = OTPK(
+                user_id=user.id,
+                key=otpk,
+                used=0,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            db.add(new_otpk)
+        
+        db.commit()
+    
+    # Get tokens by logging in
+    response = client.post("/login", json=test_user)
+    assert response.status_code == 200
     data = response.json
     return {"user": test_user, "access_token": data["access_token"], "refresh_token": data["refresh_token"]}
 

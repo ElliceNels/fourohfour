@@ -46,6 +46,7 @@ class JWTConfig(BaseModel):
 class SPKConfig(BaseModel):
     """SPK (Signed Pre Key) configuration class."""
     max_age_days: int
+    max_age: timedelta
 
     def __init__(self, **data):
         """Initialize SPK config with timedelta conversion."""
