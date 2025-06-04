@@ -9,6 +9,7 @@ from server.routes.authentication_routes import authentication_routes as auth_bp
 from server.routes.permission_routes import permission_bp
 from server.routes.file_routes import files_bp
 from server.utils.db_setup import setup_db
+from server.utils.security import apply_security_headers
 from server.logger import setup_logger
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,10 @@ def create_app():
     app.register_blueprint(files_bp)
 
     logger.info('Blueprints registered')
+
+    @app.after_request
+    def add_security_headers(response):
+        return apply_security_headers(response)
 
     @app.route('/')
     def index():
