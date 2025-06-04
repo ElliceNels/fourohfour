@@ -452,8 +452,11 @@ def retrieve_key_bundle(username: str) -> Dict:
             logger.warning(f"Get key bundle failed for user {username}: No unused OTPK found")
             return {"error": "No unused OTPK found"}, 404
             
-        # Store the key before marking as used
+        # Store all needed values before closing the session
         otpk_key = otpk.key
+        spk = user.spk
+        spk_signature = user.spk_signature
+        spk_updated_at = user.spk_updated_at.isoformat()
         
         # Mark the OTPK as used
         otpk.used = 1
@@ -463,9 +466,9 @@ def retrieve_key_bundle(username: str) -> Dict:
     logger.info(f"Retrieved key bundle for user {username}")
     return {
         "otpk": otpk_key,
-        "spk": user.spk,
-        "spk_signature": user.spk_signature,
-        "updatedAt": user.spk_updated_at.isoformat()
+        "spk": spk,
+        "spk_signature": spk_signature,
+        "updatedAt": spk_updated_at
     }, 200
 
 def update_spk(user_info: Dict, spk: str, spk_signature: str) -> Dict:

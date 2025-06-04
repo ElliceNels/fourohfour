@@ -288,8 +288,8 @@ def test_db_is_clean_after_setup(setup_test_db):
     with get_session() as db:
         assert db.query(Users).count() == 0
 
-def test_get_otpk(client: FlaskClient, logged_in_user):
-    """Test getting a one-time prekey (OTPK)."""
+def test_retrieve_key_bundle(client: FlaskClient, logged_in_user):
+    """Test retrieving a key bundle."""
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
     
     # Clear existing OTPKs first
@@ -311,16 +311,21 @@ def test_get_otpk(client: FlaskClient, logged_in_user):
     add_response = client.post("/add_otpks", json={"otpks": test_otpks}, headers=headers)
     assert add_response.status_code == 201
     
-    # Get an OTPK
+    # Get a key bundle
     username = logged_in_user["user"]["username"]
-    get_response = client.get(f"/get_otpk?username={username}", headers=headers)
+    get_response = client.get(f"/retrieve_key_bundle?username={username}", headers=headers)
     assert get_response.status_code == 200
     assert "otpk" in get_response.json
+    assert "spk" in get_response.json
+    assert "spk_signature" in get_response.json
+    assert "updatedAt" in get_response.json
     assert get_response.json["otpk"] in test_otpks
+    assert get_response.json["spk"] == logged_in_user["user"]["spk"]
+    assert get_response.json["spk_signature"] == logged_in_user["user"]["spk_signature"]
     
     # Verify the OTPK was marked as used by trying to get it again
     # It should return a different OTPK
-    get_response_2 = client.get(f"/get_otpk?username={username}", headers=headers)
+    get_response_2 = client.get(f"/retrieve_key_bundle?username={username}", headers=headers)
     assert get_response_2.status_code == 200
     assert "otpk" in get_response_2.json
     assert get_response_2.json["otpk"] in test_otpks
