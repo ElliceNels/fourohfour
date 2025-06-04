@@ -159,11 +159,6 @@ void RegisterPage::onCreateAccountClicked()
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
-    if (!saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json")) {
-        QMessageBox::critical(this, "Key Storage Error", 
-            "Failed to save cryptographic keys to file. Registration cannot proceed.");
-        return;
-    }
 
     if (!encryptAndSaveKey(this, privKeyBase64, key, accountName)) {
         QMessageBox::critical(this, "Key Encryption Error", 

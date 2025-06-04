@@ -37,18 +37,6 @@ bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) 
     return true;
 }
 
-bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString &privateKey, const QString &defaultName) {
-    QJsonObject json;
-
-    json["publicKey"] = publicKey;
-    json["privateKey"] = privateKey;
-
-    //Function pointer
-    bool (*saveFuncPtr)(QWidget*, const QJsonObject&, const QString&) = saveFile;
-
-    return saveFuncPtr(parent, json, defaultName);
-}
-
 
 bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username) {
     QJsonObject json;
