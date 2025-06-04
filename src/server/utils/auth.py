@@ -390,7 +390,7 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
         user_info (Dict): Dictionary containing user information.
 
     Returns:
-        Dict: Response containing success message or error message.
+        Dict: Response containing success message and otpk count.
     """
     
     if not otpks or not user_info:
@@ -411,6 +411,7 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
             return {"error": "Invalid base64 format for OTPK"}, 400
 
     with get_session() as db:
+        # Add all new OTPKs
         for otpk in otpks:            
             new_otk = OTPK(
                 user_id=user_id,
@@ -420,10 +421,25 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
                 updated_at=datetime.now(UTC)
             )
             db.add(new_otk)
+        
+        # Flush to make new records visible to queries
+        db.flush()
+        
+        # Get count using existing function
+        try:
+            otpk_count = get_count_otpk(user_info)
+        except ValueError as e:
+            logger.warning(f"Add OTPKs failed: Error counting OTPKs - {str(e)}")
+            return {"error": str(e)}, 400
+        
+        # Commit the transaction
         db.commit()
     
     logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
-    return {"message": f"Added {len(otpks)} OTPKs successfully"}, 201
+    return {
+        "message": f"Added {len(otpks)} OTPKs successfully",
+        "otpk_count": otpk_count
+    }, 201
 
 def retrieve_key_bundle(username: str) -> Dict:
     """Get key bundle for a selected user.
