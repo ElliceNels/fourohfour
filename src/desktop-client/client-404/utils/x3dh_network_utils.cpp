@@ -134,6 +134,16 @@ bool X3DHNetworkUtils::isSignedPrekeyValid(
     QWidget* parent) {
     
     QDateTime updatedAt = QDateTime::fromString(updatedAtStr, Qt::ISODate);
+    if (!updatedAt.isValid()) {
+        qWarning() << "Invalid updatedAt timestamp for user" << username << ":" << updatedAtStr;
+        if (parent) {
+            QMessageBox::warning(parent, "Error",
+                               "The timestamp for the signed key of " + username +
+                               " is invalid. Please try again later.");
+        }
+        return false;
+    }
+    
     QDateTime currentDate = QDateTime::currentDateTime();
     int daysSinceUpdate = updatedAt.daysTo(currentDate);
     
