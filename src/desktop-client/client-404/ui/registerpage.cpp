@@ -173,8 +173,7 @@ void RegisterPage::onCreateAccountClicked()
     }
 
        // Generate and store one-time pre-key pairs
-    FileSharingUtils fileSharingUtils;
-    QVector<QByteArray> oneTimePreKeys = fileSharingUtils.generateOneTimePreKeyPairs();
+    QVector<QByteArray> oneTimePreKeys = FileSharingUtils::generateOneTimePreKeyPairs();
     if (oneTimePreKeys.isEmpty()) {
         QMessageBox::critical(this, "Error", "Failed to generate one-time pre-keys. Registration cannot proceed without secure messaging capabilities.");
         this->ui->createAccountButton->setEnabled(true);
@@ -185,7 +184,7 @@ void RegisterPage::onCreateAccountClicked()
     
     // Generate and store signed pre-key
     QString signedPreKeyPublic, signedPreKeyPrivate, signature;
-    bool signedPreKeySuccess = fileSharingUtils.generateSignedPreKey(
+    bool signedPreKeySuccess = FileSharingUtils::generateSignedPreKey(
         pubKeyBase64, privKeyBase64,  // Pass identity keys
         signedPreKeyPublic, signedPreKeyPrivate, signature
     );
@@ -202,7 +201,7 @@ void RegisterPage::onCreateAccountClicked()
     cout << sAccountName << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-    if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
+    if (sendSignUpRequest(accountName, password, pubKeyBase64, signedPreKeyPublic, signature, salt)) {
         QMessageBox::information(this, "Success", "Account created and logged in!");
         this->ui->accountNameLineEdit->clear();
         this->ui->passwordLineEdit->clear();
@@ -249,7 +248,7 @@ void RegisterPage::onShowPasswordClicked()
  * @param salt The salt used for password hashing.
  * @return true if registration is successful and tokens are saved; false otherwise.
  */
-bool RegisterPage::sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, const QString& salt)
+bool RegisterPage::sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, QString& signedPreKey, QString& signedPreKeySignature, const QString& salt)
 {
 
     // Set base URL for the server
@@ -260,6 +259,8 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
     requestData["username"] = username;
     requestData["password"] = password;
     requestData["public_key"] = publicKey;
+    requestData["spk"] = signedPreKey;
+    requestData["spk_signature"] = signedPreKeySignature;
     requestData["salt"] = salt;
     
     // Make the POST request to the sign_up endpoint
