@@ -2,8 +2,11 @@ import os
 import unicodedata
 from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
 from session_manager import LoginSessionManager
-from constants import SIGN_UP_ENDPOINT
+from constants import SIGN_UP_ENDPOINT, ADD_OTPK_ENDPOINT
 from exceptions import UsernameAlreadyExistsError, ServerError
+import logging
+
+logger = logging.getLogger(__name__)
 
 RESTRICTED_CHARS = set('!@#$%^&*()+=[]{}|\\;:\'",<>/?`~')  
 
@@ -54,25 +57,46 @@ def manage_registration(account_name, password):
         except Exception as e:
             return False, f"Failed to generate or decode salt: {str(e)}"
         
-        #Send data to server
-        try:
-            register_user(account_name, password, pub_b64, salt)
-        except Exception as e:
-            print(f"Unexpected error during server registration: {str(e)}")
-            return False, str(e)
-
         #Derive key from password
         try:
             derived_key = derive_key_from_password(password, raw_salt)
         except Exception as e:
             return False, f"Failed to derive key from password: {str(e)}"
 
-        #Encrypt and save private key
+        # --- X3DH Key Generation and Storage ---
+
+        # Encrypt and save private key
         try:
             encrypt_and_save_key(priv_b64, derived_key, account_name)
         except Exception as e:
             return False, f"Failed to encrypt and save key: {str(e)}"
         
+        # Generate signed pre-key and one-time pre-keys
+        try:
+            from utils import file_sharing
+            # Generate and store signed pre-key
+            signed_pre_key = file_sharing.generate_signed_pre_key(priv_b64)
+            spk_pub, _, spk_signature = signed_pre_key
+            # Generate and store one-time pre-keys
+            one_time_pre_keys = file_sharing.generate_one_time_pre_key_pairs(account_name, count=50)
+        except Exception as e:
+            return False, f"Failed to generate/locally store SXDH keys: {str(e)}"
+
+        #Send data to server
+        try:
+            register_user(account_name, password, pub_b64, salt, spk_pub, spk_signature)
+        except Exception as e:
+            print(f"Unexpected error during server registration: {str(e)}")
+            return False, str(e)
+        try:
+            response = LoginSessionManager.getInstance().post(url=ADD_OTPK_ENDPOINT, data={"otpks": one_time_pre_keys})
+            if response.status_code != 201:
+                raise ServerError()
+        except Exception as e:
+            logger.warning(f"Failed to add one-time pre-keys to server{str(e)}")
+            return False, f"Failed to add one-time pre-keys to server: {str(e)}"
+
+
         #Save public key
         try:
             save_keys_to_json_file(pub_b64, priv_b64)
@@ -86,11 +110,13 @@ def manage_registration(account_name, password):
         return False, f"Unexpected error during registration: {str(e)}"
     
 
-def register_user(username, password, public_key, salt):
+def register_user(username, password, public_key, salt, spk, spk_signature):
     data = {
         "username": username,
         "password": password,
         "public_key": public_key,
+        "spk": spk,
+        "spk_signature": spk_signature,
         "salt": salt
     }
     
