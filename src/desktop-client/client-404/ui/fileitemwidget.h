@@ -11,6 +11,7 @@
 #include <QDebug>
 #include "core/loginsessionmanager.h"
 #include "constants.h"
+#include "utils/securebufferutils.h"  // Added include for SodiumZeroDeleter
 #include "utils/widget_utils.h"
 
 class FileItemWidget : public QWidget {
@@ -41,6 +42,23 @@ private:
     QPushButton *deleteButton;
     QPushButton *previewButton;
 
-    // Format file size in a human-readable form
-    QString formatFileSize(qint64 bytes) const;
+    // UI helper methods
+    QPushButton* createIconButton(const QString& iconPath);
+    QLabel* createElidedLabel(const QString &text, int width);
+    QString formatFileSize(qint64 bytes) const; 
+    bool confirmAction(const QString& title, const QString& text);
+    
+    // Download helper methods
+    bool fetchEncryptedFile(QByteArray& encryptedData);
+    bool extractFileComponents(const QByteArray& encryptedData, 
+                              std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce, 
+                              SecureVector& fileCiphertext);
+    QByteArray prepareFileMetadata();
+    bool decryptFile(const SecureVector& fileCiphertext,
+                   const unsigned char* fileKey,
+                   std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce,
+                   const QByteArray& metadataBytes,
+                   SecureVector& decryptedFile);
+    void saveDecryptedFile(const SecureVector& decryptedFile);
+
 };

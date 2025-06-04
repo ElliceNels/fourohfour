@@ -12,6 +12,7 @@
 #include "crypto/encryptionhelper.h"
 #include "utils/securebufferutils.h"
 #include "constants.h"
+#include "utils/file_crypto_utils.h"
 
 /**
  * @brief Generates multiple one-time pre-key pairs for secure communication
@@ -80,17 +81,17 @@ bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector
     }
 
     // Get master key and validate it
-    const SecureVector masterKey = getMasterKey();
-    if (masterKey.empty()) {
+    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
+    if (!FileCryptoUtils::validateMasterKey(masterKey)) {
         return false; 
     }
 
     // Build file path for the key storage
-    const QString filepath = buildKeyStorageFilePath();
+    const QString filepath = FileCryptoUtils::buildKeyStorageFilePath();
 
     // Read existing encrypted file
     QByteArray jsonData;
-    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+    if (!FileCryptoUtils::readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
         return false;
     }
     
@@ -101,7 +102,7 @@ bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector
     }
     
     // Encrypt and save the updated JSON data
-    if (!encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
+    if (!FileCryptoUtils::encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
         return false;
     }
     

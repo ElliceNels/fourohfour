@@ -1,7 +1,19 @@
 #include "fileitemwidget.h"
 #include <qlabel.h>
 #include <qpushbutton.h>
+#include <QCoreApplication>
+#include <QFile>
+#include <QFileDialog>
+#include <QDir>
+#include <QFileInfo>
+#include <QMessageBox>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
 #include "constants.h"
+#include "crypto/encryptionhelper.h"
+#include "utils/file_crypto_utils.h"
+#include "utils/securebufferutils.h"
 #include "utils/widget_utils.h"
 
 FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent)
@@ -65,9 +77,172 @@ QString FileItemWidget::formatFileSize(qint64 bytes) const {
 }
 
 void FileItemWidget::handleDownload() {
-    // download logic here
-    qDebug() << "Download clicked for file:" << this->fileNameLabel->toolTip();
+    qDebug() << "Download clicked for file:" << this->fileNameLabel->toolTip() << " UUID:" << this->fileUuid;
+    
+    // Fetch the encrypted file from server
+    QByteArray encryptedData;
+    if (!fetchEncryptedFile(encryptedData)) {
+        return; // Error already shown to user within fetchEncryptedFile
+    }
+    
+    // Get file encryption key from local storage
+    auto fileKey = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
+    if (!FileCryptoUtils::getFileEncryptionKey(this->fileUuid, fileKey.get(), 
+                                             crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
+        return; // Error already shown to user within getFileEncryptionKey
+    }
+    
+    // Extract nonce and ciphertext and prepare for decryption
+    auto fileNonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
+    SecureVector fileCiphertext;
+    if (!extractFileComponents(encryptedData, fileNonce, fileCiphertext)) {
+        return; // Error already shown to user within extractFileComponents
+    }
+    
+    // Create metadata for authenticated decryption
+    QByteArray metadataBytes = prepareFileMetadata();
+    
+    // Decrypt the file
+    SecureVector decryptedFile;
+    if (!decryptFile(fileCiphertext, fileKey.get(), fileNonce, metadataBytes, decryptedFile)) {
+        return; // Error already shown to user within decryptFile
+    }
+    
+    // Save the decrypted file
+    saveDecryptedFile(decryptedFile);
+}
 
+bool FileItemWidget::fetchEncryptedFile(QByteArray& encryptedData) {
+    std::string downloadEndpoint = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(downloadEndpoint);
+    
+    if (!response.success) {
+        QMessageBox::critical(this, "Download Error", 
+            "Failed to download file: " + QString::fromStdString(response.errorMessage));
+        return false;
+    }
+    
+    QJsonObject jsonResponse = response.jsonData.object();
+    if (!jsonResponse.contains("encrypted_file")) {
+        QMessageBox::critical(this, "Download Error", "Invalid server response: missing encrypted file data");
+        return false;
+    }
+    
+    // Extract encrypted file data from response
+    encryptedData = QByteArray::fromBase64(jsonResponse["encrypted_file"].toString().toLatin1());
+    return true;
+}
+
+bool FileItemWidget::extractFileComponents(const QByteArray& encryptedData, 
+                              std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce,
+                              SecureVector& fileCiphertext) {
+    if (encryptedData.size() <= crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
+        QMessageBox::critical(this, "Error", "Encrypted file data is too small or corrupted");
+        return false;
+    }
+    
+    // Copy nonce data to secure buffer
+    std::copy(encryptedData.constData(), 
+              encryptedData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, 
+              fileNonce.get());
+    
+    // Extract ciphertext
+    const int fileCiphertextSize = encryptedData.size() - crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+    fileCiphertext.resize(fileCiphertextSize);
+    std::copy(encryptedData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
+              encryptedData.constData() + encryptedData.size(), 
+              fileCiphertext.begin());
+    
+    return true;
+}
+
+QByteArray FileItemWidget::prepareFileMetadata() {
+    QString fileName = this->fileNameLabel->toolTip();
+    if (fileName.endsWith("." + this->fileExtension)) {
+        fileName = fileName.left(fileName.length() - this->fileExtension.length() - 1);
+    }
+    
+    return FileCryptoUtils::formatFileMetadata(
+        fileName, this->fileExtension, this->fileSizeBytes);
+}
+
+bool FileItemWidget::decryptFile(const SecureVector& fileCiphertext,
+                               const unsigned char* fileKey,
+                               std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce,
+                               const QByteArray& metadataBytes,
+                               SecureVector& decryptedFile) {
+    EncryptionHelper crypto;
+    try {
+        decryptedFile = crypto.decrypt(
+            fileCiphertext.data(),
+            fileCiphertext.size(),
+            fileKey,
+            fileNonce.get(),
+            reinterpret_cast<const unsigned char*>(metadataBytes.constData()),
+            metadataBytes.size()
+        );
+        
+        // No need to manually clean up or delete - the smart pointer will handle it
+        return true;
+        
+    } catch (const std::exception& e) {
+        // No need for manual cleanup - smart pointers handle it automatically
+        QMessageBox::critical(this, "Error", 
+            QString("Failed to decrypt file: %1").arg(e.what()));
+        return false;
+    }
+}
+
+void FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
+    // Extract the original filename without extension
+    QString fileName = this->fileNameLabel->toolTip();
+    if (fileName.endsWith("." + this->fileExtension)) {
+        fileName = fileName.left(fileName.length() - this->fileExtension.length() - 1);
+    }
+    
+    // Construct the full filename with extension
+    QString fullFilename = fileName + "." + this->fileExtension;
+    
+    // Show save dialog with the original filename as default
+    QString saveFilePath = QFileDialog::getSaveFileName(
+        this, 
+        "Save File", 
+        QDir::homePath() + "/" + fullFilename,
+        this->fileExtension.isEmpty() ? 
+            "All Files (*)" : 
+            QString("%1 Files (*.%2);;All Files (*)").arg(this->fileExtension.toUpper()).arg(this->fileExtension)
+    );
+    
+    if (saveFilePath.isEmpty()) {
+        // User cancelled the save dialog
+        return;
+    }
+    
+    // Ensure the filename has the correct extension
+    if (!this->fileExtension.isEmpty() && !saveFilePath.endsWith("." + this->fileExtension)) {
+        saveFilePath += "." + this->fileExtension;
+    }
+    
+    QFile saveFile(saveFilePath);
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(this, "Error", 
+            "Failed to open file for writing: " + saveFile.errorString());
+        return;
+    }
+    
+    // Write the decrypted data to file
+    qint64 bytesWritten = saveFile.write(reinterpret_cast<const char*>(decryptedFile.data()), 
+                                        static_cast<qint64>(decryptedFile.size()));
+    saveFile.close();
+    
+    if (bytesWritten != static_cast<qint64>(decryptedFile.size())) {
+        QMessageBox::critical(this, "Error", 
+            "Failed to write complete file: " + saveFile.errorString());
+        return;
+    }
+    
+    QMessageBox::information(this, "Success", 
+        QString("File downloaded and saved successfully as: %1").arg(QFileInfo(saveFilePath).fileName()));
 }
 
 void FileItemWidget::handleShare() {
