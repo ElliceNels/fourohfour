@@ -30,6 +30,9 @@ public slots:
     void navigateToFriendsPage();
     void switchToOwnedFiles();
     void switchToSharedFiles();
+    void loadFriendsList();
+    void onFriendShareRequested(const QString &username);
+    void onFriendDeleteRequested(const QString &username);
 
 private:
     Ui::ViewFilesPage *ui;
@@ -41,6 +44,7 @@ private:
     void switchFileListPage(int pageIndex);
     void displayFiles(const QJsonArray& ownedFiles, const QJsonArray& sharedFiles);
     void addFileItem(const QJsonObject& fileObj, QListWidget* listWidget, const QString& ownerLabel); 
+    void addFriendItem(const QString &username, const QString &publicKey);
 
 signals:
     void goToMainMenuRequested();

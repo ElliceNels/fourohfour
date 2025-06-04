@@ -11,6 +11,7 @@ public:
     static bool saveFriendPairToJSON(const QString& username, const QString& publicKey, QWidget* parent = nullptr);
     static QString getUserPublicKey(const QString& username, QWidget* parent = nullptr);
     static QMap<QString, QString> getAllFriendsExceptSelf(QWidget* parent = nullptr);
+    static bool removeFriend(const QString& friendUsername, QWidget* parent = nullptr);
     
 private:
     static QString buildFriendStorageFilePath(const QString& username);

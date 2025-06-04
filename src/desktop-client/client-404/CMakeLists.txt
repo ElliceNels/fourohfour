@@ -46,6 +46,8 @@ set(UI_SOURCES
     ui/mainmenu.ui
     ui/fileitemwidget.h
     ui/fileitemwidget.cpp
+    ui/frienditemwidget.h
+    ui/frienditemwidget.cpp
     ui/viewfilespage.h
     ui/viewfilespage.cpp
     ui/viewfilespage.ui
@@ -78,6 +80,8 @@ set(UTILS_SOURCES
     utils/file_sharing_utils.cpp
     utils/friend_storage_utils.h
     utils/friend_storage_utils.cpp
+    utils/widget_utils.h
+    utils/widget_utils.cpp
 )
 
 set(CORE_SOURCES
