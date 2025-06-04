@@ -3,12 +3,13 @@
 
 #include <QWidget>
 #include "ui/basepage.h"
+#include "ui/anotherbasepage.h"
 
 namespace Ui {
 class TitlePage;
 }
 
-class TitlePage : public BasePage
+class TitlePage : public BasePage, public AnotherBasePage
 {
     Q_OBJECT
 

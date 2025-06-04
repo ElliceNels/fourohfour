@@ -56,6 +56,8 @@ set(UI_SOURCES
     ui/resetpasswordpage.ui
     ui/resetpasswordpage.h
     ui/resetpasswordpage.cpp
+    ui/anotherbasepage.h
+    ui/anotherbasepage.cpp
 )
 
 set(CRYPTO_SOURCES

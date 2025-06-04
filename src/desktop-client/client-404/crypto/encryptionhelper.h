@@ -3,11 +3,13 @@
 
 #include <sodium.h>
 // #include <vector>
+#include <QDebug>
 #include "utils/securevector.h"
+#include "ui/anotherbasepage.h"
 
 using namespace std;
 
-class EncryptionHelper
+class EncryptionHelper : public AnotherBasePage
 {
 public:
     EncryptionHelper();
@@ -30,6 +32,15 @@ public:
         const unsigned char* additional_data = nullptr,
         unsigned long long ad_len = 0
         );
+
+    EncryptionHelper(const EncryptionHelper& other) {
+        //this would have logic to assign member variable values from other to the object being created
+        //not applicable in this case since this class doesn't have any attributes
+        qDebug() << "Encryption helper copy constructor called";
+
+
+    }
+
 };
 
 #endif

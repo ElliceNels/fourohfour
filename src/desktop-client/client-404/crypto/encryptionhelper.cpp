@@ -2,9 +2,14 @@
 #include <stdexcept>
 #include "utils/securevector.h"
 
+
 using namespace std;
 
-EncryptionHelper::EncryptionHelper() {}
+EncryptionHelper::EncryptionHelper()
+    : AnotherBasePage()
+{
+    qDebug() << "Constructing Encryption Helper";
+}
 
 void EncryptionHelper::generateKey(unsigned char* key, size_t key_buffer_size) {
     if (key == nullptr) {

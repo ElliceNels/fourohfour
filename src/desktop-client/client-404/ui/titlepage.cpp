@@ -1,10 +1,12 @@
 #include "titlepage.h"
 #include "ui/ui_titlepage.h"
 #include <QStackedWidget>
+#include <QDebug>
 
 TitlePage::TitlePage(QWidget *parent)
-    : BasePage(parent)
-    ,ui(new Ui::TitlePage)
+    : BasePage(parent),
+    AnotherBasePage(),
+    ui(new Ui::TitlePage)
 {
     qDebug() << "Constructing and setting up Title Page";
 
@@ -13,6 +15,8 @@ void TitlePage::preparePage(){
     qDebug() << "Preparing Title Page";
     this->initialisePageUi();    // Will call the derived class implementation
     this->setupConnections();    // Will call the derived class implementation
+    displayMessage(); //functions called from AnotherBasePage
+    qDebug() << protectedString;
 }
 
 void TitlePage::initialisePageUi(){
