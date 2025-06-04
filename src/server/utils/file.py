@@ -22,14 +22,16 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
     # Decode base64 contents
     try:
         import base64
-        file_contents = base64.b64decode(file_contents_b64)
+        file_contents: bytes = base64.b64decode(file_contents_b64)
     except Exception as e:
         logger.error(f"Error decoding base64 file contents: {str(e)}")
         return jsonify({'error': 'Invalid base64 file contents'}), 400
 
     # Validate file size before any database operations
-    if len(file_contents) > config.file.max_size_bytes:
-        logger.warning(f"Upload failed: File size {len(file_contents)} bytes exceeds maximum allowed size of {config.file.max_size_mb}MB")
+    # len(bytes) returns int, comparing with config.file.max_size_bytes (int)
+    file_size: int = len(file_contents)
+    if file_size > config.file.max_size_bytes:
+        logger.warning(f"Upload failed: File size {file_size} bytes exceeds maximum allowed size of {config.file.max_size_mb}MB")
         return jsonify({'error': f'File size exceeds maximum allowed size of {config.file.max_size_mb}MB'}), 400
 
     # Validate metadata size matches actual file size
@@ -42,6 +44,9 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
         except (ValueError, TypeError) as e:
             logger.warning(f"Upload failed: Invalid size in metadata: {str(e)}")
             return jsonify({'error': 'Invalid file size in metadata'}), 400
+    else:
+        logger.warning("Upload failed: Missing size in metadata")
+        return jsonify({'error': 'Invalid file size in metadata'}), 400
 
     with get_session() as db:
         try:

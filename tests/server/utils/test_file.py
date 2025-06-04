@@ -38,27 +38,35 @@ def mock_session_ctx(mock_db):
             pass
     return Ctx()
 
-@pytest.mark.parametrize("user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status", [
+@pytest.mark.parametrize("user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, file_size, metadata_size", [
     # Basic cases
-    (1, True, None, False, False, False, CODE_CREATED),  # New file upload
-    (1, False, None, False, False, False, CODE_BAD_REQUEST),  # No file provided
+    (1, True, None, False, False, False, CODE_CREATED, 123, 123),  # New file upload
+    (1, False, None, False, False, False, CODE_BAD_REQUEST, None, None),  # No file provided
     
     # UUID update cases
-    (1, True, str(uuid.uuid4()), True, True, False, CODE_CREATED),  # Update existing file (owner)
-    (1, True, str(uuid.uuid4()), True, False, False, CODE_FORBIDDEN),  # Update existing file (not owner)
-    (1, True, str(uuid.uuid4()), False, False, False, CODE_NOT_FOUND),  # Update non-existing file
+    (1, True, str(uuid.uuid4()), True, True, False, CODE_CREATED, 123, 123),  # Update existing file (owner)
+    (1, True, str(uuid.uuid4()), True, False, False, CODE_FORBIDDEN, 123, 123),  # Update existing file (not owner)
+    (1, True, str(uuid.uuid4()), False, False, False, CODE_NOT_FOUND, 123, 123),  # Update non-existing file
     
     # Duplicate filename cases
-    (1, True, None, True, False, False, CODE_CONFLICT),  # Duplicate filename
+    (1, True, None, True, False, False, CODE_CONFLICT, 123, 123),  # Duplicate filename
     
     # Error cases
-    (1, True, None, False, False, True, CODE_SERVER_ERROR),  # DB error
+    (1, True, None, False, False, True, CODE_SERVER_ERROR, 123, 123),  # DB error
+
+    # File size validation cases
+    (1, True, None, False, False, False, CODE_BAD_REQUEST, 104857601, 104857601),  # File too large (100MB + 1)
+    (1, True, None, False, False, False, CODE_BAD_REQUEST, 123, 456),  # Metadata size mismatch
+    (1, True, None, False, False, False, CODE_BAD_REQUEST, 123, None),  # Missing metadata size
 ])
-def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, mock_db, app_ctx, mocker):
+def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is_owner, db_error, expected_status, file_size, metadata_size, mock_db, app_ctx, mocker):
     # Set up test data
     filename = "test.txt" if file_present else None
-    file_contents_b64 = "dGVzdCBjb250ZW50" if file_present else None # Base64 for "test content"
-    metadata = {'size': 123, 'format': 'txt'}
+    file_contents = b'test content' if file_present else None
+    if file_size is not None:
+        file_contents = b'x' * file_size
+    file_contents_b64 = base64.b64encode(file_contents).decode() if file_contents else None
+    metadata = {'size': metadata_size, 'format': 'txt'} if metadata_size is not None else {'format': 'txt'}
     test_uuid = uuid.UUID(uuid_provided) if uuid_provided else None
 
     # Mock existing file query
@@ -70,7 +78,7 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
         existing_file.name = "test.txt"
         existing_file.path = "/tmp/test.txt"
         existing_file.file_metadata = MagicMock()
-        existing_file.file_metadata.size = 123
+        existing_file.file_metadata.size = metadata_size
         existing_file.file_metadata.format = 'txt'
 
     mock_db.query().filter_by().first.return_value = existing_file
@@ -94,7 +102,7 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
     mocker.patch('os.makedirs')
     mocker.patch('os.remove')
     mocker.patch('builtins.open', mock_open())
-    mocker.patch('base64.b64decode', return_value=b'test content')
+    mocker.patch('base64.b64decode', return_value=file_contents if file_contents else b'')
 
     # Run test
     mocker.patch('server.utils.file.get_session', return_value=mock_session_ctx(mock_db))
@@ -119,6 +127,10 @@ def test_upload_file_to_db(user_id, file_present, uuid_provided, file_exists, is
             assert data['uuid'] == str(test_uuid)
     elif expected_status == CODE_BAD_REQUEST:
         assert 'error' in data
+        if file_size is not None and file_size > 104857600:
+            assert 'exceeds maximum allowed size' in data['error']
+        elif metadata_size is not None and file_size != metadata_size:
+            assert 'does not match actual file size' in data['error']
     else:
         assert 'error' in data
 

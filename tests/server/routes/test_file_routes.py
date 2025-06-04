@@ -181,6 +181,7 @@ def stored_file_data(logged_in_user, test_file_data, client):
 
 def test_file_upload(client, logged_in_user, setup_test_db):
     """Test file upload functionality."""
+    # Test normal file upload
     file_content = b"test file content"
     encoded_content = base64.b64encode(file_content).decode('utf-8')
     
@@ -203,6 +204,58 @@ def test_file_upload(client, logged_in_user, setup_test_db):
     data = response.json
     assert "uuid" in data
     assert "message" in data
+
+    # Test file too large
+    large_file_content = b'x' * 104857601  # 100MB + 1 byte
+    large_encoded_content = base64.b64encode(large_file_content).decode('utf-8')
+    large_file_data = {
+        "file": {
+            "filename": "largefile.txt",
+            "contents": large_encoded_content
+        },
+        "metadata": {
+            "size": len(large_file_content),
+            "format": "txt"
+        }
+    }
+    response = client.post("/api/files/upload", headers=headers, json=large_file_data)
+    assert response.status_code == 400
+    data = response.json
+    assert "error" in data
+    assert "exceeds maximum allowed size" in data["error"]
+
+    # Test metadata size mismatch
+    mismatch_file_data = {
+        "file": {
+            "filename": "mismatch.txt",
+            "contents": encoded_content
+        },
+        "metadata": {
+            "size": len(file_content) + 100,  # Different from actual size
+            "format": "txt"
+        }
+    }
+    response = client.post("/api/files/upload", headers=headers, json=mismatch_file_data)
+    assert response.status_code == 400
+    data = response.json
+    assert "error" in data
+    assert "does not match actual file size" in data["error"]
+
+    # Test missing metadata size
+    missing_size_data = {
+        "file": {
+            "filename": "missing_size.txt",
+            "contents": encoded_content
+        },
+        "metadata": {
+            "format": "txt"
+        }
+    }
+    response = client.post("/api/files/upload", headers=headers, json=missing_size_data)
+    assert response.status_code == 400
+    data = response.json
+    assert "error" in data
+    assert "Invalid file size in metadata" in data["error"]
 
 def test_list_files(client, logged_in_user, setup_test_db):
     """Test listing files for the logged-in user."""
