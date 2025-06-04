@@ -490,3 +490,35 @@ bool FileSharingUtils::verifySignedPreKey(const QString& identityPublicKeyBase64
     qDebug() << "Signed pre-key signature verified successfully";
     return true;
 }
+
+/**
+ * @brief Generates an ephemeral key pair for use in X3DH protocol
+ *
+ * This function generates an X25519 ephemeral key pair (EKA in X3DH protocol)
+ * which is used for a single protocol run to establish a shared secret key.
+ * According to the X3DH specification, the ephemeral private key should be
+ * used immediately and then deleted for forward secrecy.
+ *
+ * @param ephemeralPublicKey Output parameter for base64-encoded ephemeral public key
+ * @param ephemeralPrivateKey Output parameter for base64-encoded ephemeral private key
+ * @return bool True if successful, false otherwise
+ */
+bool FileSharingUtils::generateEphemeralKeyPair(QString& ephemeralPublicKey, QString& ephemeralPrivateKey) {
+    // Generate a new X25519 key pair for the ephemeral key
+    auto eph_x25519_pk = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
+    auto eph_x25519_sk = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
+    
+    if (crypto_box_keypair(eph_x25519_pk.get(), eph_x25519_sk.get()) != 0) {
+        qWarning() << "Failed to generate ephemeral key pair";
+        return false;
+    }
+    
+    // Convert results to base64 and pass back via reference parameters
+    ephemeralPublicKey = QByteArray(reinterpret_cast<char*>(eph_x25519_pk.get()), 
+                                   crypto_box_PUBLICKEYBYTES).toBase64();
+    ephemeralPrivateKey = QByteArray(reinterpret_cast<char*>(eph_x25519_sk.get()), 
+                                    crypto_box_SECRETKEYBYTES).toBase64();
+    
+    qDebug() << "Ephemeral key pair generated successfully - NOT stored locally for forward secrecy";
+    return true;
+}
