@@ -317,8 +317,8 @@ def add_otpks():
         logger.error(f"Error adding OTPKs: {str(e)}")
         return jsonify({"error": str(e)}), 500
     
-@authentication_routes.route('/get_otpk', methods=['GET'])
-def get_otpk():
+@authentication_routes.route('/retrieve_key_bundle', methods=['GET'])
+def retrieve_key_bundle():
     """Get OTPK route to retrieve a one-time pre key for a selected user.
         Expected JSON payload:
     {
@@ -327,6 +327,9 @@ def get_otpk():
     Expected response:
     {
         "otpk": "<base64_encoded_otpk>"
+        "spk": "<base64_encoded_spk>"
+        "spk_signature": "<base64_encoded_spk_signature>"
+        "updatedAt": "<updated_at>"
     }
     """
     logger.debug("Received request to get OTPK")
@@ -335,12 +338,12 @@ def get_otpk():
         logger.warning("Get OTPK failed: Missing username")
         return jsonify({"error": "Missing username"}), 400
     try:
-        response, status_code = auth.get_otpk(username)
+        response, status_code = auth.retrieve_key_bundle(username)
         if status_code != 200:
             return jsonify(response), status_code
         return jsonify(response), 200
     except Exception as e:
-        logger.error(f"Error getting OTPK: {str(e)}")
+        logger.error(f"Error retrieving key bundle: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @authentication_routes.route('/update_spk', methods=['POST'])
