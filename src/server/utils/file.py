@@ -193,32 +193,37 @@ def get_user_files(user_id: int) -> dict:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
+def get_file_by_uuid(file_uuid: str, user_info: dict) -> dict:
     """Get a specific file by UUID if user has access.
 
     Args:
         file_uuid (str): UUID of the requested file
-        user_id (int): ID of the user requesting the file
+        user_info (dict): Dictionary containing user information including user_id and username
 
     Returns:
-        dict: Response containing file data and sharing keys if user is owner
+        dict: Response containing:
+            - If user is owner: encrypted_file
+            - If file is shared with user: encrypted_file, otpk, ephemeral_key, spk, spk_sig
     """
+    user_id = user_info.get('user_id')
+    username = user_info.get('username')
     try:
         with get_session() as db:
             # Find the file
             file = db.query(Files).filter_by(uuid=file_uuid).first()
             if not file:
-                logger.warning(f"File with UUID {file_uuid} not found for user {user_id}")
+                logger.warning(f"File with UUID {file_uuid} not found for user {username}")
                 return jsonify({'error': 'File not found'}), 404
 
             # Check if user has access
+            permission = None
             if file.owner_id != user_id:
                 permission = db.query(FilePermissions).filter_by(
                     file_id=file.id,
                     user_id=user_id
                 ).first()
                 if not permission:
-                    logger.warning(f"User {user_id} not authorized to access file {file_uuid}")
+                    logger.warning(f"User {username} not authorized to access file {file_uuid}")
                     return jsonify({'error': 'Not authorized to access this file'}), 403
 
             # Read the encrypted file
@@ -233,17 +238,23 @@ def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
                 'encrypted_file': base64.b64encode(encrypted_file).decode('utf-8')
             }
 
-            # If user is owner, include all sharing keys
-            if file.owner_id == user_id:
-                permissions = db.query(FilePermissions).filter_by(file_id=file.id).all()
-                response_data['encrypted_keys'] = {
-                    perm.user_id: perm.encryption_key for perm in permissions
-                }
-            logger.info(f"User {user_id} retrieved file {file_uuid} successfully")
-        return jsonify(response_data), 200
+            # If user is not the owner, include the sharing keys
+            if file.owner_id != user_id:
+                # Get the user's signed pre key and signature
+                user = db.query(Users).filter_by(id=user_id).first()
+                
+                response_data.update({
+                    'otpk': permission.otpk.key if permission.otpk else None,
+                    'ephemeral_key': permission.ephemeral_key,
+                    'spk': user.spk,
+                    'spk_sig': user.spk_signature
+                })
+
+            logger.info(f"User {username} retrieved file {file_uuid} successfully")
+            return jsonify(response_data), 200
 
     except Exception as e:
-        logger.error(f"Error retrieving file {file_uuid} for user {user_id}: {str(e)}")
+        logger.error(f"Error retrieving file {file_uuid} for user {username}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:

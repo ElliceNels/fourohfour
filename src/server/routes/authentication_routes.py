@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request
 from server.utils import auth, jwt
 from server.utils.jwt import JWTError
 import logging
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -66,12 +67,15 @@ def sign_up():
         "username": "<username>",
         "password": "<password>",
         "public_key": "<public_key>",
+        "spk": "<signed_pre_key>",
+        "spk_signature": "<spk_signature>",
         "salt": "<salt>"
     }
 
     Expected response:
     {
-        "token": <JWT_token>
+        "access_token": "<JWT_access_token>",
+        "refresh_token": "<JWT_refresh_token>"
     }
     """
     
@@ -80,10 +84,12 @@ def sign_up():
     username = data.get('username')
     password = data.get('password')
     public_key = data.get('public_key')
+    spk = data.get('spk')
+    spk_signature = data.get('spk_signature')
     salt = data.get('salt')
     bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
 
-    return auth.sign_up(username, password, public_key, bytes_salt)
+    return auth.sign_up(username, password, public_key, spk, spk_signature, bytes_salt)
 
 @authentication_routes.route('/logout', methods=['POST'])
 def logout():
@@ -228,8 +234,6 @@ def get_current_user():
     except JWTError as e:
         return jsonify({"error": e.message}), e.status
 
-
-
 @authentication_routes.route('/get_public_key', methods=['GET'])
 def get_public_key():
     """Get public key route to retrieve the user's public key.
@@ -254,3 +258,133 @@ def get_public_key():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@authentication_routes.route('/count_otpk', methods=['GET'])
+def count_otpk():
+    """Count OTPK route to retrieve the count of one-time pre keys for the current user.
+
+    Expected response:
+    {
+        "otpk_count": <number_of_otpk>
+    }
+    """
+    logger.debug("Received request to count OTPKs")
+    try:
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+        
+        otpk_count = auth.get_count_otpk(user_info)
+        return jsonify({"otpk_count": otpk_count}), 200
+    except JWTError as e:
+        return jsonify({"error": e.message}), e.status
+    except ValueError as e:
+        logger.warning(f"Count OTKs failed: {str(e)}")
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+@authentication_routes.route('/add_otpks', methods=['POST'])
+def add_otpks():
+    """Add OTPK route to generate and add one-time pre keys for the current user.
+
+    Expected JSON payload:
+    {
+     otpks:
+        [
+            dGhpcyBpcyBhIHRlc3Qga2V5IDMzNTU1Mw==, YW5vdGhlciB0ZXN0IGtleSAyMzQ1Njc4OQ== #base 64 encoded!
+        ]
+    }
+
+    Expected response:
+    {
+        "message": "OTPKs added successfully",
+        "otpk_count": <new_otpk_count>
+    }
+    """
+    try:
+        data = request.get_json()
+        otpks = data.get('otpks')
+        if not data or not otpks:
+            logger.warning("Add OTPKs failed: Missing or malformed request data")
+            return jsonify({"error": "Missing request fields"}), 400
+        
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+            
+        return auth.add_otpks(otpks, user_info)
+    except Exception as e:
+        logger.error(f"Error adding OTPKs: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    
+@authentication_routes.route('/get_otpk', methods=['GET'])
+def get_otpk():
+    """Get OTPK route to retrieve a one-time pre key for a selected user.
+        Expected JSON payload:
+    {
+        "username": "<username>"
+    }
+    Expected response:
+    {
+        "otpk": "<base64_encoded_otpk>"
+    }
+    """
+    logger.debug("Received request to get OTPK")
+    username = request.args.get('username')
+    if not username:
+        logger.warning("Get OTPK failed: Missing username")
+        return jsonify({"error": "Missing username"}), 400
+    try:
+        response, status_code = auth.get_otpk(username)
+        if status_code != 200:
+            return jsonify(response), status_code
+        return jsonify(response), 200
+    except Exception as e:
+        logger.error(f"Error getting OTPK: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@authentication_routes.route('/update_spk', methods=['POST'])
+def update_spk():
+    """Update Signed Pre Key route to update the signed pre key for the current user.	
+    Expected JSON payload:
+    {
+        "spk": "<signed_pre_key>",
+        "spk_signature": "<spk_signature>"
+    }
+    Expected response:
+    {
+        "message": "Signed Pre Key updated successfully"
+    }
+    """
+    logger.debug("Received request to update signed pre key")
+    
+    try:
+        # Get current user info
+        user_info, status_code = auth.get_current_user()
+        if status_code != 200:
+            return jsonify({"error": "Failed to get current user"}), status_code
+
+        # Get SPK data from request
+        data = request.get_json()
+        if not data or 'spk' not in data or 'spk_signature' not in data:
+            logger.warning("Update SPK failed: Missing required fields")
+            return jsonify({"error": "Missing required fields"}), 400
+
+        spk = data['spk']
+        spk_signature = data['spk_signature']
+
+        # Validate base64 format
+        try:
+            base64.b64decode(spk)
+            base64.b64decode(spk_signature)
+        except Exception as e:
+            logger.warning(f"Update SPK failed: Invalid base64 format - {str(e)}")
+            return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
+
+        # Call auth function to update SPK
+        response, status_code = auth.update_spk(user_info, spk, spk_signature)
+        return jsonify(response), status_code
+
+    except Exception as e:
+        logger.error(f"Error updating signed pre key: {str(e)}")
+        return jsonify({"error": str(e)}), 500

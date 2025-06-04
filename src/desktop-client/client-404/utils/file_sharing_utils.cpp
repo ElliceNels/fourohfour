@@ -12,6 +12,7 @@
 #include "crypto/encryptionhelper.h"
 #include "utils/securebufferutils.h"
 #include "constants.h"
+#include "utils/file_crypto_utils.h"
 
 /**
  * @brief Generates multiple one-time pre-key pairs for secure communication
@@ -80,17 +81,17 @@ bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector
     }
 
     // Get master key and validate it
-    const SecureVector masterKey = getMasterKey();
-    if (masterKey.empty()) {
+    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
+    if (!FileCryptoUtils::validateMasterKey(masterKey)) {
         return false; 
     }
 
     // Build file path for the key storage
-    const QString filepath = buildKeyStorageFilePath();
+    const QString filepath = FileCryptoUtils::buildKeyStorageFilePath();
 
     // Read existing encrypted file
     QByteArray jsonData;
-    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+    if (!FileCryptoUtils::readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
         return false;
     }
     
@@ -101,7 +102,7 @@ bool FileSharingUtils::saveKeyPairsLocally(const QString& keyType, const QVector
     }
     
     // Encrypt and save the updated JSON data
-    if (!encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
+    if (!FileCryptoUtils::encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
         return false;
     }
     
@@ -168,8 +169,8 @@ bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData,
         
         json[keyType] = preKeysObject;
     }
-    else if (keyType == "signedPreKey" || keyType == "ephemeral") {
-        // For signed pre-keys or ephemeral keys, store as an object with public keys as indexes
+    else if (keyType == "signedPreKey") {
+        // For signed pre-keys, store as an object with public keys as indexes
         QJsonObject keyObject = json.contains(keyType) ?
                                 json[keyType].toObject() :
                                 QJsonObject();
@@ -184,6 +185,12 @@ bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData,
         }
         
         json[keyType] = keyObject;
+    }
+    else if (keyType == "ephemeral") {
+        // Ephemeral keys should never be stored - do nothing but warn
+        qWarning() << "Attempt to store ephemeral keys was prevented for security reasons";
+        // Return true to prevent errors when the function is called
+        return true;
     }
     else {
         // Generic handling for other key types
@@ -470,5 +477,37 @@ bool FileSharingUtils::verifySignedPreKey(const QString& identityPublicKeyBase64
     }
     
     qDebug() << "Signed pre-key signature verified successfully";
+    return true;
+}
+
+/**
+ * @brief Generates an ephemeral key pair for use in X3DH protocol
+ *
+ * This function generates an X25519 ephemeral key pair (EKA in X3DH protocol)
+ * which is used for a single protocol run to establish a shared secret key.
+ * According to the X3DH specification, the ephemeral private key should be
+ * used immediately and then deleted for forward secrecy.
+ *
+ * @param ephemeralPublicKey Output parameter for base64-encoded ephemeral public key
+ * @param ephemeralPrivateKey Output parameter for base64-encoded ephemeral private key
+ * @return bool True if successful, false otherwise
+ */
+bool FileSharingUtils::generateEphemeralKeyPair(QString& ephemeralPublicKey, QString& ephemeralPrivateKey) {
+    // Generate a new X25519 key pair for the ephemeral key
+    auto eph_x25519_pk = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
+    auto eph_x25519_sk = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
+    
+    if (crypto_box_keypair(eph_x25519_pk.get(), eph_x25519_sk.get()) != 0) {
+        qWarning() << "Failed to generate ephemeral key pair";
+        return false;
+    }
+    
+    // Convert results to base64 and pass back via reference parameters
+    ephemeralPublicKey = QByteArray(reinterpret_cast<char*>(eph_x25519_pk.get()), 
+                                   crypto_box_PUBLICKEYBYTES).toBase64();
+    ephemeralPrivateKey = QByteArray(reinterpret_cast<char*>(eph_x25519_sk.get()), 
+                                    crypto_box_SECRETKEYBYTES).toBase64();
+    
+    qDebug() << "Ephemeral key pair generated successfully - NOT stored locally for forward secrecy";
     return true;
 }
