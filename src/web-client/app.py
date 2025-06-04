@@ -6,6 +6,11 @@ from resetpassword import manage_reset_password
 from session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
+import time
+
+login_attempts = {}
+MAX_ATTEMPTS = 5
+WINDOW_SECONDS = 300  # 5 minutes
 
 from utils.verify_user import generate_code, save_friend
 from utils.view_files import my_files
@@ -24,6 +29,7 @@ def title_page():
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
+    clear_flashes()
     if request.method == 'POST':
         account_name = request.form['username']
         password = request.form['password']
@@ -36,6 +42,7 @@ def signup():
         else:
             registration_success, error_message = manage_registration(account_name, password)
             if registration_success:
+                session['username'] = account_name
                 print(f"Registration successful for {account_name}")  
                 clear_flashes()
                 flash(message, "success")
@@ -47,12 +54,21 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    clear_flashes()
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        ip = request.remote_addr
 
+        if is_rate_limited(ip):
+            clear_flashes()
+            flash("Too many login attempts. Please try again in 5 minutes.", "error")
+            return render_template('login.html')
+        
         login_success, message = manage_login(password, username)
+        record_login_attempt(ip) 
         if login_success:
+            session['username'] = username
             print(f"Login successful for {username}")
             clear_flashes()
             flash(message, "success")
@@ -70,6 +86,7 @@ def main_menu():
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
     session.clear()
+    LoginSessionManager.getInstance().clearSession()
     return redirect(url_for('title_page'))
 
 @app.route('/upload_file', methods=['GET', 'POST'])
@@ -170,32 +187,44 @@ def verify_new_user():
 
 @app.route('/reset_password', methods=['GET', 'POST'])
 def reset_password():
+    clear_flashes()
     if request.method == 'POST':
         old_password = request.form.get('old_password')
         new_password = request.form.get('new_password')
         confirm_password = request.form.get('confirm_password')  
 
-        username = LoginSessionManager.getInstance().getUsername()
+
+        if not old_password:
+            clear_flashes()
+            flash('Please provide your old password', 'error')
+            return render_template('resetpassword.html') 
+
+
+        username = session.get('username')
+        if not username:
+            clear_flashes()
+            flash('Session expired or not logged in. Please log in again.', 'error')
+            return redirect(url_for('login'))
+
         
-        success, message = validate_registration(username, new_password, confirm_password)
+        success, message = validate_registration(username, new_password, confirm_password, old_password)
         
         if not success:
+            clear_flashes()
             flash(message, 'error')
-            return render_template('resetpassword.html')
+            return render_template('resetpassword.html') 
             
-        if not old_password:
-            flash('Please provide your old password', 'error')
-            return render_template('resetpassword.html')
             
         # If validation passes, proceed with password reset
         success, message = manage_reset_password(old_password, new_password)
         
         if success:
+            clear_flashes()
             flash('Password reset successful!', 'success')
             return redirect(url_for('main_menu'))
         else:
+            clear_flashes()
             flash(message, 'error')
-            return render_template('resetpassword.html')
             
     return render_template('resetpassword.html')
 
@@ -207,6 +236,20 @@ def view_file(filename):
     # Placeholder for file viewing logic
     # Retrieve the file content from the server or database
     return render_template('viewfile.html', filename=filename, file_content=" This is a placeholder for file content.")
+
+def is_rate_limited(ip):
+    now = time.time()
+    attempts = login_attempts.get(ip, [])
+    # Remove attempts outside the window
+    attempts = [t for t in attempts if now - t < WINDOW_SECONDS]
+    login_attempts[ip] = attempts
+    return len(attempts) >= MAX_ATTEMPTS
+
+def record_login_attempt(ip):
+    now = time.time()
+    attempts = login_attempts.get(ip, [])
+    attempts.append(now)
+    login_attempts[ip] = attempts
 
 if __name__ == '__main__':
     app.run(debug=True, port=8080)

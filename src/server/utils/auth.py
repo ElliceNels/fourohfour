@@ -425,43 +425,51 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
     logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
     return {"message": f"Added {len(otpks)} OTPKs successfully"}, 201
 
-def get_otpk(username: str) -> Dict:
-    """Get one-time pre keys (OTPKs) for a selected user.
+def retrieve_key_bundle(username: str) -> Dict:
+    """Get key bundle for a selected user.
 
     Args:
-        username (str): Username of the user whose OTPKs are requested.
+        username (str): Username of the user whose key bundle is requested.
 
     Returns:
-        Dict: Response containing the OTPK or error message.
+        Dict: Response containing the key bundle (OTPK, SPK, SPK signature, updated timestamp) or error message.
     """
     
     if not username:
-        logger.warning("Get OTPK failed: Missing required fields")
+        logger.warning("Get key bundle failed: Missing required fields")
         return {"error": "Missing required fields"}, 400
     
     with get_session() as db:
         user: Users = db.query(Users).filter_by(username=username).first()
         
         if not user:
-            logger.warning(f"Get OTPK failed for user {username}: User not found")
+            logger.warning(f"Get key bundle failed for user {username}: User not found")
             return {"error": "User not found"}, 404
             
-        #get the first unused OTPK for the user
+        # Get the first unused OTPK for the user
         otpk = db.query(OTPK).filter_by(user_id=user.id, used=0).first()
         if not otpk:
-            logger.warning(f"Get OTPK failed for user {username}: No unused OTPK found")
+            logger.warning(f"Get key bundle failed for user {username}: No unused OTPK found")
             return {"error": "No unused OTPK found"}, 404
             
-        # Store the key before marking as used
+        # Store all needed values before closing the session
         otpk_key = otpk.key
+        spk = user.spk
+        spk_signature = user.spk_signature
+        spk_updated_at = user.spk_updated_at.isoformat()
         
         # Mark the OTPK as used
         otpk.used = 1
         otpk.updated_at = datetime.now(UTC)
         db.commit()
         
-    logger.info(f"Retrieved and marked OTPK as used for user {username}")
-    return {"otpk": otpk_key}, 200
+    logger.info(f"Retrieved key bundle for user {username}")
+    return {
+        "otpk": otpk_key,
+        "spk": spk,
+        "spk_signature": spk_signature,
+        "updatedAt": spk_updated_at
+    }, 200
 
 def update_spk(user_info: Dict, spk: str, spk_signature: str) -> Dict:
     """Update the signed pre key (SPK) for a user.

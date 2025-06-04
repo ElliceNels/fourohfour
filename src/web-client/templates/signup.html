@@ -23,11 +23,9 @@
         }
 
         function showProgressAndDisableBtn() {
-            // Show the progress message
-            document.getElementById('progress-message').style.display = 'block';
             // Disable the submit button
             document.getElementById('signup-btn').disabled = true;
-            // Optionally, change the button text
+            // Change the button text
             document.getElementById('signup-btn').textContent = 'Registering...';
         }
     </script>
@@ -45,11 +43,6 @@
                 <span class="hero-primary">Create</span> <span class="hero-secondary">Account</span>
             </h1>
             <p class="hero-subtitle">Join fourohfour Files today</p>
-        </div>
-
-        <!-- Progress message (hidden by default) -->
-        <div id="progress-message" style="display:none; color: #0d47a1; margin-bottom: 10px;">
-            Registration in progress...
         </div>
 
         <!-- Flash messages for validation errors/success -->

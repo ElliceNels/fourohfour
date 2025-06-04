@@ -15,6 +15,14 @@ class ServerConfig(BaseModel):
     debug: bool
     url: str
 
+class DatabasePoolConfig(BaseModel):
+    """Database connection pool configuration class."""
+    size: int
+    max_overflow: int
+    timeout: int
+    recycle: int
+    pre_ping: bool
+
 class DatabaseConfig(BaseModel):
     """Database configuration class."""
     db_name: str
@@ -23,6 +31,7 @@ class DatabaseConfig(BaseModel):
     environment: str = os.getenv("DB_ENVIRONMENT", "development")  # Default to development if not set
     db_user: str = os.getenv("DB_USER", "db_user")
     db_password: str = os.getenv("DB_PASSWORD", "db_password")
+    pool: DatabasePoolConfig
 
 class LoggingConfig(BaseModel):
     """Logging configuration class."""
