@@ -14,20 +14,16 @@ def manage_reset_password(old_password, new_password):
 
     username = LoginSessionManager.getInstance().getUsername()
 
-    print("Decrytping local files")
-    if (decrypt_and_reencrypt_user_file(username, old_password, old_salt, new_password, new_salt) == False):
-        return False, "Failed to encrypt and save key"
 
+    if (decrypt_and_reencrypt_user_file(username, old_password, old_salt, new_password, new_salt) == False):
+        return False, "Incorrect password"
     
-    try:
-        print("Calling reset password")
-        result = reset_password(new_password, new_salt)
-        if result:
-            return True, "Password reset successful!"
-        else:
-            return False, "Failed to reset password on server."
-    except Exception as e:
-        return False, f"Failed to reset password on server: {str(e)}"
+
+    if (reset_password(new_password, new_salt) == False):
+        return False, "Failed to reset password on server" 
+    else:
+        return True, "Password reset successful!"
+
 
 
 

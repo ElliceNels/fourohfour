@@ -37,7 +37,15 @@ def setup_db(name: str = None):
     db_engine = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{config.database.db_host}:{config.database.db_port}/{name}"    
     
     try:
-        engine = create_engine(db_engine)
+        # Configure connection pooling
+        engine = create_engine(
+            db_engine,
+            pool_size=config.database.pool.size,
+            max_overflow=config.database.pool.max_overflow,
+            pool_timeout=config.database.pool.timeout,
+            pool_recycle=config.database.pool.recycle,
+            pool_pre_ping=config.database.pool.pre_ping
+        )
 
         # Ensure the database exists (will create if not)
         if not database_exists(engine.url):

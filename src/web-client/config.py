@@ -47,7 +47,6 @@ class Config(BaseModel):
 
     def __init__(self, rel_path: str = "config.json"):
         """Load the configuration from a JSON file.
-
         Args:
             rel_path (str): Relative path to the configuration file.
         """
@@ -62,7 +61,7 @@ class Config(BaseModel):
             raise FileNotFoundError(f'File not found: {filepath}')
         except json.JSONDecodeError:
             raise ValueError(f'Invalid JSON file: {filepath}')
-        
+
         # Initialize the configuration
         super().__init__(**data)
 
