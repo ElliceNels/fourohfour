@@ -20,10 +20,9 @@ using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
 
-    auto publicKey = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
-    auto privateKey = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
-
-    crypto_box_keypair(publicKey.get(), privateKey.get());
+    auto publicKey = make_secure_buffer<crypto_sign_PUBLICKEYBYTES>();
+    auto privateKey = make_secure_buffer<crypto_sign_SECRETKEYBYTES>();
+    crypto_sign_ed25519_keypair(publicKey.get(), privateKey.get());
 
 
     QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_box_PUBLICKEYBYTES);
