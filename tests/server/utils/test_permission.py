@@ -130,14 +130,15 @@ def test_create_file_permission(file_exists, owner_matches, recipient_exists, pe
         else:
             assert "error" in data
 
-@pytest.mark.parametrize("file_exists, owner_matches, permission_exists, raises, expected_status", [
-    (True, True, True, False, CODE_OK),           # Success
-    (False, True, True, False, CODE_NOT_FOUND),   # File not found
-    (True, False, True, False, CODE_FORBIDDEN),   # Not owner
-    (True, True, False, False, CODE_NOT_FOUND),   # Permission not found
-    (True, True, True, True, CODE_ERROR),         # Exception
+@pytest.mark.parametrize("file_exists, owner_matches, is_self_removal, permission_exists, raises, expected_status", [
+    (True, True, False, True, False, CODE_OK),           # Success: owner removing permission
+    (True, False, True, True, False, CODE_OK),           # Success: user removing their own permission
+    (False, True, False, True, False, CODE_NOT_FOUND),   # File not found
+    (True, False, False, True, False, CODE_FORBIDDEN),   # Not owner and not self
+    (True, True, False, False, False, CODE_NOT_FOUND),   # Permission not found
+    (True, True, False, True, True, CODE_ERROR),         # Exception
 ])
-def test_remove_file_permission(file_exists, owner_matches, permission_exists, raises, expected_status):
+def test_remove_file_permission(file_exists, owner_matches, is_self_removal, permission_exists, raises, expected_status):
     with patch("server.utils.permission.get_session") as mock_get_session:
         mock_db = MagicMock()
         mock_get_session.return_value.__enter__.return_value = mock_db
@@ -182,7 +183,8 @@ def test_remove_file_permission(file_exists, owner_matches, permission_exists, r
         resp, status = permission.remove_file_permission(
             file_uuid="test-uuid",
             username="test_user",
-            owner_id=1
+            sender_username="test_user" if is_self_removal else "other_user",
+            sender_id=1
         )
         data = resp.get_json()
         assert status == expected_status
