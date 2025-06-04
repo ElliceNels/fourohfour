@@ -20,16 +20,17 @@
  * This function generates KEY_GEN_COUNT public/private key pairs using the X25519 elliptic-curve
  * Diffie-Hellman algorithm. These keys are used for secure file sharing between users.
  * The key pairs are generated, stored locally for future use, and the public keys
- * are returned to be uploaded to the server.
+ * are returned as a JSON array of base64-encoded strings.
  *
- * @return QVector<QByteArray> A collection of public keys to be stored on the server, empty if failed
+ * @return QJsonArray A JSON array of base64-encoded public keys for storage on the server
  *
  * @note The corresponding private keys are not returned but are securely stored locally
  * @see saveOneTimePreKeyPairsLocally()
  */
-QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
+QJsonArray FileSharingUtils::generateOneTimePreKeyPairs() {
     QVector<QByteArray> publicKeys;
     QVector<QByteArray> privateKeys;
+    QJsonArray publicKeysJson;
     
     // Reserve space for the number of keys to be generated
     publicKeys.reserve(KEY_GEN_COUNT);
@@ -46,15 +47,21 @@ QVector<QByteArray> FileSharingUtils::generateOneTimePreKeyPairs() {
             continue;
         }
 
-        publicKeys.append(QByteArray(reinterpret_cast<char*>(pk.get()), crypto_box_PUBLICKEYBYTES));
-        privateKeys.append(QByteArray(reinterpret_cast<char*>(sk.get()), crypto_box_SECRETKEYBYTES));
+        QByteArray publicKey(reinterpret_cast<char*>(pk.get()), crypto_box_PUBLICKEYBYTES);
+        QByteArray privateKey(reinterpret_cast<char*>(sk.get()), crypto_box_SECRETKEYBYTES);
+        
+        publicKeys.append(publicKey);
+        privateKeys.append(privateKey);
+        
+        // Add base64-encoded public key to JSON array
+        publicKeysJson.append(QString(publicKey.toBase64()));
     }
     
     // Store these key pairs locally before returning
     bool savedSuccessfully = saveOneTimePreKeyPairsLocally(publicKeys, privateKeys);
     
-    // Return the list of public keys only if successful, otherwise return empty vector
-    return savedSuccessfully ? publicKeys : QVector<QByteArray>();
+    // Return the JSON array of base64-encoded public keys only if successful
+    return savedSuccessfully ? publicKeysJson : QJsonArray();
 }
 
 /**
