@@ -66,6 +66,11 @@ class OTPKConfig(BaseModel):
     """OTPK (One-Time Pre Key) configuration class."""
     min_unused_count: int
 
+class FileConfig(BaseModel):
+    """File configuration class."""
+    max_size_bytes: int
+    max_size_mb: int
+
 class Config(BaseModel):
     """Singleton configuration class."""
 
@@ -78,6 +83,7 @@ class Config(BaseModel):
     jwt: JWTConfig
     spk: SPKConfig
     otpk: OTPKConfig
+    file: FileConfig
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern enforcing on Config class creation."""

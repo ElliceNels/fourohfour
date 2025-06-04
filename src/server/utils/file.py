@@ -7,6 +7,7 @@ from server.models.tables import Files, FilePermissions, FileMetadata, Users
 from server.utils.db_setup import get_session
 import logging
 from werkzeug.utils import secure_filename
+from server.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,22 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
     except Exception as e:
         logger.error(f"Error decoding base64 file contents: {str(e)}")
         return jsonify({'error': 'Invalid base64 file contents'}), 400
+
+    # Validate file size before any database operations
+    if len(file_contents) > config.file.max_size_bytes:
+        logger.warning(f"Upload failed: File size {len(file_contents)} bytes exceeds maximum allowed size of {config.file.max_size_mb}MB")
+        return jsonify({'error': f'File size exceeds maximum allowed size of {config.file.max_size_mb}MB'}), 400
+
+    # Validate metadata size matches actual file size
+    if metadata and 'size' in metadata:
+        try:
+            metadata_size = float(metadata['size'])
+            if abs(metadata_size - len(file_contents)) > 1:  # Allow 1 byte difference for floating point precision
+                logger.warning(f"Upload failed: Metadata size {metadata_size} does not match actual file size {len(file_contents)}")
+                return jsonify({'error': 'File size in metadata does not match actual file size'}), 400
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Upload failed: Invalid size in metadata: {str(e)}")
+            return jsonify({'error': 'Invalid file size in metadata'}), 400
 
     with get_session() as db:
         try:
