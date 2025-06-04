@@ -9,6 +9,7 @@
 #include "utils/securebufferutils.h"
 #include "utils/friend_storage_utils.h"
 #include "core/loginsessionmanager.h"
+#include "utils/file_crypto_utils.h"
 
 /**
  * @brief Shows an error message if parent widget is available
@@ -500,6 +501,146 @@ bool SharedSecretUtils::generateSenderSharedSecret(
     qDebug() << "Successfully generated sender's shared secret with" << recipientUsername;
     
     return true;
+}
+
+/**
+ * @brief Encrypts a file key using a shared secret
+ */
+bool SharedSecretUtils::encryptFileKeyWithSharedSecret(
+    const SecureVector& sharedSecret,
+    const QString& fileUuid,
+    const QString& senderIdentityKey,
+    const QString& recipientIdentityKey,
+    QByteArray& encryptedKeyData,
+    QWidget* parent) {
+    
+    // Validate inputs
+    if (sharedSecret.empty() || fileUuid.isEmpty() || senderIdentityKey.isEmpty() || recipientIdentityKey.isEmpty()) {
+        showErrorMessage(parent, "Encryption Error", "Invalid inputs for file key encryption");
+        return false;
+    }
+    
+    // Retrieve the file key by UUID
+    auto fileKey = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
+    if (!FileCryptoUtils::getFileEncryptionKey(fileUuid, fileKey.get(), 
+                                             crypto_aead_xchacha20poly1305_ietf_KEYBYTES, parent)) {
+        showErrorMessage(parent, "Key Error", "Failed to retrieve file encryption key");
+        return false;
+    }
+    
+    // Create associated data using sender and recipient identity keys
+    QByteArray associatedData = constructAssociatedData(senderIdentityKey, recipientIdentityKey);
+    
+    // Generate a nonce for encryption
+    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
+    EncryptionHelper encryptor;
+    try {
+        // Generate random nonce
+        encryptor.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+        
+        // Encrypt the file key using the shared secret as the key
+        SecureVector encryptedFileKey = encryptor.encrypt(
+            fileKey.get(),
+            crypto_aead_xchacha20poly1305_ietf_KEYBYTES,
+            sharedSecret.data(),  // Use shared secret as encryption key
+            nonce.get(),
+            reinterpret_cast<const unsigned char*>(associatedData.constData()),
+            associatedData.size()
+        );
+        
+        // Prepare the output: nonce + encrypted file key
+        encryptedKeyData.resize(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + encryptedFileKey.size());
+        
+        // Copy nonce at the beginning
+        std::memcpy(encryptedKeyData.data(), 
+                   nonce.get(), 
+                   crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+        
+        // Copy encrypted file key after the nonce
+        std::memcpy(encryptedKeyData.data() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES,
+                   encryptedFileKey.data(),
+                   encryptedFileKey.size());
+        
+        qDebug() << "File key encrypted successfully";
+        return true;
+        
+    } catch (const std::exception& e) {
+        showErrorMessage(parent, "Encryption Error", 
+                      QString("Failed to encrypt file key: %1").arg(e.what()));
+        return false;
+    }
+}
+
+/**
+ * @brief Decrypts a file key using a shared secret
+ */
+bool SharedSecretUtils::decryptFileKeyWithSharedSecret(
+    const SecureVector& sharedSecret,
+    const QByteArray& encryptedKeyData,
+    const QString& senderIdentityKey,
+    const QString& recipientIdentityKey,
+    unsigned char* fileKey,
+    size_t fileKeySize,
+    QWidget* parent) {
+    
+    // Validate inputs
+    if (sharedSecret.empty() || encryptedKeyData.isEmpty() || 
+        senderIdentityKey.isEmpty() || recipientIdentityKey.isEmpty() ||
+        fileKey == nullptr || fileKeySize < crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
+        showErrorMessage(parent, "Decryption Error", "Invalid inputs for file key decryption");
+        return false;
+    }
+    
+    // Verify encrypted data has enough bytes for nonce + ciphertext
+    if (encryptedKeyData.size() <= crypto_aead_xchacha20poly1305_ietf_NPUBBYTES) {
+        showErrorMessage(parent, "Decryption Error", "Encrypted key data is too small");
+        return false;
+    }
+    
+    // Create associated data using sender and recipient identity keys
+    QByteArray associatedData = constructAssociatedData(senderIdentityKey, recipientIdentityKey);
+    
+    try {
+        // Extract nonce from the beginning of encrypted data
+        auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
+        std::memcpy(nonce.get(), encryptedKeyData.constData(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
+        
+        // Extract ciphertext (encrypted file key)
+        const unsigned char* ciphertext = 
+            reinterpret_cast<const unsigned char*>(encryptedKeyData.constData()) + 
+            crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+        
+        const unsigned long long ciphertext_len = 
+            encryptedKeyData.size() - crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+        
+        // Decrypt the file key using the shared secret
+        EncryptionHelper decryptor;
+        SecureVector decryptedFileKey = decryptor.decrypt(
+            ciphertext,
+            ciphertext_len,
+            sharedSecret.data(),  // Use shared secret as decryption key
+            nonce.get(),
+            reinterpret_cast<const unsigned char*>(associatedData.constData()),
+            associatedData.size()
+        );
+        
+        // Ensure the decrypted key has the expected size
+        if (decryptedFileKey.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
+            showErrorMessage(parent, "Decryption Error", "Decrypted file key has incorrect size");
+            return false;
+        }
+        
+        // Copy the decrypted key to the output buffer
+        std::memcpy(fileKey, decryptedFileKey.data(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES);
+        
+        qDebug() << "File key decrypted successfully";
+        return true;
+        
+    } catch (const std::exception& e) {
+        showErrorMessage(parent, "Decryption Error", 
+                      QString("Failed to decrypt file key: %1").arg(e.what()));
+        return false;
+    }
 }
 
 /**
