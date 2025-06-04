@@ -29,9 +29,9 @@ void TestKeyUtils::testGenerateSodiumKeyPairLength()
     QByteArray pubKeyArray = QByteArray::fromBase64(publicKey.toUtf8());
     QByteArray privKeyArray = QByteArray::fromBase64(privateKey.toUtf8());
 
-    // Verify lengths match sodium's expected sizes
-    QCOMPARE(pubKeyArray.size(), static_cast<int>(crypto_box_PUBLICKEYBYTES));
-    QCOMPARE(privKeyArray.size(), static_cast<int>(crypto_box_SECRETKEYBYTES));
+    // Verify lengths match sodium's expected sizes for Ed25519 keys
+    QCOMPARE(pubKeyArray.size(), static_cast<int>(crypto_sign_PUBLICKEYBYTES));
+    QCOMPARE(privKeyArray.size(), static_cast<int>(crypto_sign_SECRETKEYBYTES));
 }
 
 void TestKeyUtils::testGenerateSodiumKeyPairFormat()

@@ -19,15 +19,17 @@
 using namespace std;
 
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) {
+    // Generate Ed25519 keys instead of Curve25519
+    auto ed25519_pk = make_secure_buffer<crypto_sign_PUBLICKEYBYTES>();
+    auto ed25519_sk = make_secure_buffer<crypto_sign_SECRETKEYBYTES>();
 
-    auto publicKey = make_secure_buffer<crypto_box_PUBLICKEYBYTES>();
-    auto privateKey = make_secure_buffer<crypto_box_SECRETKEYBYTES>();
+    if (crypto_sign_keypair(ed25519_pk.get(), ed25519_sk.get()) != 0) {
+        qWarning() << "Failed to generate Ed25519 keypair";
+        return false;
+    }
 
-    crypto_box_keypair(publicKey.get(), privateKey.get());
-
-
-    QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_box_PUBLICKEYBYTES);
-    QByteArray privKeyArray(reinterpret_cast<char*>(privateKey.get()), crypto_box_SECRETKEYBYTES);
+    QByteArray pubKeyArray(reinterpret_cast<char*>(ed25519_pk.get()), crypto_sign_PUBLICKEYBYTES);
+    QByteArray privKeyArray(reinterpret_cast<char*>(ed25519_sk.get()), crypto_sign_SECRETKEYBYTES);
 
     publicKeyBase64 = pubKeyArray.toBase64();
     privateKeyBase64 = privKeyArray.toBase64();
