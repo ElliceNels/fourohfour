@@ -76,10 +76,13 @@ const std::string LOGIN_ENDPOINT = "/login";
 const std::string FILES_API_ENDPOINT = "/api/files";
 const std::string UPLOAD_FILE_ENDPOINT = FILES_API_ENDPOINT + "/upload";
 const std::string GET_PUBLIC_KEY_ENDPOINT = "/get_public_key";
+const std::string RETRIEVE_KEY_BUNDLE_ENDPOINT = "/retrieve_key_bundle";
 const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
 const std::string GET_USER_FILES_ENDPOINT =  FILES_API_ENDPOINT + "/";
 const std::string ADD_OTPKS_ENDPOINT = "/add_otpks";
+
+const int MAX_AGE_DAYS = 7; // Maximum age of signed prekey in days
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 const QString RESTRICTED_CHARS = QStringLiteral("\\/:*?\"<>|'%;&=+$#@!~()[]{}., ");
