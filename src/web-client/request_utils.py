@@ -1,6 +1,6 @@
 import requests
 import json
-from exceptions import UsernameAlreadyExistsError, ServerError, UserNotFoundError, InvalidPasswordError
+from exceptions import UsernameAlreadyExistsError, ServerError, UserNotFoundError, InvalidPasswordError, SamePasswordError
 
 def get_request(url, access_token, refresh_token, params=None):
     """
@@ -64,6 +64,8 @@ def post_request(url, json_data=None, access_token=None, refresh_token=None):
             raise UserNotFoundError()
         elif response.status_code == 401:
             raise InvalidPasswordError()
+        elif response.status_code == 400:
+            raise SamePasswordError()
             
         response.raise_for_status()
         return response
@@ -76,6 +78,8 @@ def post_request(url, json_data=None, access_token=None, refresh_token=None):
             raise UserNotFoundError()
         elif "401" in str(http_err):
             raise InvalidPasswordError()
+        elif "400" in str(http_err):
+            raise SamePasswordError()
         raise ServerError()
     except requests.exceptions.ConnectionError as conn_err:
         print(f"Connection error occurred: {conn_err}")

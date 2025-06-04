@@ -462,12 +462,19 @@ def test_add_otpk_cases(otpks, user_info, expected_status, mock_db, app_ctx, moc
         ("valid_user", True, True, CODE_SUCCESS, "test_otpk"),  # Success case with updated_at
     ]
 )
-def test_get_otpk_cases(username, user_exists, has_unused_otpk, expected_status, expected_otpk, mock_db, app_ctx, mocker):
-    from server.utils.auth import get_otpk
+def test_retrieve_key_bundle_cases(username, user_exists, has_unused_otpk, expected_status, expected_otpk, mock_db, app_ctx, mocker):
+    from server.utils.auth import retrieve_key_bundle
     
     # Set up mock database responses
     if user_exists:
-        user = Users(id=1, username=username)
+        current_time = datetime.now(timezone.utc)
+        user = Users(
+            id=1, 
+            username=username,
+            spk="test_spk",
+            spk_signature="test_signature",
+            spk_updated_at=current_time
+        )
         otpk = OTPK(key=expected_otpk, used=0) if has_unused_otpk else None
         mock_db.query().filter_by().first.side_effect = [user, otpk]
     else:
@@ -477,7 +484,7 @@ def test_get_otpk_cases(username, user_exists, has_unused_otpk, expected_status,
     mocker.patch('server.utils.auth.get_session', return_value=mock_session_ctx(mock_db))
     
     # Call the function
-    response = get_otpk(username)
+    response = retrieve_key_bundle(username)
     
     # Verify response status
     assert response[1] == expected_status
@@ -485,6 +492,9 @@ def test_get_otpk_cases(username, user_exists, has_unused_otpk, expected_status,
     # Verify response content
     if expected_status == CODE_SUCCESS:
         assert response[0]["otpk"] == expected_otpk
+        assert response[0]["spk"] == "test_spk"
+        assert response[0]["spk_signature"] == "test_signature"
+        assert "updatedAt" in response[0]
         # Verify that the OTPK was marked as used
         assert otpk.used == 1
         assert otpk.updated_at is not None
