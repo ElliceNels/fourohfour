@@ -202,9 +202,9 @@ void RegisterPage::onCreateAccountClicked()
     cout << "Salt: " << *saltPtr << endl;
 
     if (sendSignUpRequest(accountName, password, pubKeyBase64, signedPreKeyPublic, signature, salt)) {
-        if (!sendOTPksRequest(oneTimePreKeysJson)) {
+        if (!sendOneTimePreKeysRequest(oneTimePreKeysJson)) {
             qWarning() << "One-time pre-keys were not uploaded to the server";
-            // We don't fail the registration process for this, but we warn the user in the sendOTPksRequest method
+            // We don't fail the registration process for this, but we warn the user
         }
         
         QMessageBox::information(this, "Success", "Account created and logged in!");
@@ -247,6 +247,8 @@ void RegisterPage::onShowPasswordClicked()
  * @param username The username to register.
  * @param password The plaintext password of the user.
  * @param publicKey The user's public key for cryptographic operations.
+ * @param signedPreKey The signed pre-key for secure messaging.
+ * @param signedPreKeySignature The signature validating the signed pre-key.
  * @param salt The salt used for password hashing.
  * @return true if registration is successful and tokens are saved; false otherwise.
  */
@@ -299,7 +301,7 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
  * @param oneTimePreKeysJson JSON array of base64-encoded one-time pre-key public keys
  * @return true if the keys were successfully sent and stored, false otherwise
  */
-bool RegisterPage::sendOTPksRequest(const QJsonArray& oneTimePreKeysJson) {
+bool RegisterPage::sendOneTimePreKeysRequest(const QJsonArray& oneTimePreKeysJson) {
     // Create request JSON object
     QJsonObject requestData;
     requestData["otpks"] = oneTimePreKeysJson;
