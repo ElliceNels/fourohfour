@@ -127,19 +127,25 @@ Important Security Notes:
 ## Deploying to Gobbler.info
 1. Copy files to server:
    ```bash
-   scp -i ~/.ssh/id_rsa -r "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/db_test/src/
+   rsync -avz --exclude="venv" -e "ssh -i ~/.ssh/id_rsa" "/mnt/c/Users/jeanl/College/Blocks/Block 8/fourohfour/src/server" jean@gobbler.info:~/fourohfour/src/
    ```
-
+2. Make a virtual environent on server (note its a little different on ubuntu!!!)
+   ````
+   cd src/server
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 2. Set production environment variables:
    ```bash
    export DB_ENVIRONMENT=production
-   export DB_USER=fourohfour
-   export DB_PASSWORD=fourohfour
+   export DB_USER=prod_db_username
+   export DB_PASSWORD=prod_db_password
    ```
 
 3. Start the application:
    ```bash
-   cd ~/db_test
+   cd ~/fourohfour
    nohup gunicorn -w 4 -b 0.0.0.0:4004 src.server.app:app > gunicorn.log 2>&1 &
    ```
 
