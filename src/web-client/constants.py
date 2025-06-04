@@ -5,6 +5,7 @@ JSON_EXTENSION = ".json"
 RESTRICTED_CHARS = set("!@#$%^&*()+=[]{}|\\;:'\",<>/?`~")
 SERVER_URL = "http://localhost:5000"
 SIGN_UP_ENDPOINT = "/sign_up"
+ADD_OTPK_ENDPOINT = "/add_otpks"
 LOGIN_ENDPOINT = "/login"
 GET_USER_ENDPOINT = "/get_current_user"
 GET_PUBLIC_KEY_ENDPOINT = "/get_public_key"
