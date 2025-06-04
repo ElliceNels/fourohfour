@@ -518,3 +518,113 @@ bool FileSharingUtils::generateEphemeralKeyPair(QString& ephemeralPublicKey, QSt
     qDebug() << "Ephemeral key pair generated successfully - NOT stored locally for forward secrecy";
     return true;
 }
+
+/**
+ * @brief Helper method to extract a key from JSON storage
+ * 
+ * @param rootObject The JSON object containing key storage
+ * @param keyType The type of key to extract (e.g., "signedPreKey", "oneTimePrekeys")
+ * @param keyIdentifier The identifier (usually a public key) used to look up the private key
+ * @param extractedKey Output parameter for the extracted key
+ * @return bool True if key was found, false otherwise
+ */
+bool FileSharingUtils::extractKeyFromStorage(const QJsonObject& rootObject, 
+                                          const QString& keyType, 
+                                          const QString& keyIdentifier,
+                                          QString& extractedKey) {
+    if (rootObject.contains(keyType) && rootObject[keyType].isObject()) {
+        QJsonObject keysObject = rootObject[keyType].toObject();
+        
+        if (keysObject.contains(keyIdentifier)) {
+            extractedKey = keysObject[keyIdentifier].toString();
+            qDebug() << "Found private" << keyType;
+            return true;
+        } else {
+            qWarning() << "Private" << keyType << "not found for" << keyIdentifier;
+            return false;
+        }
+    } else {
+        qWarning() << "No" << keyType << "section found in key storage";
+        return false;
+    }
+}
+
+/**
+ * @brief Retrieves Recipient's private key material necessary for X3DH key agreement
+ *
+ * This function retrieves the private keys corresponding to the provided public keys
+ * from the local encrypted key storage file. These keys are used for Recipient's side of
+ * the X3DH protocol to establish a shared secret with the Sender.
+ *
+ * @param publicSignedPreKeyBase64 Base64-encoded public signed pre-key used as index
+ * @param publicOneTimePreKeyBase64 Base64-encoded public one-time pre-key used as index (mandatory)
+ * @param privateSignedPreKey Output parameter for the retrieved private signed pre-key
+ * @param privateOneTimePreKey Output parameter for the retrieved private one-time pre-key
+ * @param privateKey Output parameter for the identity private key
+ * @return bool True if all keys were successfully retrieved, false otherwise
+ */
+bool FileSharingUtils::retrieveRecipientKeyMaterialForX3DH(
+    const QString& publicSignedPreKeyBase64,
+    const QString& publicOneTimePreKeyBase64,
+    QString& privateSignedPreKey,
+    QString& privateOneTimePreKey,
+    QString& privateKey) {
+    
+    // Validate input parameters - both signed pre-key and one-time pre-key are required
+    if (publicSignedPreKeyBase64.isEmpty()) {
+        qWarning() << "Empty signed pre-key provided";
+        return false;
+    }
+    
+    if (publicOneTimePreKeyBase64.isEmpty()) {
+        qWarning() << "Empty one-time pre-key provided";
+        return false;
+    }
+    
+    // Get master key and validate it
+    const SecureVector masterKey = getMasterKey();
+    if (masterKey.empty()) {
+        qWarning() << "Failed to retrieve master key for key material retrieval";
+        return false;
+    }
+    
+    // Build file path for the key storage
+    const QString filepath = buildKeyStorageFilePath();
+    
+    // Read and decrypt key storage file
+    QByteArray jsonData;
+    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+        qWarning() << "Failed to read and decrypt key storage file";
+        return false;
+    }
+    
+    // Parse JSON data
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning() << "Failed to parse key storage JSON:" << parseError.errorString();
+        return false;
+    }
+    
+    QJsonObject rootObject = doc.object();
+    bool allKeysFound = true;
+    
+    // Extract all required keys using the helper method
+    allKeysFound &= extractKeyFromStorage(rootObject, "signedPreKey", publicSignedPreKeyBase64, privateSignedPreKey);
+    
+    // One-time pre-key is mandatory in this implementation
+    allKeysFound &= extractKeyFromStorage(rootObject, "oneTimePrekeys", publicOneTimePreKeyBase64, privateOneTimePreKey);
+    // Note: We keep the one-time pre-key for future file decryption needs
+    
+    // Identity private key is stored differently, direct in the root
+    if (rootObject.contains("privateKey") && rootObject["privateKey"].isString()) {
+        privateKey = rootObject["privateKey"].toString();
+        qDebug() << "Found identity private key";
+    } else {
+        qWarning() << "Identity private key not found in key storage";
+        allKeysFound = false;
+    }
+    
+    return allKeysFound;
+}
