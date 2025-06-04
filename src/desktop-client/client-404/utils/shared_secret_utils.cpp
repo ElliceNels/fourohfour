@@ -2,44 +2,43 @@
 #include <QDebug>
 #include <sodium.h>
 #include <QByteArray>
+#include <QMessageBox>
 #include "utils/file_sharing_utils.h"
+#include "utils/x3dh_network_utils.h"
 #include "crypto/encryptionhelper.h"
 #include "utils/securebufferutils.h"
+#include "utils/friend_storage_utils.h"
+#include "core/loginsessionmanager.h"
+
+/**
+ * @brief Shows an error message if parent widget is available
+ */
+void SharedSecretUtils::showErrorMessage(QWidget* parent, const QString& title, const QString& message) {
+    if (parent) {
+        QMessageBox::warning(parent, title, message);
+    }
+    qWarning() << title << ":" << message;
+}
 
 /**
  * @brief Generates a shared secret key for the recipient according to X3DH protocol
- *
- * This implementation follows a modified X3DH protocol specification where one-time
- * prekeys are mandatory for additional security:
- * 1. Retrieve all necessary private keys 
- * 2. Perform multiple DH operations including the mandatory DH4 with one-time prekey
- * 3. Concatenate DH outputs and apply KDF 
- * 4. Delete one-time prekey if specified
- *
- * Note: Identity keys are in Ed25519 format and are converted to X25519 before DH operations
- *
- * @param senderIdentityKeyBase64 Base64-encoded sender's identity key (Ed25519 format)
- * @param senderEphemeralKeyBase64 Base64-encoded sender's ephemeral key (X25519 format)
- * @param recipientSignedPreKeyBase64 Base64-encoded recipient's signed prekey (X25519 format)
- * @param oneTimePreKeyBase64 Base64-encoded one-time prekey (X25519 format) - mandatory
- * @param removeUsedOneTimePreKey Whether to delete the one-time prekey after use
- * @return SecureVector The derived shared secret key, empty if the operation failed
  */
 SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     const QString& senderIdentityKeyBase64,
     const QString& senderEphemeralKeyBase64, 
     const QString& recipientSignedPreKeyBase64,
     const QString& oneTimePreKeyBase64,
-    bool removeUsedOneTimePreKey) {
+    bool removeUsedOneTimePreKey,
+    QWidget* parent) {
     
     // Validate inputs
     if (senderIdentityKeyBase64.isEmpty() || senderEphemeralKeyBase64.isEmpty() || 
         recipientSignedPreKeyBase64.isEmpty() || oneTimePreKeyBase64.isEmpty()) {
-        qWarning() << "Required keys missing for shared secret generation";
+        showErrorMessage(parent, "Key Error", "Required keys missing for shared secret generation");
         return SecureVector();
     }
     
-    // Retrieve recipient's private keys using existing FileSharingUtils method
+    // Retrieve recipient's private keys using FileSharingUtils method
     QString privateSignedPreKey;
     QString privateOneTimePreKey;
     QString privateIdentityKey;  // This is Ed25519 format
@@ -53,13 +52,13 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     );
     
     if (!keysRetrieved) {
-        qWarning() << "Failed to retrieve recipient's private keys for shared secret generation";
+        showErrorMessage(parent, "Key Error", "Failed to retrieve recipient's private keys for shared secret generation");
         return SecureVector();
     }
     
     // Verify one-time prekey was retrieved (mandatory in our implementation)
     if (privateOneTimePreKey.isEmpty()) {
-        qWarning() << "One-time prekey is mandatory but was not retrieved successfully";
+        showErrorMessage(parent, "Key Error", "One-time prekey is mandatory but was not retrieved successfully");
         return SecureVector();
     }
     
@@ -67,9 +66,13 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     QString senderIdentityKeyX25519Base64;
     QString recipientIdentityKeyX25519Base64;
     
-    if (!convertEd25519ToX25519Keys(senderIdentityKeyBase64, privateIdentityKey,
-                                    senderIdentityKeyX25519Base64, recipientIdentityKeyX25519Base64)) {
-        qWarning() << "Failed to convert Ed25519 identity keys to X25519";
+    if (!convertEd25519ToX25519Keys(
+            senderIdentityKeyBase64, // Public key input
+            privateIdentityKey,      // Private key input
+            senderIdentityKeyX25519Base64,  // Public key output
+            recipientIdentityKeyX25519Base64)) { // Private key output
+        
+        showErrorMessage(parent, "Conversion Error", "Failed to convert Ed25519 identity keys to X25519");
         return SecureVector();
     }
     
@@ -80,7 +83,7 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     // Bob uses his signed prekey private key with Alice's identity public key
     SecureVector dh1 = performDH(privateSignedPreKey, senderIdentityKeyX25519Base64);
     if (dh1.empty()) {
-        qWarning() << "DH1 calculation failed";
+        showErrorMessage(parent, "DH Error", "DH1 calculation failed");
         return SecureVector();
     }
     dhOutputs.append(dh1);
@@ -89,7 +92,7 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     // Bob uses his identity private key with Alice's ephemeral public key
     SecureVector dh2 = performDH(recipientIdentityKeyX25519Base64, senderEphemeralKeyBase64);
     if (dh2.empty()) {
-        qWarning() << "DH2 calculation failed";
+        showErrorMessage(parent, "DH Error", "DH2 calculation failed");
         return SecureVector();
     }
     dhOutputs.append(dh2);
@@ -98,7 +101,7 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     // Bob uses his signed prekey private key with Alice's ephemeral public key
     SecureVector dh3 = performDH(privateSignedPreKey, senderEphemeralKeyBase64);
     if (dh3.empty()) {
-        qWarning() << "DH3 calculation failed";
+        showErrorMessage(parent, "DH Error", "DH3 calculation failed");
         return SecureVector();
     }
     dhOutputs.append(dh3);
@@ -107,7 +110,7 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
     // Bob uses his one-time prekey private key with Alice's ephemeral public key
     SecureVector dh4 = performDH(privateOneTimePreKey, senderEphemeralKeyBase64);
     if (dh4.empty()) {
-        qWarning() << "DH4 calculation failed";
+        showErrorMessage(parent, "DH Error", "DH4 calculation failed");
         return SecureVector();
     }
     dhOutputs.append(dh4);
@@ -133,10 +136,6 @@ SecureVector SharedSecretUtils::generateRecipientSharedSecret(
 
 /**
  * @brief Performs a Diffie-Hellman key exchange using X25519
- *
- * @param privateKeyBase64 Base64-encoded private key
- * @param publicKeyBase64 Base64-encoded public key
- * @return SecureVector The DH shared secret, empty if operation failed
  */
 SecureVector SharedSecretUtils::performDH(const QString& privateKeyBase64, 
                                         const QString& publicKeyBase64) {
@@ -264,13 +263,6 @@ SecureVector SharedSecretUtils::applyKDF(const QVector<SecureVector>& dhOutputs)
 
 /**
  * @brief Constructs the associated data for the X3DH protocol
- *
- * The associated data is used for message authentication and binding the
- * identities of the communicating parties to the encryption.
- *
- * @param senderIdentityKeyBase64 Base64-encoded sender's identity key
- * @param recipientIdentityKeyBase64 Base64-encoded recipient's identity key
- * @return QByteArray The associated data byte sequence
  */
 QByteArray SharedSecretUtils::constructAssociatedData(
     const QString& senderIdentityKeyBase64, 
@@ -301,59 +293,245 @@ QByteArray SharedSecretUtils::constructAssociatedData(
 }
 
 /**
- * @brief Converts Ed25519 identity keys to X25519 format for Diffie-Hellman operations
+ * @brief Converts Ed25519 keys to X25519 format for Diffie-Hellman operations
  *
- * @param senderIdentityKeyEd25519Base64 Base64-encoded sender's Ed25519 identity public key
- * @param recipientIdentityKeyEd25519Base64 Base64-encoded recipient's Ed25519 identity private key
- * @param senderIdentityKeyX25519Base64 Output parameter for sender's converted X25519 public key
- * @param recipientIdentityKeyX25519Base64 Output parameter for recipient's converted X25519 private key
- * @return bool True if conversion successful, false otherwise
+ * Universal method that can convert public keys, private keys, or both.
  */
 bool SharedSecretUtils::convertEd25519ToX25519Keys(
-    const QString& senderIdentityKeyEd25519Base64,
-    const QString& recipientIdentityKeyEd25519Base64,
-    QString& senderIdentityKeyX25519Base64,
-    QString& recipientIdentityKeyX25519Base64) {
+    const QString& publicKeyEd25519Base64,
+    const QString& privateKeyEd25519Base64,
+    QString& publicKeyX25519Base64,
+    QString& privateKeyX25519Base64) {
     
-    // Decode base64 keys
-    QByteArray senderPkEd25519 = QByteArray::fromBase64(senderIdentityKeyEd25519Base64.toUtf8());
-    QByteArray recipientSkEd25519 = QByteArray::fromBase64(recipientIdentityKeyEd25519Base64.toUtf8());
+    // Initialize output parameters as empty
+    publicKeyX25519Base64.clear();
+    privateKeyX25519Base64.clear();
     
-    // Validate Ed25519 key sizes
-    if (senderPkEd25519.size() != crypto_sign_PUBLICKEYBYTES ||
-        recipientSkEd25519.size() != crypto_sign_SECRETKEYBYTES) {
-        qWarning() << "Invalid Ed25519 key size";
+    // Convert public key if provided
+    if (!publicKeyEd25519Base64.isEmpty()) {
+        QByteArray publicKeyEd25519 = QByteArray::fromBase64(publicKeyEd25519Base64.toUtf8());
+        
+        // Validate Ed25519 public key size
+        if (publicKeyEd25519.size() != crypto_sign_PUBLICKEYBYTES) {
+            qWarning() << "Invalid Ed25519 public key size";
+            return false;
+        }
+        
+        // Create buffer for X25519 public key
+        auto publicKeyX25519 = make_secure_buffer<crypto_scalarmult_curve25519_BYTES>();
+        
+        // Convert Ed25519 public key to X25519
+        if (crypto_sign_ed25519_pk_to_curve25519(
+                publicKeyX25519.get(),
+                reinterpret_cast<const unsigned char*>(publicKeyEd25519.constData())) != 0) {
+            qWarning() << "Failed to convert Ed25519 public key to X25519";
+            return false;
+        }
+        
+        // Convert to base64 string
+        publicKeyX25519Base64 = QByteArray(
+            reinterpret_cast<char*>(publicKeyX25519.get()),
+            crypto_scalarmult_curve25519_BYTES).toBase64();
+    }
+    
+    // Convert private key if provided
+    if (!privateKeyEd25519Base64.isEmpty()) {
+        QByteArray privateKeyEd25519 = QByteArray::fromBase64(privateKeyEd25519Base64.toUtf8());
+        
+        // Validate Ed25519 private key size
+        if (privateKeyEd25519.size() != crypto_sign_SECRETKEYBYTES) {
+            qWarning() << "Invalid Ed25519 private key size";
+            return false;
+        }
+        
+        // Create buffer for X25519 private key
+        auto privateKeyX25519 = make_secure_buffer<crypto_scalarmult_curve25519_SCALARBYTES>();
+        
+        // Convert Ed25519 private key to X25519
+        if (crypto_sign_ed25519_sk_to_curve25519(
+                privateKeyX25519.get(),
+                reinterpret_cast<const unsigned char*>(privateKeyEd25519.constData())) != 0) {
+            qWarning() << "Failed to convert Ed25519 private key to X25519";
+            return false;
+        }
+        
+        // Convert to base64 string
+        privateKeyX25519Base64 = QByteArray(
+            reinterpret_cast<char*>(privateKeyX25519.get()),
+            crypto_scalarmult_curve25519_SCALARBYTES).toBase64();
+    }
+    
+    // Successful if at least one conversion was performed
+    return !publicKeyX25519Base64.isEmpty() || !privateKeyX25519Base64.isEmpty();
+}
+
+/**
+ * @brief Generates a shared secret for the sender (Alice) according to X3DH protocol
+ */
+bool SharedSecretUtils::generateSenderSharedSecret(
+    const QString& recipientUsername,
+    const QString& recipientPublicKey,
+    SecureVector& sharedSecret,
+    QString& ephemeralPublicKey,
+    bool& usedOneTimePrekey,
+    QString& usedPreKeyId,
+    QWidget* parent) {
+    
+    // 1. Retrieve recipient's key bundle
+    QString recipientOneTimePrekey, recipientSignedPrekey;
+    bool bundleRetrieved = X3DHNetworkUtils::getKeyBundleRequest(
+        recipientUsername,
+        recipientPublicKey,  // Ed25519 format for signature verification
+        recipientOneTimePrekey,  // Will contain one-time prekey (OPKB) if available
+        recipientSignedPrekey,   // Will contain signed prekey (SPKB)
+        parent
+    );
+    
+    if (!bundleRetrieved) {
+        showErrorMessage(parent, "Bundle Error", 
+                       "Failed to retrieve key bundle for " + recipientUsername);
         return false;
     }
     
-    // Create buffers for X25519 keys
-    auto senderPkX25519 = make_secure_buffer<crypto_scalarmult_curve25519_BYTES>();
-    auto recipientSkX25519 = make_secure_buffer<crypto_scalarmult_curve25519_SCALARBYTES>();
-    
-    // Convert sender's Ed25519 public key to X25519
-    if (crypto_sign_ed25519_pk_to_curve25519(
-            senderPkX25519.get(),
-            reinterpret_cast<const unsigned char*>(senderPkEd25519.constData())) != 0) {
-        qWarning() << "Failed to convert sender's Ed25519 public key to X25519";
+    // Verify one-time prekey was retrieved (making it mandatory)
+    if (recipientOneTimePrekey.isEmpty()) {
+        showErrorMessage(parent, "Key Error", 
+                       "One-time prekey is mandatory but was not retrieved from server for " + recipientUsername);
         return false;
     }
     
-    // Convert recipient's Ed25519 private key to X25519
-    if (crypto_sign_ed25519_sk_to_curve25519(
-            recipientSkX25519.get(),
-            reinterpret_cast<const unsigned char*>(recipientSkEd25519.constData())) != 0) {
-        qWarning() << "Failed to convert recipient's Ed25519 private key to X25519";
+    // 2. Generate ephemeral key pair (EKA)
+    QString ephemeralPrivateKey;
+    bool keysGenerated = FileSharingUtils::generateEphemeralKeyPair(
+        ephemeralPublicKey,    // Output: public key
+        ephemeralPrivateKey    // Output: private key
+    );
+    
+    if (!keysGenerated) {
+        showErrorMessage(parent, "Key Error", "Failed to generate ephemeral key pair");
         return false;
     }
     
-    // Convert to base64 strings
-    senderIdentityKeyX25519Base64 = QByteArray(
-        reinterpret_cast<char*>(senderPkX25519.get()),
-        crypto_scalarmult_curve25519_BYTES).toBase64();
+    // 3. Get sender's identity key (IKA)
+    QString senderPublicKeyEd25519 = FriendStorageUtils::getUserPublicKey(
+        LoginSessionManager::getInstance().getUsername(), parent);
     
-    recipientIdentityKeyX25519Base64 = QByteArray(
-        reinterpret_cast<char*>(recipientSkX25519.get()),
-        crypto_scalarmult_curve25519_SCALARBYTES).toBase64();
+    // Get private key from encrypted key storage
+    QString senderPrivateKeyEd25519;
+    if (!retrieveIdentityKeyMaterial(senderPrivateKeyEd25519, parent)) {
+        showErrorMessage(parent, "Key Error", "Failed to retrieve identity key material");
+        return false;
+    }
+    
+    if (senderPublicKeyEd25519.isEmpty() || senderPrivateKeyEd25519.isEmpty()) {
+        showErrorMessage(parent, "Key Error", "Failed to retrieve sender's identity keys");
+        return false;
+    }
+    
+    // 4. Convert Ed25519 identity keys to X25519 for DH operations
+    QString senderPrivateKeyX25519, recipientPublicKeyX25519;
+    if (!convertEd25519ToX25519Keys(
+        recipientPublicKey,            // Recipient's Ed25519 public key
+        senderPrivateKeyEd25519,       // Sender's Ed25519 private key
+        recipientPublicKeyX25519,      // Output: Recipient's X25519 public key
+        senderPrivateKeyX25519         // Output: Sender's X25519 private key
+    )) {
+        showErrorMessage(parent, "Conversion Error", "Failed to convert keys to X25519 format");
+        return false;
+    }
+    
+    // 5. Perform DH calculations according to X3DH protocol
+    QVector<SecureVector> dhOutputs;
+    
+    // DH1 = DH(IKA_private, SPKB_public)
+    // Sender's identity key with recipient's signed prekey
+    SecureVector dh1 = performDH(senderPrivateKeyX25519, recipientSignedPrekey);
+    if (dh1.empty()) {
+        showErrorMessage(parent, "DH Error", "Key exchange calculation failed (DH1)");
+        return false;
+    }
+    dhOutputs.append(dh1);
+    
+    // DH2 = DH(EKA_private, IKB_public)
+    // Sender's ephemeral key with recipient's identity key
+    SecureVector dh2 = performDH(ephemeralPrivateKey, recipientPublicKeyX25519);
+    if (dh2.empty()) {
+        showErrorMessage(parent, "DH Error", "Key exchange calculation failed (DH2)");
+        return false;
+    }
+    dhOutputs.append(dh2);
+    
+    // DH3 = DH(EKA_private, SPKB_public)
+    // Sender's ephemeral key with recipient's signed prekey
+    SecureVector dh3 = performDH(ephemeralPrivateKey, recipientSignedPrekey);
+    if (dh3.empty()) {
+        showErrorMessage(parent, "DH Error", "Key exchange calculation failed (DH3)");
+        return false;
+    }
+    dhOutputs.append(dh3);
+    
+    // One-time prekey is now mandatory, so we always perform DH4
+    usedOneTimePrekey = true;
+    usedPreKeyId = recipientOneTimePrekey;
+    
+    // DH4 = DH(EKA_private, OPKB_public)
+    // Sender's ephemeral key with recipient's one-time prekey
+    SecureVector dh4 = performDH(ephemeralPrivateKey, recipientOneTimePrekey);
+    if (dh4.empty()) {
+        showErrorMessage(parent, "DH Error", "Key exchange calculation failed (DH4)");
+        return false;
+    }
+    dhOutputs.append(dh4);
+    
+    // 6. Apply KDF to derive the shared secret
+    sharedSecret = applyKDF(dhOutputs);
+    if (sharedSecret.empty()) {
+        showErrorMessage(parent, "KDF Error", "Failed to derive shared secret");
+        return false;
+    }
+    
+    // 7. Clean up sensitive data (as per X3DH spec, the sender should delete ephemeral key)
+    sodium_memzero(ephemeralPrivateKey.data(), ephemeralPrivateKey.size());
+    sodium_memzero(senderPrivateKeyX25519.data(), senderPrivateKeyX25519.size());
+    for (auto& output : dhOutputs) {
+        sodium_memzero(output.data(), output.size());
+    }
+    
+    qDebug() << "Successfully generated sender's shared secret with" << recipientUsername;
     
     return true;
+}
+
+/**
+ * @brief Retrieves identity key material from encrypted key storage
+ */
+bool SharedSecretUtils::retrieveIdentityKeyMaterial(QString& privateKey, QWidget* parent) {
+    // Use FileSharingUtils public methods instead of private ones
+    QByteArray jsonData;
+    if (!FileSharingUtils::getDecryptedKeyStorage(jsonData)) {
+        showErrorMessage(parent, "Storage Error", "Failed to retrieve and decrypt key storage");
+        return false;
+    }
+    
+    // Parse JSON data
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        showErrorMessage(parent, "Parse Error", 
+                       "Failed to parse key storage JSON: " + parseError.errorString());
+        return false;
+    }
+    
+    QJsonObject rootObject = doc.object();
+    
+    // Extract the private key
+    if (rootObject.contains("privateKey") && rootObject["privateKey"].isString()) {
+        privateKey = rootObject["privateKey"].toString();
+        qDebug() << "Successfully retrieved identity private key";
+        return true;
+    } else {
+        showErrorMessage(parent, "Key Error", "Identity private key not found in key storage");
+        return false;
+    }
 }

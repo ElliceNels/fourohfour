@@ -35,6 +35,17 @@ class FileSharingUtils {
             QString& privateKey);
             
         static bool removeOneTimePreKey(const QString& publicKeyBase64);
+        
+        /**
+         * @brief Gets decrypted key storage data
+         * 
+         * This is a public wrapper around private key storage methods
+         * to safely expose the functionality to other classes.
+         * 
+         * @param jsonData Output parameter that will contain the decrypted JSON data
+         * @return bool True if successful, false otherwise
+         */
+        static bool getDecryptedKeyStorage(QByteArray& jsonData);
 
     private:
         // Helper method to save signed pre-key pair

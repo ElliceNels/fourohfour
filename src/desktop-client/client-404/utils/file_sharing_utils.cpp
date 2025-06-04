@@ -703,3 +703,18 @@ bool FileSharingUtils::removeOneTimePreKey(const QString& publicKeyBase64) {
     qDebug() << "Successfully removed one-time pre-key from local storage";
     return true;
 }
+
+/**
+ * @brief Gets decrypted key storage data
+ */
+bool FileSharingUtils::getDecryptedKeyStorage(QByteArray& jsonData) {
+    const SecureVector masterKey = getMasterKey();
+    if (masterKey.empty()) {
+        qWarning() << "Failed to retrieve master key";
+        return false;
+    }
+    
+    const QString filepath = buildKeyStorageFilePath();
+    
+    return readAndDecryptKeyStorage(filepath, masterKey, jsonData);
+}
