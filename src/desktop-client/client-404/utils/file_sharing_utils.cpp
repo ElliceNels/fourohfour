@@ -628,3 +628,78 @@ bool FileSharingUtils::retrieveRecipientKeyMaterialForX3DH(
     
     return allKeysFound;
 }
+
+/**
+ * @brief Removes a one-time pre-key pair from local storage after use
+ *
+ * According to X3DH protocol, one-time pre-keys should be removed after use
+ * to ensure they are only used once for forward secrecy.
+ *
+ * @param publicKeyBase64 Base64-encoded public key of the one-time pre-key to remove
+ * @return bool True if key was successfully removed, false otherwise
+ */
+bool FileSharingUtils::removeOneTimePreKey(const QString& publicKeyBase64) {
+    if (publicKeyBase64.isEmpty()) {
+        qWarning() << "Empty one-time pre-key provided for removal";
+        return false;
+    }
+    
+    // Get master key and validate it
+    const SecureVector masterKey = getMasterKey();
+    if (masterKey.empty()) {
+        qWarning() << "Failed to retrieve master key for key removal";
+        return false;
+    }
+    
+    // Build file path for the key storage
+    const QString filepath = buildKeyStorageFilePath();
+    
+    // Read and decrypt key storage file
+    QByteArray jsonData;
+    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+        qWarning() << "Failed to read and decrypt key storage file during key removal";
+        return false;
+    }
+    
+    // Parse JSON data
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        qWarning() << "Failed to parse key storage JSON:" << parseError.errorString();
+        return false;
+    }
+    
+    QJsonObject rootObject = doc.object();
+    
+    // Check if one-time pre-keys section exists
+    if (!rootObject.contains("oneTimePrekeys") || !rootObject["oneTimePrekeys"].isObject()) {
+        qWarning() << "No one-time pre-keys section found in key storage";
+        return false;
+    }
+    
+    QJsonObject preKeysObject = rootObject["oneTimePrekeys"].toObject();
+    
+    // Check if the specific key exists
+    if (!preKeysObject.contains(publicKeyBase64)) {
+        qWarning() << "One-time pre-key not found in storage:" << publicKeyBase64;
+        return false;
+    }
+    
+    // Remove the key
+    preKeysObject.remove(publicKeyBase64);
+    
+    // Update the JSON structure
+    rootObject["oneTimePrekeys"] = preKeysObject;
+    doc.setObject(rootObject);
+    
+    // Encrypt and save the updated JSON
+    QByteArray updatedJsonData = doc.toJson(QJsonDocument::Compact);
+    if (!encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey)) {
+        qWarning() << "Failed to save updated key storage after key removal";
+        return false;
+    }
+    
+    qDebug() << "Successfully removed one-time pre-key from local storage";
+    return true;
+}

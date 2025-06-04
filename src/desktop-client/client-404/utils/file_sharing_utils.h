@@ -34,6 +34,8 @@ class FileSharingUtils {
             QString& privateOneTimePreKey,
             QString& privateKey);
             
+        static bool removeOneTimePreKey(const QString& publicKeyBase64);
+
     private:
         // Helper method to save signed pre-key pair
         static bool saveSignedPreKeyLocally(const QString& publicKeyBase64, 
