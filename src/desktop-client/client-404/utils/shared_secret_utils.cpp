@@ -151,14 +151,22 @@ SecureVector SharedSecretUtils::performDH(const QString& privateKeyBase64,
         return SecureVector();
     }
     
+    // Use secure buffers for input keys
+    auto privateBuf = make_secure_buffer<crypto_scalarmult_curve25519_SCALARBYTES>();
+    auto publicBuf = make_secure_buffer<crypto_scalarmult_curve25519_BYTES>();
+    
+    // Copy the key data into secure buffers
+    std::memcpy(privateBuf.get(), privateKeyBytes.constData(), crypto_scalarmult_curve25519_SCALARBYTES);
+    std::memcpy(publicBuf.get(), publicKeyBytes.constData(), crypto_scalarmult_curve25519_BYTES);
+    
     // Create secure buffer for the output
     SecureVector output(crypto_scalarmult_curve25519_BYTES);
     
     // Perform X25519 scalar multiplication
     if (crypto_scalarmult_curve25519(
             output.data(),
-            reinterpret_cast<const unsigned char*>(privateKeyBytes.constData()),
-            reinterpret_cast<const unsigned char*>(publicKeyBytes.constData())) != 0) {
+            privateBuf.get(),
+            publicBuf.get()) != 0) {
         qWarning() << "Diffie-Hellman calculation failed";
         return SecureVector();
     }
@@ -195,7 +203,8 @@ SecureVector SharedSecretUtils::applyKDF(const QVector<SecureVector>& dhOutputs)
     // Concatenate all DH outputs
     size_t offset = 0;
     for (const auto& output : dhOutputs) {
-        std::copy(output.begin(), output.end(), concatenatedDH.begin() + offset);
+        // Use data() and direct memory copying instead of iterators to avoid const issues
+        std::memcpy(concatenatedDH.data() + offset, output.data(), output.size());
         offset += output.size();
     }
     
@@ -206,27 +215,45 @@ SecureVector SharedSecretUtils::applyKDF(const QVector<SecureVector>& dhOutputs)
         
         // Before HKDF, X3DH requires prepending F bytes for domain separation
         // F is 32 bytes of 0xFF for X25519
-        SecureVector inputKeyMaterial(32 + concatenatedDH.size());
-        std::fill(inputKeyMaterial.begin(), inputKeyMaterial.begin() + 32, 0xFF);
-        std::copy(concatenatedDH.begin(), concatenatedDH.end(), inputKeyMaterial.begin() + 32);
+        constexpr size_t F_BYTES = 32;
+        constexpr size_t OUTPUT_BYTES = 32;
         
-        // Create zero-filled salt
-        auto salt = make_secure_buffer<crypto_auth_hmacsha256_BYTES>();
-        std::memset(salt.get(), 0, crypto_auth_hmacsha256_BYTES);
+        // Prepare the input keying material: F || KM
+        size_t ikm_len = F_BYTES + concatenatedDH.size();
+        SecureVector ikm(ikm_len);
         
-        // Use EncryptionHelper to perform HKDF
-        EncryptionHelper crypto;
-        SecureVector derivedKey = crypto.deriveKeyHKDF(
-            inputKeyMaterial.data(),
-            inputKeyMaterial.size(),
-            salt.get(),
-            crypto_auth_hmacsha256_BYTES,
-            reinterpret_cast<const unsigned char*>(info.constData()),
-            info.size(),
-            32 // 32-byte output key
-        );
+        // Fill first 32 bytes with 0xFF (this is F)
+        std::memset(ikm.data(), 0xFF, F_BYTES);
         
-        return derivedKey;
+        // Copy the concatenated DH outputs (this is KM)
+        std::memcpy(ikm.data() + F_BYTES, concatenatedDH.data(), concatenatedDH.size());
+        
+        // Create zero-filled salt (length equal to hash output length)
+        auto salt = make_secure_buffer<crypto_hash_sha256_BYTES>();
+        std::memset(salt.get(), 0, crypto_hash_sha256_BYTES);
+        
+        // Extract phase - create the PRK (pseudorandom key) using secure buffer
+        auto prk = make_secure_buffer<crypto_kdf_hkdf_sha256_KEYBYTES>();
+        if (crypto_kdf_hkdf_sha256_extract(
+                prk.get(), 
+                salt.get(), crypto_hash_sha256_BYTES,
+                ikm.data(), ikm_len) != 0) {
+            qWarning() << "HKDF extract operation failed";
+            return SecureVector();
+        }
+        
+        // Expand phase - derive the output key material
+        SecureVector output(OUTPUT_BYTES);
+        if (crypto_kdf_hkdf_sha256_expand(
+                output.data(), OUTPUT_BYTES,
+                reinterpret_cast<const unsigned char*>(info.constData()), info.size(),
+                prk.get()) != 0) {
+            qWarning() << "HKDF expand operation failed";
+            return SecureVector();
+        }
+        
+        // No need to manually wipe prk - SodiumZeroDeleter will handle it
+        return output;
     } catch (const std::exception& e) {
         qWarning() << "KDF operation failed:" << e.what();
         return SecureVector();
@@ -250,8 +277,25 @@ QByteArray SharedSecretUtils::constructAssociatedData(
     QByteArray senderKey = QByteArray::fromBase64(senderIdentityKeyBase64.toUtf8());
     QByteArray recipientKey = QByteArray::fromBase64(recipientIdentityKeyBase64.toUtf8());
     
-    // AD = Encode(IKA) || Encode(IKB) as specified in section 3.3
-    return senderKey + recipientKey;
+    // Use secure buffers for temporary storage of sensitive key data
+    auto senderBuf = make_secure_buffer<crypto_sign_PUBLICKEYBYTES>();
+    auto recipientBuf = make_secure_buffer<crypto_sign_PUBLICKEYBYTES>();
+    
+    // Only copy if the sizes are valid
+    if (senderKey.size() <= crypto_sign_PUBLICKEYBYTES) {
+        std::memcpy(senderBuf.get(), senderKey.constData(), senderKey.size());
+    }
+    
+    if (recipientKey.size() <= crypto_sign_PUBLICKEYBYTES) {
+        std::memcpy(recipientBuf.get(), recipientKey.constData(), recipientKey.size());
+    }
+    
+    // Create the associated data
+    QByteArray associatedData(senderKey.size() + recipientKey.size(), 0);
+    std::memcpy(associatedData.data(), senderBuf.get(), senderKey.size());
+    std::memcpy(associatedData.data() + senderKey.size(), recipientBuf.get(), recipientKey.size());
+    
+    return associatedData;
 }
 
 /**
