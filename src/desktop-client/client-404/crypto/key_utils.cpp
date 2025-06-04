@@ -25,8 +25,8 @@ bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) 
     crypto_sign_ed25519_keypair(publicKey.get(), privateKey.get());
 
 
-    QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_box_PUBLICKEYBYTES);
-    QByteArray privKeyArray(reinterpret_cast<char*>(privateKey.get()), crypto_box_SECRETKEYBYTES);
+    QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_sign_PUBLICKEYBYTES);
+    QByteArray privKeyArray(reinterpret_cast<char*>(privateKey.get()), crypto_sign_SECRETKEYBYTES);
 
     publicKeyBase64 = pubKeyArray.toBase64();
     privateKeyBase64 = privKeyArray.toBase64();
