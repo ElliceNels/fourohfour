@@ -157,6 +157,7 @@ void RegisterPage::onCreateAccountClicked()
 
 
 
+
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
     if (!saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json")) {
@@ -168,6 +169,32 @@ void RegisterPage::onCreateAccountClicked()
     if (!encryptAndSaveKey(this, privKeyBase64, key, accountName)) {
         QMessageBox::critical(this, "Key Encryption Error", 
             "Failed to encrypt and store private key securely. Registration cannot proceed.");
+        return;
+    }
+
+       // Generate and store one-time pre-key pairs
+    FileSharingUtils fileSharingUtils;
+    QVector<QByteArray> oneTimePreKeys = fileSharingUtils.generateOneTimePreKeyPairs();
+    if (oneTimePreKeys.isEmpty()) {
+        QMessageBox::critical(this, "Error", "Failed to generate one-time pre-keys. Registration cannot proceed without secure messaging capabilities.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+        return;
+    }
+    
+    // Generate and store signed pre-key
+    QString signedPreKeyPublic, signedPreKeyPrivate, signature;
+    bool signedPreKeySuccess = fileSharingUtils.generateSignedPreKey(
+        pubKeyBase64, privKeyBase64,  // Pass identity keys
+        signedPreKeyPublic, signedPreKeyPrivate, signature
+    );
+    
+    if (!signedPreKeySuccess) {
+        QMessageBox::critical(this, "Error", "Failed to generate signed pre-key. Registration cannot proceed without secure messaging capabilities.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
         return;
     }
 
