@@ -21,6 +21,10 @@ class FileSharingUtils {
             const QString& identityPublicKeyBase64,
             const QString& signedPreKeyPublicBase64,
             const QString& signatureBase64);
+
+        bool generateEphemeralKeyPair(
+            QString& ephemeralPublicKey,
+            QString& ephemeralPrivateKey);
             
     private:
         // Helper method to save signed pre-key pair
