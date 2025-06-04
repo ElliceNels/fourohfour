@@ -1,6 +1,6 @@
 import os
 import unicodedata
-from key_utils import generate_sodium_keypair, save_keys_to_json_file, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
+from key_utils import generate_sodium_keypair, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
 from session_manager import LoginSessionManager
 from constants import SIGN_UP_ENDPOINT
 from exceptions import UsernameAlreadyExistsError, ServerError
@@ -72,14 +72,8 @@ def manage_registration(account_name, password):
             encrypt_and_save_key(priv_b64, derived_key, account_name)
         except Exception as e:
             return False, f"Failed to encrypt and save key: {str(e)}"
-        
-        #Save public key
-        try:
-            save_keys_to_json_file(pub_b64, priv_b64)
-            return True, "Registration completed successfully"
-        except Exception as e:
-            return False, f"Failed to save keys to file: {str(e)}"
 
+        return True, "Registration successful"
     
     except Exception as e:
         # Catch any unexpected errors
