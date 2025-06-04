@@ -176,14 +176,6 @@ SecureVector SharedSecretUtils::performDH(const QString& privateKeyBase64,
 
 /**
  * @brief Applies the KDF to derive a shared secret key
- *
- * This implementation follows the X3DH specification for KDF:
- * SK = KDF(DH1 || DH2 || DH3 [|| DH4])
- * 
- * Uses HKDF as specified in section 2.2 of the X3DH protocol
- *
- * @param dhOutputs Vector of DH outputs to concatenate as input
- * @return SecureVector The derived key, empty if operation failed
  */
 SecureVector SharedSecretUtils::applyKDF(const QVector<SecureVector>& dhOutputs) {
     if (dhOutputs.isEmpty()) {
@@ -229,30 +221,40 @@ SecureVector SharedSecretUtils::applyKDF(const QVector<SecureVector>& dhOutputs)
         std::memcpy(ikm.data() + F_BYTES, concatenatedDH.data(), concatenatedDH.size());
         
         // Create zero-filled salt (length equal to hash output length)
-        auto salt = make_secure_buffer<crypto_hash_sha256_BYTES>();
-        std::memset(salt.get(), 0, crypto_hash_sha256_BYTES);
+        auto salt = make_secure_buffer<crypto_auth_hmacsha256_KEYBYTES>();
+        std::memset(salt.get(), 0, crypto_auth_hmacsha256_KEYBYTES);
         
-        // Extract phase - create the PRK (pseudorandom key) using secure buffer
-        auto prk = make_secure_buffer<crypto_kdf_hkdf_sha256_KEYBYTES>();
-        if (crypto_kdf_hkdf_sha256_extract(
-                prk.get(), 
-                salt.get(), crypto_hash_sha256_BYTES,
-                ikm.data(), ikm_len) != 0) {
-            qWarning() << "HKDF extract operation failed";
-            return SecureVector();
-        }
+        // Manually implement HKDF using HMAC functions available in libsodium
         
-        // Expand phase - derive the output key material
+        // Step 1: Extract - HMAC(salt, IKM) -> PRK
+        auto prk = make_secure_buffer<crypto_auth_hmacsha256_BYTES>();
+        crypto_auth_hmacsha256_state extract_state;
+        crypto_auth_hmacsha256_init(&extract_state, salt.get(), crypto_auth_hmacsha256_KEYBYTES);
+        crypto_auth_hmacsha256_update(&extract_state, ikm.data(), ikm_len);
+        crypto_auth_hmacsha256_final(&extract_state, prk.get());
+        
+        // Step 2: Expand - HMAC(PRK, info || 0x01) -> OKM
         SecureVector output(OUTPUT_BYTES);
-        if (crypto_kdf_hkdf_sha256_expand(
-                output.data(), OUTPUT_BYTES,
-                reinterpret_cast<const unsigned char*>(info.constData()), info.size(),
-                prk.get()) != 0) {
-            qWarning() << "HKDF expand operation failed";
-            return SecureVector();
-        }
         
-        // No need to manually wipe prk - SodiumZeroDeleter will handle it
+        crypto_auth_hmacsha256_state expand_state;
+        crypto_auth_hmacsha256_init(&expand_state, prk.get(), crypto_auth_hmacsha256_BYTES);
+        crypto_auth_hmacsha256_update(&expand_state, 
+            reinterpret_cast<const unsigned char*>(info.constData()), 
+            info.size());
+        
+        // Append counter byte (0x01)
+        unsigned char counter = 0x01;
+        crypto_auth_hmacsha256_update(&expand_state, &counter, 1);
+        
+        // Compute the HMAC
+        auto hmac_output = make_secure_buffer<crypto_auth_hmacsha256_BYTES>();
+        crypto_auth_hmacsha256_final(&expand_state, hmac_output.get());
+        
+        // Copy to output (truncate if necessary)
+        std::memcpy(output.data(), hmac_output.get(), 
+            std::min(static_cast<size_t>(OUTPUT_BYTES), 
+                    static_cast<size_t>(crypto_auth_hmacsha256_BYTES)));
+        
         return output;
     } catch (const std::exception& e) {
         qWarning() << "KDF operation failed:" << e.what();
