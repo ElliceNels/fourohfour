@@ -171,8 +171,8 @@ bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData,
         
         json[keyType] = preKeysObject;
     }
-    else if (keyType == "signedPreKey" || keyType == "ephemeral") {
-        // For signed pre-keys or ephemeral keys, store as an object with public keys as indexes
+    else if (keyType == "signedPreKey") {
+        // For signed pre-keys, store as an object with public keys as indexes
         QJsonObject keyObject = json.contains(keyType) ?
                                 json[keyType].toObject() :
                                 QJsonObject();
@@ -187,6 +187,12 @@ bool FileSharingUtils::updateJsonWithKeysGeneric(const QByteArray &jsonData,
         }
         
         json[keyType] = keyObject;
+    }
+    else if (keyType == "ephemeral") {
+        // Ephemeral keys should never be stored - do nothing but warn
+        qWarning() << "Attempt to store ephemeral keys was prevented for security reasons";
+        // Return true to prevent errors when the function is called
+        return true;
     }
     else {
         // Generic handling for other key types
