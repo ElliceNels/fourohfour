@@ -17,7 +17,14 @@
     "database": {
       "db_name": "fourohfour",
       "db_host": "127.0.0.1",
-      "db_port": 3306
+      "db_port": 3306,
+      "pool": {
+        "size": 5,
+        "max_overflow": 10,
+        "timeout": 30,
+        "recycle": 1800,
+        "pre_ping": true
+      }
     },
 
     "jwt": {
