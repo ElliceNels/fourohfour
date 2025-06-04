@@ -96,31 +96,35 @@ def create_file_permission(file_uuid: str, username: str, key_for_recipient: str
             logger.error(f"Error creating permission for file {file_uuid} and user {username}: {str(e)}", exc_info=True)
             return jsonify({'error': str(e)}), 500
 
-def remove_file_permission(file_uuid: str, username: str, owner_id: int) -> dict:
+def remove_file_permission(file_uuid: str, username: str, sender_username: str, sender_id: int) -> dict:
     """Remove a file permission for a user.
 
     Args:
         file_uuid (str): UUID of the file to remove permission from
         username (str): Username of the user to remove permission for
-        owner_id (int): ID of the file owner
+        sender_username (str): Username of the user requesting permission removal
+        sender_id (int): ID of the user requesting permission removal
 
     Returns:
         dict: Response containing success message or error
     """
-    logger.info(f"Attempting to remove file permission - file_uuid: {file_uuid}, username: {username}, owner_id: {owner_id}")
+    logger.info(f"Attempting to remove file permission - file_uuid: {file_uuid}, username: {username}, sender_id: {sender_id}")
     with get_session() as db:
         try:
-            # Check if the file exists and belongs to the owner
+            # Check if the file exists
             logger.debug(f"Querying for file with UUID: {file_uuid}")
             file = db.query(Files).filter_by(uuid=file_uuid).first()
             if not file:
-                logger.warning(f"File with UUID {file_uuid} not found for user {owner_id}")
+                logger.warning(f"File with UUID {file_uuid} not found for user {sender_id}")
                 return jsonify({'error': 'File not found'}), 404
 
             # Check if user is authorized to modify permissions
-            logger.debug(f"Found file - owner_id: {file.owner_id}, expected owner_id: {owner_id}")
-            if file.owner_id != owner_id:
-                logger.warning(f"User {owner_id} is not authorized to modify permissions for file {file_uuid}")
+            # User can remove permission if they are either:
+            # 1. The owner of the file
+            # 2. The user whose permission is being removed
+            logger.debug(f"Found file - owner_id: {file.owner_id}, sender_id: {sender_id}")
+            if file.owner_id != sender_id and sender_username != username:
+                logger.warning(f"User {sender_id} is not authorized to modify permissions for file {file_uuid}")
                 return jsonify({'error': 'Not authorized to modify permissions for this file'}), 403
 
             # Find and delete the permission

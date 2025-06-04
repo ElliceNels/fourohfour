@@ -93,10 +93,12 @@ def remove_permission():
             return jsonify({'error': 'Authentication failed'}), status_code
 
         user_id = current_user_info['user_id']
+        sender_username = current_user_info['username']
 
         return remove_file_permission(
             data['file_uuid'],
             data['username'],
+            sender_username,
             user_id
         )
     except Exception as e:
