@@ -1,21 +1,22 @@
 import hashlib
-from sdk.server_api import ServerAPI
 import json
 from config import config
 import logging
 from pathlib import Path
+from session_manager import LoginSessionManager
+from constants import GET_USER_ENDPOINT, GET_PUBLIC_KEY_ENDPOINT
 
 logger = logging.getLogger(__name__)
-serv_api = ServerAPI()
 
 def generate_code(friend_username: str) -> str:
     """Generate a code using my public key and friend's public key."""
 
     # Get friend's public key from the server
-    pk_info, status = serv_api.get_public_key(friend_username)
-    if status != 200:
-        logger.error("Failed to fetch friend's public key")
-        raise Exception("Failed to fetch friend's public key")
+    response = LoginSessionManager.getInstance().get(GET_PUBLIC_KEY_ENDPOINT, params={"username": friend_username})
+    if response is None or response.status_code != 200:
+        logger.error("Failed to fetch public key for friend")
+        raise Exception("Failed to fetch public key for friend")
+    pk_info = response.json()
     friend_pk = pk_info.get("public_key")
     if not friend_pk:
         logger.error("Public key not found in response")
@@ -42,10 +43,12 @@ def generate_code(friend_username: str) -> str:
 
 def _get_current_username() -> str:
     """Get the current username from the server."""
-    user_info, status = serv_api.get_current_user()
-    if status != 200:
+    response = LoginSessionManager.getInstance().get(GET_USER_ENDPOINT)
+    if response is None or response.status_code != 200:
         logger.error("Failed to fetch current user info")
         raise Exception("Failed to fetch current user info")
+
+    user_info = response.json()
     username = user_info.get("username")
     if not username:
         logger.error("Username not found in user info")
@@ -83,9 +86,13 @@ def _create_friend_file() -> bool:
         return True
 
     # Retrieve my username and public key from the server
-    user_info, status = serv_api.get_current_user()
-    if status != 200:
+
+    response = LoginSessionManager.getInstance().get(GET_USER_ENDPOINT)
+    if response is None or response.status_code != 200:
+        logger.error("Failed to fetch current user info")
         raise Exception("Failed to fetch current user info")
+
+    user_info = response.json()
     if not user_info or "username" not in user_info or "public_key" not in user_info:
         raise Exception("Username not found in user info")
     my_username = user_info.get("username")
@@ -123,7 +130,19 @@ def friend_in_friends(friend_username: str) -> bool:
     friend_data = _load_friend_file()
     return friend_username in friend_data
     
-def save_friend(friend_username: str, public_key: str) -> bool:
+def save_friend(friend_username: str) -> bool:#
+    """Save a friend's public key to the friend file."""
+    # Get friend's public key from the server
+    response = LoginSessionManager.getInstance().get(GET_PUBLIC_KEY_ENDPOINT, params={"username": friend_username})
+    if response is None or response.status_code != 200:
+        logger.error("Failed to fetch public key for friend")
+        raise Exception("Failed to fetch public key for friend")
+    pk_info = response.json()
+    friend_pk = pk_info.get("public_key")
+    if not friend_pk:
+        logger.error("Public key not found in response")
+        raise Exception("Public key not found in response")
+    
     friend_data = _load_friend_file()
     if not friend_data:
         logger.error("Friend data is empty, cannot save friend")
@@ -132,7 +151,7 @@ def save_friend(friend_username: str, public_key: str) -> bool:
     if friend_in_friends(friend_username):
         logger.info(f"Friend {friend_username} already exists, updating public key")
         
-    friend_data[friend_username] = public_key
+    friend_data[friend_username] = friend_pk
 
     with open(_get_friend_filepath(), 'w') as f:
         json.dump(friend_data, f, indent=4)
