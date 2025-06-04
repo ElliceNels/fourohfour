@@ -66,6 +66,7 @@ def create_user(session, username=None):
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     spk_signature = base64.b64encode(signature_bytes).decode()
     
+    current_time = datetime.now(UTC)
     user = Users(
         username=username,
         password=hash_password("password"),
@@ -73,8 +74,9 @@ def create_user(session, username=None):
         public_key=f"public_key_{uuid.uuid4().hex[:8]}",
         spk=spk,  # Add base64 encoded spk
         spk_signature=spk_signature,  # Add base64 encoded spk_signature
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC)
+        spk_updated_at=current_time,  # Add spk_updated_at field
+        created_at=current_time,
+        updated_at=current_time
     )
     session.add(user)
     session.commit()
@@ -278,6 +280,7 @@ def test_duplicate_public_keys_fail(db_session):
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     spk_signature = base64.b64encode(signature_bytes).decode()
     
+    current_time = datetime.now(UTC)
     user1 = Users(
         username="user1",
         password=hash_password("password"),
@@ -285,8 +288,9 @@ def test_duplicate_public_keys_fail(db_session):
         public_key=public_key,
         spk=spk,
         spk_signature=spk_signature,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC)
+        spk_updated_at=current_time,
+        created_at=current_time,
+        updated_at=current_time
     )
     db_session.add(user1)
     db_session.commit()
@@ -299,8 +303,9 @@ def test_duplicate_public_keys_fail(db_session):
             public_key=public_key,
             spk=spk,
             spk_signature=spk_signature,
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC)
+            spk_updated_at=current_time,
+            created_at=current_time,
+            updated_at=current_time
         )
         db_session.add(user2)
         db_session.commit()

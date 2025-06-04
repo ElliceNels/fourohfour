@@ -6,6 +6,9 @@ from sqlalchemy_utils import database_exists, drop_database
 from server.utils.db_setup import setup_db, teardown_db
 from server.app import create_app
 from server.models.tables import Base
+import base64
+from datetime import datetime, UTC, timedelta
+from server.utils.auth import hash_password
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -25,9 +28,17 @@ def setup_test_db(app_fixture):
     db_name = "test_database"
     engine = setup_db(db_name)
     logger.info("Test database setup complete.")
+    
+    # Clean up any existing data
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    
     yield
 
+    # Clean up after tests
+    Base.metadata.drop_all(bind=engine)
     teardown_db(db_name, engine=engine, remove_db=True)
+    logger.info("Test database teardown complete.")
 
 @pytest.fixture
 def client(app_fixture):
@@ -38,7 +49,6 @@ def client(app_fixture):
 @pytest.fixture
 def test_user():
     """Generate a unique test user for each run with valid base64 cryptographic keys."""
-    import base64
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
     # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
@@ -61,8 +71,47 @@ def test_user():
 @pytest.fixture
 def signed_up_user(client, test_user):
     """Sign up a user and return the user data and tokens."""
-    response = client.post("/sign_up", json=test_user)
-    assert response.status_code == 201
+    from server.models.tables import Users, OTPK
+    from server.utils.db_setup import get_session
+    from server.utils.auth import hash_password
+    
+    current_time = datetime.now(UTC)
+    with get_session() as db:
+        user = Users(
+            username=test_user["username"],
+            password=hash_password(test_user["password"]),  # Hash the password
+            public_key=test_user["public_key"],
+            spk=test_user["spk"],
+            spk_signature=test_user["spk_signature"],
+            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            spk_updated_at=current_time,
+            updated_at=current_time,
+            created_at=current_time
+        )
+        db.add(user)
+        db.flush()  # Ensure user.id is available
+        
+        # Add 10 OTPKs for the user
+        test_otpks = [
+            base64.b64encode(f"test_otpk_{i}".encode()).decode()
+            for i in range(10)
+        ]
+        
+        for otpk in test_otpks:
+            new_otpk = OTPK(
+                user_id=user.id,
+                key=otpk,
+                used=0,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            db.add(new_otpk)
+        
+        db.commit()
+    
+    # Get tokens by logging in
+    response = client.post("/login", json=test_user)
+    assert response.status_code == 200
     data = response.json
     return {"user": test_user, "access_token": data["access_token"], "refresh_token": data["refresh_token"]}
 
@@ -84,7 +133,47 @@ def test_sign_up(client: FlaskClient, test_user):
 
 def test_login(client: FlaskClient, test_user):
     """Test user login."""
-    client.post("/sign_up", json=test_user)  # Ensure user exists
+    # Create user with timezone-aware datetime
+    from server.models.tables import Users, OTPK
+    from server.utils.db_setup import get_session
+    from server.utils.auth import hash_password
+    from datetime import timedelta
+    
+    current_time = datetime.now(UTC)
+    spk_updated_at = current_time - timedelta(days=3)  # Set SPK to 3 days old
+    with get_session() as db:
+        user = Users(
+            username=test_user["username"],
+            password=hash_password(test_user["password"]),  # Hash the password
+            public_key=test_user["public_key"],
+            spk=test_user["spk"],
+            spk_signature=test_user["spk_signature"],
+            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            spk_updated_at=spk_updated_at,  # Use the older time for SPK
+            updated_at=current_time,
+            created_at=current_time
+        )
+        db.add(user)
+        db.flush()  # Ensure user.id is available
+        
+        # Add 10 OTPKs for the user
+        test_otpks = [
+            base64.b64encode(f"test_otpk_{i}".encode()).decode()
+            for i in range(10)
+        ]
+        
+        for otpk in test_otpks:
+            new_otpk = OTPK(
+                user_id=user.id,
+                key=otpk,
+                used=0,
+                created_at=current_time,
+                updated_at=current_time
+            )
+            db.add(new_otpk)
+        
+        db.commit()
+    
     response = client.post("/login", json=test_user)
     assert response.status_code == 200
     assert "access_token" in response.json
@@ -157,6 +246,33 @@ def test_count_otpk(client: FlaskClient, logged_in_user):
     assert isinstance(response.json["otpk_count"], int)
     assert response.json["otpk_count"] >= 0
 
+def test_add_otpks(client: FlaskClient, logged_in_user):
+    """Test adding one-time prekeys (OTPKs)."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # First get initial count
+    initial_count_response = client.get("/count_otpk", headers=headers)
+    assert initial_count_response.status_code == 200
+    initial_count = initial_count_response.json["otpk_count"]
+    
+    # Generate some test OTPKs (base64 encoded)
+    test_otpks = [
+        base64.b64encode(b"test_otpk_1").decode(),
+        base64.b64encode(b"test_otpk_2").decode(),
+        base64.b64encode(b"test_otpk_3").decode()
+    ]
+    
+    # Add the OTPKs
+    add_response = client.post("/add_otpks", json={"otpks": test_otpks}, headers=headers)
+    assert add_response.status_code == 201
+    
+    # Get new count and verify it increased by the number of OTPKs we added
+    new_count_response = client.get("/count_otpk", headers=headers)
+    assert new_count_response.status_code == 200
+    new_count = new_count_response.json["otpk_count"]
+    
+    assert new_count == initial_count + len(test_otpks)
+
 def test_db_tables_exist(setup_test_db):
     """Ensure tables exist after setup."""
     from server.models.tables import Users
@@ -171,3 +287,68 @@ def test_db_is_clean_after_setup(setup_test_db):
     from server.utils.db_setup import get_session
     with get_session() as db:
         assert db.query(Users).count() == 0
+
+def test_get_otpk(client: FlaskClient, logged_in_user):
+    """Test getting a one-time prekey (OTPK)."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # Clear existing OTPKs first
+    from server.models.tables import OTPK
+    from server.utils.db_setup import get_session
+    
+    with get_session() as db:
+        db.query(OTPK).delete()
+        db.commit()
+    
+    # First add some OTPKs
+    test_otpks = [
+        base64.b64encode(b"test_otpk_1").decode(),
+        base64.b64encode(b"test_otpk_2").decode(),
+        base64.b64encode(b"test_otpk_3").decode()
+    ]
+    
+    # Add the OTPKs
+    add_response = client.post("/add_otpks", json={"otpks": test_otpks}, headers=headers)
+    assert add_response.status_code == 201
+    
+    # Get an OTPK
+    username = logged_in_user["user"]["username"]
+    get_response = client.get(f"/get_otpk?username={username}", headers=headers)
+    assert get_response.status_code == 200
+    assert "otpk" in get_response.json
+    assert get_response.json["otpk"] in test_otpks
+    
+    # Verify the OTPK was marked as used by trying to get it again
+    # It should return a different OTPK
+    get_response_2 = client.get(f"/get_otpk?username={username}", headers=headers)
+    assert get_response_2.status_code == 200
+    assert "otpk" in get_response_2.json
+    assert get_response_2.json["otpk"] in test_otpks
+    assert get_response_2.json["otpk"] != get_response.json["otpk"]
+
+def test_update_spk(client: FlaskClient, logged_in_user):
+    """Test updating signed pre key."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    
+    # Generate new SPK and signature
+    new_spk = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).decode()
+    new_signature = base64.b64encode(uuid.uuid4().bytes + uuid.uuid4().bytes).decode()
+    
+    # Update SPK
+    update_data = {
+        "spk": new_spk,
+        "spk_signature": new_signature
+    }
+    response = client.post("/update_spk", json=update_data, headers=headers)
+    assert response.status_code == 200
+    assert response.json["message"] == "Signed Pre Key updated successfully"
+    
+    # Verify the update by querying the database directly
+    from server.utils.db_setup import get_session
+    from server.models.tables import Users
+    
+    with get_session() as db:
+        user = db.query(Users).filter_by(username=logged_in_user["user"]["username"]).first()
+        assert user is not None
+        assert user.spk == new_spk
+        assert user.spk_signature == new_signature
