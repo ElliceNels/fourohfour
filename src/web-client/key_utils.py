@@ -44,7 +44,8 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
     try:
         # Create and hide the root window
         root = tk.Tk()
-        root.withdraw()  # This hides the main window
+        root.attributes('-topmost', True)  
+        root.withdraw()  
 
         # Prepare the data to save
         data = {
@@ -54,6 +55,7 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
 
         # Open the file dialog
         file_path = filedialog.asksaveasfilename(
+            parent=root,  
             title="Save Your Keys",  
             defaultextension=".json", 
             initialfile="keys.json",  
@@ -74,13 +76,15 @@ def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[b
         return True, file_path
 
     except Exception as e:
+        print(f"Error in save_keys_to_json_file: {str(e)}")  # Add error logging
         return False, None
 
     finally:
         # Clean up
         try:
             root.destroy()
-        except:
+        except Exception as e:
+            print(f"Error destroying root window: {str(e)}")  # Add error logging
             pass
 
 def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str) -> bool:
@@ -110,7 +114,7 @@ def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str
     combined_data = nonce + ciphertext
 
     #Save encrypted private key file
-    file_name = os.path.join(KEYS_PATH, f"{username}{BINARY_EXTENSION}")
+    file_name = f"{KEYS_PATH}{username}{BINARY_EXTENSION}"
     try:
         with open(file_name, 'wb') as f:
             f.write(combined_data)
@@ -149,6 +153,59 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
     except IOError as e:
         print(f"Error saving master key file: {str(e)}")
         return False 
+    
+
+
+def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: bytes, new_password: str, new_salt: bytes) -> bool:
+    """
+    Decrypt a user's encrypted file using their old password and salt, then re-encrypt it with their new password and salt.
+
+    Args:
+        username (str): The username of the user
+        old_password (str): The user's old password
+        old_salt (bytes): The user's old salt (already decoded from base64)
+        new_password (str): The user's new password
+        new_salt (bytes): The user's new salt (already decoded from base64)
+
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    crypto = EncryptionHelper()
+
+    # Read encrypted file
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
+    try:
+        with open(file_path, 'rb') as file:
+            encrypted_data = file.read()
+    except IOError as e:
+        print(f"Failed to open file for reading: {file_path}")
+        return False
+
+    # Extract nonce and ciphertext
+    nonce_size = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
+    nonce = encrypted_data[:nonce_size]  # <-- CORRECT: reads from the start
+    ciphertext = encrypted_data[nonce_size:]  # <-- CORRECT: reads after the nonce
+
+    # Derive old key
+    old_key = derive_key_from_password(old_password, old_salt)
+
+    # Decrypt
+    try:
+        decrypted_data = crypto.decrypt(
+            ciphertext,
+            old_key,
+            nonce,
+            None  # no additional data
+        )
+    except Exception as e:
+        print(f"Decryption failed: {str(e)}")
+        return False
+
+    # Derive new key
+    new_key = derive_key_from_password(new_password, new_salt)
+
+    # Re-encrypt and save
+    return encrypt_and_save_master_key(decrypted_data, new_key, username)
 
 def derive_key_from_password(password: str, salt: bytes, key_len: int = 32) -> bytes:
     """

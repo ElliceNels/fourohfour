@@ -76,6 +76,8 @@ set(UTILS_SOURCES
     utils/json_sanitizer.cpp
     utils/file_sharing_utils.h
     utils/file_sharing_utils.cpp
+    utils/friend_storage_utils.h
+    utils/friend_storage_utils.cpp
 )
 
 set(CORE_SOURCES

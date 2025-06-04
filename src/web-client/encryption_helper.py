@@ -21,7 +21,6 @@ class EncryptionHelper:
     def generate_key() -> bytes:
         """
         Generate a securely random key for XChaCha20-Poly1305.
-
         Returns:
             bytes: A random key of length crypto_aead_xchacha20poly1305_ietf_KEYBYTES.
         """
@@ -50,7 +49,6 @@ class EncryptionHelper:
     def encrypt(plaintext: bytes, key: bytes, nonce: bytes, additional_data: bytes = None) -> bytes:
         """
         Encrypt plaintext using XChaCha20-Poly1305.
-
         Args:
             plaintext (bytes | str): The data to encrypt. If string, will be encoded to bytes using UTF-8.
             key (bytes | str): The encryption key (must be correct length). If string, will be encoded to bytes using UTF-8.
@@ -101,7 +99,6 @@ class EncryptionHelper:
     def decrypt(ciphertext: bytes, key: bytes, nonce: bytes, additional_data: bytes = None) -> bytes:
         """
         Decrypt ciphertext using XChaCha20-Poly1305.
-
         Args:
             ciphertext (bytes | str): The data to decrypt. If string, will be encoded to bytes using UTF-8.
             key (bytes | str): The decryption key (must be correct length). If string, will be encoded to bytes using UTF-8.

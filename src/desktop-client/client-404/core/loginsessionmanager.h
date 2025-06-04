@@ -12,6 +12,7 @@ public:
 
     void setSession(const QString& username, const unsigned char* masterKey, size_t keyLength);
     const QString getUsername() const;
+    void setUsername(const QString& username);
     const SecureVector getMasterKey() const;
     void setTokens(const QString& accessToken, const QString& refreshToken);
     void setBaseUrl(const QString& baseUrl);

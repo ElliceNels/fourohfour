@@ -69,7 +69,19 @@ MainWindow::MainWindow(QWidget *parent)
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToVerifyPageRequested, Pages::VerifyPageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToLoginPageRequested, Pages::LoginPageIndex);
     this->connectPageNavigation(this->mainMenu, &MainMenu::goToViewFilesPageRequested, Pages::ViewFilesPageIndex, this->viewFilesPage,&ViewFilesPage::fetchUserFiles);
-    this->connectPageNavigation(this->mainMenu, &MainMenu::goToResetPasswordRequested, Pages::ResetPasswordPage);
+    this->connectPageNavigation(this->mainMenu, &MainMenu::goToResetPasswordRequested, Pages::ResetPasswordPage, this->resetPasswordPage, &ResetPasswordPage::preparePage);
+
+    // Connect View Files Page internal navigation
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::goToFilesListPageRequested, Pages::ViewFilesPageIndex, 
+                                this->viewFilesPage, &ViewFilesPage::navigateToFilesListPage);
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::goToSharingPageRequested, Pages::ViewFilesPageIndex, 
+                                this->viewFilesPage, &ViewFilesPage::navigateToSharingPage);
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::goToFriendsPageRequested, Pages::ViewFilesPageIndex, 
+                                this->viewFilesPage, &ViewFilesPage::navigateToFriendsPage);
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::switchToOwnedFilesRequested, Pages::ViewFilesPageIndex, 
+                                this->viewFilesPage, &ViewFilesPage::switchToOwnedFiles);
+    this->connectPageNavigation(this->viewFilesPage, &ViewFilesPage::switchToSharedFilesRequested, Pages::ViewFilesPageIndex, 
+                                this->viewFilesPage, &ViewFilesPage::switchToSharedFiles);
 
     this->setCentralWidget(this->stackedWidget);
 

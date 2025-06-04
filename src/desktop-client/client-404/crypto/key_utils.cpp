@@ -173,8 +173,8 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
 
     //Extract nonce and ciphertext
     const int nonceSize = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
-    QByteArray nonce = encryptedData.right(nonceSize);
-    QByteArray ciphertext = encryptedData.left(encryptedData.size() - nonceSize);
+    QByteArray nonce = encryptedData.left(nonceSize);  // Get nonce from start
+    QByteArray ciphertext = encryptedData.mid(nonceSize);  // Get ciphertext after nonce
 
     //Derive old key
     QByteArray oldSaltRaw = QByteArray::fromBase64(oldSalt.toUtf8());
@@ -205,6 +205,50 @@ bool decryptAndReencryptUserFile(const QString& username, const QString& oldPass
 
 
 
+}
+
+bool decryptMasterKey(const QString& username, const QString& password, const QString& salt) {
+    shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
+
+    // Read encrypted file
+    QString filePath = QCoreApplication::applicationDirPath() + masterKeyPath + username + binaryExtension;
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "Failed to open file for reading:" << filePath;
+        return false;
+    }
+    QByteArray encryptedData = file.readAll();
+    file.close();
+
+    // Extract nonce and ciphertext
+    const int nonceSize = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
+    QByteArray nonce = encryptedData.left(nonceSize);  // Get nonce from start
+    QByteArray ciphertext = encryptedData.mid(nonceSize);  // Get ciphertext after nonce
+
+    // Derive key from password and salt
+    QByteArray saltRaw = QByteArray::fromBase64(salt.toUtf8());
+    unsigned char derivedKey[crypto_aead_xchacha20poly1305_ietf_KEYBYTES];
+    deriveKeyFromPassword(password.toStdString(), reinterpret_cast<const unsigned char*>(saltRaw.constData()), derivedKey, sizeof(derivedKey));
+
+    // Decrypt
+    SecureVector decryptedData;
+    try {
+        decryptedData = crypto->decrypt(
+            reinterpret_cast<const unsigned char*>(ciphertext.constData()),
+            ciphertext.size(),
+            derivedKey,
+            reinterpret_cast<const unsigned char*>(nonce.constData()),
+            nullptr, // no additional data
+            0
+            );
+    } catch (const std::exception& e) {
+        qDebug() << "Decryption failed:" << e.what();
+        return false;
+    }
+
+    // Set the session with the decrypted master key
+    LoginSessionManager::getInstance().setSession(username, decryptedData.data(), decryptedData.size());
+    return true;
 }
 
 //Function overloading

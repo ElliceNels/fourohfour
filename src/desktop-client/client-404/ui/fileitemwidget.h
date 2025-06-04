@@ -4,7 +4,13 @@
 #include <QHBoxLayout>
 #include <QString>
 #include <QMessageBox>
+#include <QIcon>
+#include <QSize>
+#include <QSizePolicy>
+#include <QFontMetrics>
+#include <QDebug>
 #include "core/loginsessionmanager.h"
+#include "constants.h"
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -14,6 +20,7 @@ public:
 
 signals:
     void fileDeleted(); 
+    void shareRequested(); 
 
 private slots:
     void handleDownload();
