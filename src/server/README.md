@@ -139,8 +139,8 @@ Important Security Notes:
 2. Set production environment variables:
    ```bash
    export DB_ENVIRONMENT=production
-   export DB_USER=prod_db_username
-   export DB_PASSWORD=prod_db_password
+   export DB_USER=<your_prod_db_username>
+   export DB_PASSWORD=<your_prod_db_password>
    ```
 
 3. Start the application:
