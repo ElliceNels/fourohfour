@@ -23,7 +23,6 @@ bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) 
     auto privateKey = make_secure_buffer<crypto_sign_SECRETKEYBYTES>();
     crypto_sign_ed25519_keypair(publicKey.get(), privateKey.get());
 
-    // Use the correct sizes for Ed25519
     QByteArray pubKeyArray(reinterpret_cast<char*>(publicKey.get()), crypto_sign_PUBLICKEYBYTES);
     QByteArray privKeyArray(reinterpret_cast<char*>(privateKey.get()), crypto_sign_SECRETKEYBYTES);
 
