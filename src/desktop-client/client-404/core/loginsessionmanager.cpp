@@ -19,7 +19,6 @@ LoginSessionManager& LoginSessionManager::getInstance() {
 }
 
 void LoginSessionManager::setSession(const QString& username, const unsigned char* masterKey, size_t keyLength) {
-    this->clearSession();
     this->m_username = username;
     
     // Create new SecureVector and copy the key
@@ -30,6 +29,10 @@ void LoginSessionManager::setSession(const QString& username, const unsigned cha
 
 const QString LoginSessionManager::getUsername() const {
     return this->m_username;
+}
+
+void LoginSessionManager::setUsername(const QString& username) {
+    this->m_username = username;
 }
 
 const SecureVector LoginSessionManager::getMasterKey() const {
