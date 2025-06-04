@@ -61,9 +61,10 @@ bool FileCryptoUtils::readAndDecryptKeyStorage(const QString &filepath, const Se
     // Check if file exists
     if (!QFile::exists(filepath)) {
         if (parentWidget) {
-            QMessageBox::warning(parentWidget, "Decryption Error", "Could not find encrypted keys file.");
+            QMessageBox::information(parentWidget, "Initialization", "Encrypted keys file not found. Initializing empty key storage.");
         }
-        return false;
+        jsonData = QByteArray("{}"); // Initialize empty JSON object
+        return true;
     }
 
     // Read file data
