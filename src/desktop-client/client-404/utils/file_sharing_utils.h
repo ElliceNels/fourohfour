@@ -3,12 +3,13 @@
 
 #include <QVector>
 #include <QByteArray>
+#include <QJsonArray>
 #include "utils/securevector.h"
 
 class FileSharingUtils {
 
     public:
-        static QVector<QByteArray> generateOneTimePreKeyPairs();
+        static QJsonArray generateOneTimePreKeyPairs();
         
         static bool generateSignedPreKey(
             const QString& identityPublicKeyBase64,
