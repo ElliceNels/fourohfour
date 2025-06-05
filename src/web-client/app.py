@@ -7,6 +7,7 @@ from utils.auth.session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
 import time
+from config import config
 
 login_attempts = {}
 MAX_ATTEMPTS = 5
@@ -251,4 +252,4 @@ def record_login_attempt(ip):
     login_attempts[ip] = attempts
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host=config.server.host, port=config.server.port, debug=True)
