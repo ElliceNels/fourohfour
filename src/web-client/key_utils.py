@@ -12,6 +12,7 @@ from nacl.bindings import (
 import nacl.utils
 from nacl import pwhash
 from encryption_helper import EncryptionHelper  
+from session_manager import LoginSessionManager
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 import os
 
@@ -142,6 +143,7 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
         bool: True if successful, False otherwise.
     """
     nonce = EncryptionHelper.generate_nonce()
+    LoginSessionManager.getInstance().setMasterKey(derived_key)
     encrypted_key = EncryptionHelper.encrypt(key_to_encrypt, derived_key, nonce)
     combined_data = nonce + encrypted_key
 
