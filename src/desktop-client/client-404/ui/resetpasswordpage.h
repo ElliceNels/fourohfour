@@ -34,9 +34,6 @@ private slots:
 private:
     Ui::ResetPasswordPage *ui;
 
-
-    QString oldSalt;
-
 };
 
 #endif // RESETPASSWORDPAGE_H
