@@ -21,7 +21,11 @@ def login():
     Expected response:
     {
         "access_token": "<JWT_access_token>",
-        "refresh_token": "<JWT_refresh_token>"
+        "refresh_token": "<JWT_refresh_token>",
+        "spk_updated_at": "<ISO 8601 timestamp>",
+        "unused_otpk_count": "<number>",
+        "spk_outdated": "<boolean>",
+        "otpk_count_low": "<boolean>"
     }
     """
 
