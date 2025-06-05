@@ -32,7 +32,8 @@
           {% endif %}
         {% endwith %}
 
-        <form class="login-form" method="POST" action="/login" onsubmit="showLoginProgressAndDisableBtn()">
+        <div id="login-error" class="form-error" style="display:none;"></div>
+        <form class="login-form" method="POST" action="/login" onsubmit="return false;">
             <div class="form-group">
                 <label for="username" class="form-label">Username</label>
                 <input id="username" name="username" type="text" required autocomplete="username">
