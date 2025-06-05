@@ -2,7 +2,6 @@
 #define ENCRYPTIONHELPER_H
 
 #include <sodium.h>
-// #include <vector>
 #include <QDebug>
 #include "utils/securevector.h"
 #include "ui/anotherbasepage.h"
@@ -11,8 +10,12 @@ using namespace std;
 
 class EncryptionHelper : public AnotherBasePage
 {
+
+private:
+    int demoValue;
 public:
-    EncryptionHelper();
+    //EncryptionHelper();
+    EncryptionHelper(int demoValue = 42) : demoValue(demoValue) {}
 
     void generateKey(unsigned char* key, size_t key_buffer_size);
     void generateNonce(unsigned char* nonce, size_t nonce_buffer_size);
@@ -34,8 +37,7 @@ public:
         );
 
     EncryptionHelper(const EncryptionHelper& other) {
-        //this would have logic to assign member variable values from other to the object being created
-        //not applicable in this case since this class doesn't have any attributes
+        demoValue = other.demoValue; //copy the member variable from one object to the other
         qDebug() << "Encryption helper copy constructor called";
 
 

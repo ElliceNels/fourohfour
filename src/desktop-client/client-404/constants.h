@@ -35,7 +35,7 @@ const int RATE_LIMIT_WINDOW_MS = 300000; // 5 minutes in milliseconds
 const double truncationFactor = 0.75;
 const int fileNameLabelWidth = 320;
 const int fileSizeLabelWidth = 80;
-const QString serverPath = "https://fourohfour.gobbler.info/";
+const QString serverPath = "https://fourohfour.gobbler.info";
 //"https://fourohfour.gobbler.info/";
 //http://gobbler.info:4004
 //http://localhost:5000

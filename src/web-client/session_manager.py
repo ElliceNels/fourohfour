@@ -1,7 +1,6 @@
 from request_utils import post_request, get_request
 from typing import Optional
 import os
-from constants import SERVER_URL
 from config import config
 
 class LoginSessionManager:
