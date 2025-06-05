@@ -29,29 +29,29 @@ def my_files():
     file_info = response.json()
 
     init_owned_files = _remove_corrupted_files(file_info.get('owned_files'))
-    init_shared_files = _remove_corrupted_files(file_info.get('shared_files'))
-
-    # Process owned files
+    init_shared_files = _remove_corrupted_files(file_info.get('shared_files'))    # Process owned files
     owned_files = []
     for file in init_owned_files:
-        if file.get("filename") and file.get("format"):
-            full_filename = f"{file['filename']}.{file['format']}"
+        if file.get("filename"):
+            # Use the filename directly since it already includes the extension
+            # The 'format' field contains the MIME type, not the file extension
+            full_filename = file['filename']
             # Convert file size to human readable format
             file['file_size'] = _format_file_size(file['file_size'])
             owned_files.append((file, full_filename))
         else:
-            logger.warning(f"Missing filename or format for owned file: {file}")
-
-    # Process shared files
+            logger.warning(f"Missing filename for owned file: {file}")    # Process shared files
     shared_files = []
     for file in init_shared_files:
-        if file.get("filename") and file.get("format"):
-            full_filename = f"{file['filename']}.{file['format']}"
+        if file.get("filename"):
+            # Use the filename directly since it already includes the extension
+            # The 'format' field contains the MIME type, not the file extension
+            full_filename = file['filename']
             # Convert file size to human readable format
             file['file_size'] = _format_file_size(file['file_size'])
             shared_files.append((file, full_filename))
         else:
-            logger.warning(f"Missing filename or format for shared file: {file}")
+            logger.warning(f"Missing filename for shared file: {file}")
 
     return owned_files, shared_files
 
