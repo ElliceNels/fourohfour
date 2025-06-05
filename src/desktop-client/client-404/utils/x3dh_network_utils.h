@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QDateTime>
 #include <QMessageBox>
+#include <QJsonArray>
 #include "utils/request_utils.h"
 
 /**
@@ -68,6 +69,30 @@ public:
     static QStringList getFilePermissions(
         const QString& fileUuid,
         QWidget* parent = nullptr);
+
+    /**
+     * @brief Gets the count of unused one-time pre-keys for the current user
+     * 
+     * This method retrieves the count of unused OTPKs available for the authenticated
+     * user. It helps determine if additional OTPKs need to be generated and uploaded.
+     *
+     * @param parent Optional parent widget for displaying message boxes
+     * @return int The count of unused OTPKs, or -1 if the request failed
+     */
+    static int getOtpkCount(QWidget* parent = nullptr);
+
+    /**
+     * @brief Sends one-time pre-keys to the server for secure communication
+     * 
+     * This method sends the JSON array of base64-encoded one-time pre-keys
+     * to the server's /add_otpks endpoint. On success, it logs the 
+     * number of OTPKs stored on the server.
+     *
+     * @param oneTimePreKeysJson JSON array of base64-encoded one-time pre-key public keys
+     * @param parent Optional parent widget for displaying message boxes
+     * @return bool True if the keys were successfully sent and stored, false otherwise
+     */
+    static bool uploadOneTimePreKeys(const QJsonArray& oneTimePreKeysJson, QWidget* parent = nullptr);
 
 private:
     /**

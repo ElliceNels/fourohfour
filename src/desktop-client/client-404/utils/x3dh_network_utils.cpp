@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QJsonObject>
+#include <QJsonArray>
 #include "core/loginsessionmanager.h"
 #include "constants.h"
 #include "utils/file_sharing_utils.h"
@@ -287,3 +288,70 @@ QStringList X3DHNetworkUtils::getFilePermissions(
     qDebug() << "Retrieved" << permissionsList.size() << "permissions for file" << fileUuid;
     return permissionsList;
 }
+
+/**
+ * @brief Gets the count of unused one-time pre-keys for the current user
+ */
+int X3DHNetworkUtils::getOtpkCount(QWidget* parent) {
+    // Make the request to the server
+    const std::string COUNT_OTPK_ENDPOINT = "/api/auth/count_otpk";
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(COUNT_OTPK_ENDPOINT, QJsonObject());
+    
+    if (!response.success || response.jsonData.isEmpty()) {
+        QString errorMsg = QString::fromStdString(response.errorMessage);
+        qWarning() << "Failed to retrieve OTPK count:" << errorMsg;
+        if (parent) {
+            QMessageBox::warning(parent, "Error", 
+                               "Failed to retrieve one-time pre-key count: " + errorMsg);
+        }
+        return -1;
+    }
+    
+    QJsonObject jsonObj = response.jsonData.object();
+    
+    // Check if the response has the expected field
+    if (!jsonObj.contains("otpk_count")) {
+        qWarning() << "OTPK count response missing required field";
+        if (parent) {
+            QMessageBox::warning(parent, "Error", 
+                               "Server response missing OTPK count field");
+        }
+        return -1;
+    }
+    
+    int otpkCount = jsonObj["otpk_count"].toInt(-1);
+    qDebug() << "Current OTPK count:" << otpkCount;
+    
+    return otpkCount;
+}
+
+/**
+ * @brief Sends one-time pre-keys to the server for secure communication
+ */
+bool X3DHNetworkUtils::uploadOneTimePreKeys(const QJsonArray& oneTimePreKeysJson, QWidget* parent) {
+    // Create request JSON object
+    QJsonObject requestData;
+    requestData["otpks"] = oneTimePreKeysJson;
+    
+    qDebug() << "Sending" << oneTimePreKeysJson.size() << "one-time pre-keys to server";
+    
+    // Send to /add_otpks endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(ADD_OTPKS_ENDPOINT, requestData);
+    
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+        int otpkCount = jsonObj["otpk_count"].toInt();
+        
+        qDebug() << "Successfully stored one-time pre-keys on server. Current count:" << otpkCount;
+        return true;
+    } else {
+        if (parent) {
+            QMessageBox::warning(parent, "OTPK Upload Warning", 
+                "Failed to upload security keys to server. Some secure sharing features may not work properly.");
+        }
+        qWarning() << "Failed to send one-time pre-keys:" << QString::fromStdString(response.errorMessage);
+        return false;
+    }
+}
+

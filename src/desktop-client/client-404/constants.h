@@ -84,6 +84,7 @@ const std::string ADD_OTPKS_ENDPOINT = "/add_otpks";
 const std:: string CREATE_PERMISSION_ENDPOINT = "/api/permissions";
 
 const int MAX_AGE_DAYS = 7; // Maximum age of signed prekey in days
+const int MIN_OTPK_COUNT = 10; // Minimum number of one-time prekeys to keep on server
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 const QString RESTRICTED_CHARS = QStringLiteral("\\/:*?\"<>|'%;&=+$#@!~()[]{}., ");
