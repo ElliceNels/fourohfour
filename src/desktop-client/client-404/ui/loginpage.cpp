@@ -238,7 +238,6 @@ bool LoginPage::replaceSignedPreKey(const QString username, QString& signedPreKe
 }
 
 QString LoginPage::getSaltRequest(){
-
     // Make the GET request to the get_current_user endpoint
     RequestUtils::Response response = LoginSessionManager::getInstance().get(GET_USER_ENDPOINT);
 
@@ -246,16 +245,14 @@ QString LoginPage::getSaltRequest(){
     if (response.success) {
         QJsonObject jsonObj = response.jsonData.object();
 
-        // Extract salt from the response
-        QString oldSalt = jsonObj["salt"].toString();
-        QByteArray decodedSalt = QByteArray::fromBase64(oldSalt.toUtf8());
-        oldSalt = QString::fromUtf8(decodedSalt);  // Convert back to QString
-
-
-        return oldSalt;
+        // Extract salt from the response - DO NOT decode the base64 string
+        // The salt is already in the format expected by decryptMasterKey
+        QString salt = jsonObj["salt"].toString();
+        qDebug() << "Salt retrieved successfully:" << salt;
+        return salt;
     } else {
-        qDebug() << "Error getting salt:" <<response.errorMessage;
-        return NULL;
+        qDebug() << "Error getting salt: Status code" << response.statusCode << "-" << QString::fromStdString(response.errorMessage);
+        return QString();
     }
 }
 

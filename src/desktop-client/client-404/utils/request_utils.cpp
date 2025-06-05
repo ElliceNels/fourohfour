@@ -8,6 +8,8 @@
 #include <iostream> 
 #include "constants.h"
 #include "json_sanitizer.h" 
+#include <QDir>
+#include <QCoreApplication>
 
 using namespace std;
 
@@ -34,6 +36,17 @@ void RequestUtils::globalCleanup() {
         curl_global_cleanup();
         s_globalInitialized = false;
     }
+}
+
+ 
+QString RequestUtils::buildCertStorageFilePath() {
+    QDir certDir(QDir(QCoreApplication::applicationDirPath()).filePath(certsDirectory));
+    if (!certDir.exists()) {
+        if (!certDir.mkpath(".")) {
+            qWarning() << "Failed to create directory:" << certDir;
+        }
+    }
+    return certDir.filePath(certsPath + certName);
 }
 
 // Constructor
@@ -153,35 +166,37 @@ RequestUtils::~RequestUtils() {
 
 // Set up CURL with secure defaults
 void RequestUtils::setupCurl() {
-    curl_easy_setopt(m_curl.get(), CURLOPT_FOLLOWLOCATION, ENABLED);    // Allow redirects to be followed automatically
-    curl_easy_setopt(m_curl.get(), CURLOPT_MAXREDIRS, MAX_REDIRECTS);   // Limit redirects to 5 to prevent redirect loops
-    curl_easy_setopt(m_curl.get(), CURLOPT_TIMEOUT, TIMEOUT_SECONDS);   // Set 30 second timeout for entire request
+    // --- Redirect settings ---
+    // Enable following HTTP redirects
+    curl_easy_setopt(m_curl.get(), CURLOPT_FOLLOWLOCATION, ENABLED);
+    // Limit maximum number of redirects to prevent infinite loops
+    curl_easy_setopt(m_curl.get(), CURLOPT_MAXREDIRS, MAX_REDIRECTS);
     
-    // PRODUCTION: TLS 1.3 for stronger encryption
-    // curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
-    // DEVELOPMENT: Allow any SSL version for localhost development
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_DEFAULT);
+    // --- Timeout settings ---
+    // Set overall timeout for the entire request to 30 seconds
+    curl_easy_setopt(m_curl.get(), CURLOPT_TIMEOUT, TIMEOUT_SECONDS);
     
-    // PRODUCTION: Verify SSL certificate authenticity
-    // curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, ENABLED);
-    // DEVELOPMENT: Disable SSL cert verification for localhost
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);
+    // --- TLS/SSL settings ---
+    // Enforce TLS 1.3 for enhanced security
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+    // Require SSL certificate verification
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYPEER, ENABLED);
+    // Verify certificate's name matches the host
+    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT);
+    // Enable certificate information retrieval
+    curl_easy_setopt(m_curl.get(), CURLOPT_CERTINFO, 1L);
     
-    // PRODUCTION: Verify SSL cert matches hostname
-    // curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, SSL_VERIFY_HOST_STRICT);
-    // DEVELOPMENT: Disable hostname verification for localhost
-    curl_easy_setopt(m_curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
+    // --- Certificate handling ---
+    // Use bundled CA certificate store
+    curl_easy_setopt(m_curl.get(), CURLOPT_CAINFO, buildCertStorageFilePath().toStdString().c_str());
     
-    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback); // Set callback for handling response data
+    // --- DNS settings ---
+    // Use DNS over HTTPS for improved privacy
+    curl_easy_setopt(m_curl.get(), CURLOPT_DOH_URL, DNS_URL_DOH.c_str());
     
-    // PRODUCTION: Use DNS over HTTPS for secure hostname resolution
-    // curl_easy_setopt(m_curl.get(), CURLOPT_DOH_URL, DNS_URL_DOH.c_str());
-    // DEVELOPMENT: Use standard DNS resolution
-    
-    // PRODUCTION: Only allow redirects to HTTP/HTTPS protocols
-    // curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "http,https");
-    // DEVELOPMENT: Allow all redirect protocols
-    curl_easy_setopt(m_curl.get(), CURLOPT_REDIR_PROTOCOLS_STR, "all");
+    // --- Callback settings ---
+    // Set function to handle received data
+    curl_easy_setopt(m_curl.get(), CURLOPT_WRITEFUNCTION, RequestUtils::writeCallback);
 }
 
 // Reset headers
@@ -467,6 +482,30 @@ RequestUtils::Response RequestUtils::makeRequest(const string& url, HttpMethod m
         response.success = false;
         response.errorMessage = curl_easy_strerror(res);
         return response;
+    }
+    
+    // Debug statements for hostname resolution and certificate information
+    char* effective_url = nullptr;
+    if (curl_easy_getinfo(m_curl.get(), CURLINFO_EFFECTIVE_URL, &effective_url) == CURLE_OK && effective_url) {
+        cout << "DEBUG - Resolved hostname: " << effective_url << endl;
+    }
+    
+    // Get certificate info
+    struct curl_certinfo* certinfo = nullptr;
+    if (curl_easy_getinfo(m_curl.get(), CURLINFO_CERTINFO, &certinfo) == CURLE_OK && certinfo) {
+        cout << "DEBUG - Certificate validation passed!" << endl;
+        if (certinfo->num_of_certs > 0) {
+            for (int i = 0; i < certinfo->num_of_certs; i++) {
+                struct curl_slist* slist = certinfo->certinfo[i];
+                while (slist) {
+                    if (strncmp(slist->data, "Issuer:", 7) == 0) {
+                        cout << "DEBUG - Certificate issuer: " << slist->data + 7 << endl;
+                        break;
+                    }
+                    slist = slist->next;
+                }
+            }
+        }
     }
 
     // Process response

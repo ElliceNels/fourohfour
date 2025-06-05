@@ -7,7 +7,14 @@ Create the following folders if they don't exist:
 ```
 fourohfour/src/desktop-client/include
 fourohfour/src/desktop-client/lib
+fourohfour/src/desktop-client/build/certs
 ```
+## CaCert Setup 
+1. **Download**
+   - Go to https://curl.se/docs/caextract.html
+   - Dowload the ```cacert.pem``` file
+2. **Copy**
+   - copy the ```cacert.pem``` file into the ```fourohfour/src/desktop-client/build/certs``` directory
 
 ## Libsodium Setup (Windows)
 

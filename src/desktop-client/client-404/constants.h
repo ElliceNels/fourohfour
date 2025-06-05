@@ -26,6 +26,9 @@ const qint64 KEY_GEN_COUNT = 50; // Number of one-time pre-keys to generate
 const QString keysPath = "/encryptedKeys_";
 const QString masterKeyPath = "/masterKey_";
 const QString friendsDirectory = "friends";
+const QString certsDirectory = "certs";
+const QString certName = "cacert.pem";
+const QString certsPath = "";
 const QString friendsPath = "friends_";
 
 const QString jsonExtension = ".json";
@@ -66,7 +69,7 @@ const std::string REFRESH_TOKEN_HEADER = "X-Refresh-Token: ";
 // const std::string DEFAULT_BASE_URL = "https://gobbler.info/"; 
 
 // DEVELOPMENT: Allow both HTTP and HTTPS for local testing
-const std::string DEFAULT_BASE_URL = "http://127.0.0.1:5000"; 
+const std::string DEFAULT_BASE_URL = "https://fourohfour.gobbler.info"; 
 
 // API paths
 const std::string REFRESH_TOKEN_ENDPOINT = "/refresh";

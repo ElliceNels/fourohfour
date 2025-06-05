@@ -106,28 +106,27 @@ void FileItemWidget::handleDownload() {
         // Get the current username
         QString currentUsername = LoginSessionManager::getInstance().getUsername();
         
-        // Confirm with the user before removing permission
-        if (UIUtils::confirmAction("Auto-Remove Permission", 
-                                 "This file will be removed from your list after download.\n\n"
-                                 "The file will need to be sent to you again from the owner if you need access in the future.",
-                                 this)) {
-            // Use X3DHNetworkUtils to remove permission
-            bool removalSuccess = X3DHNetworkUtils::removePermission(
-                this->fileUuid,
-                currentUsername,
-                this
-            );
+        // Show an informational message instead of confirmation
+        QMessageBox::information(this, "Auto-Remove Permission", 
+                               "This file will be removed from your list after download.\n\n"
+                               "The file will need to be sent to you again from the owner if you need access in the future.");
+        
+        // Use X3DHNetworkUtils to remove permission (always proceed since there's no confirmation now)
+        bool removalSuccess = X3DHNetworkUtils::removePermission(
+            this->fileUuid,
+            currentUsername,
+            this
+        );
+        
+        if (removalSuccess) {
+            QMessageBox::information(this, "Permission Removed", 
+                                   "Your access to this file has been removed.\n\n"
+                                   "If you need access again, please ask the owner to reshare the file.");
             
-            if (removalSuccess) {
-                QMessageBox::information(this, "Permission Removed", 
-                                       "Your access to this file has been removed.\n\n"
-                                       "If you need access again, please ask the owner to reshare the file.");
-                
-                // Trigger UI refresh by emitting the fileDeleted signal
-                emit fileDeleted();
-            }
-            // Error handling is done within the X3DHNetworkUtils::removePermission method
+            // Trigger UI refresh by emitting the fileDeleted signal
+            emit fileDeleted();
         }
+        // Error handling is done within the X3DHNetworkUtils::removePermission method
     }
 }
 
