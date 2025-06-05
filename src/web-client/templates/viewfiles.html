@@ -56,14 +56,14 @@
                         </thead>
                         <tbody>
                             <!-- Example row, remove or replace with Jinja loop -->
-                            {% for file in files_owned %}
+                            {% for file_data, filename in files_owned %}
                             <tr>
-                                <td><a href="{{ url_for('view_file', filename=file['filename']) }}" class="btn">{{ file["filename"] }}</a></td>
-                                <td>{{ file["file_size"] }}</td>
-                                <td>{{ file["owner"] }}</td>
-                                <td><{{file["uploaded_at"]}}</td>
-                                <td><button>Download</button></td>
-                                <td><button>Share</button></td>
+                                <td><a href="{{ url_for('view_file', filename=filename) }}" class="btn file-link">{{ filename }}</a></td>
+                                <td>{{ file_data.file_size }}</td>
+                                <td>You</td>
+                                <td>{{ file_data.uploaded_at }}</td>
+                                <td><button class="btn action-btn">Download</button></td>
+                                <td><button class="btn action-btn">Share</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -86,13 +86,13 @@
                         </thead>
                         <tbody>
                             <!-- Example row, remove or replace with Jinja loop -->
-                            {% for file in files_shared %}
+                            {% for file_data, filename in files_shared %}
                             <tr>
-                                <td><a href="{{ url_for('view_file', filename=file['filename']) }}" class="btn">{{ file["filename"] }}</a></td>
-                                <td>{{ file["file_size"] }}</td>
-                                <td>{{ file["owner"] }}</td>
-                                <td><{{file["uploaded_at"]}}</td>
-                                <td><button>Download</button></td>
+                                <td><a href="{{ url_for('view_file', filename=filename) }}" class="btn file-link">{{ filename }}</a></td>
+                                <td>{{ file_data.file_size }}</td>
+                                <td>{{ file_data.owner_username }}</td>
+                                <td>{{ file_data.uploaded_at }}</td>
+                                <td><button class="btn action-btn">Download</button></td>
                             </tr>
                             {% endfor %}
                         </tbody>
