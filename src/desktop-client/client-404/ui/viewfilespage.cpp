@@ -406,10 +406,12 @@ void ViewFilesPage::displayFiles(const QJsonArray& ownedFiles, const QJsonArray&
     
     // Add shared files
     for (const QJsonValue& fileValue : sharedFiles) {
+        QJsonObject fileObj = fileValue.toObject();
+        QString ownerUsername = fileObj["owner_username"].toString();
         addFileItem(
-            fileValue.toObject(), 
+            fileObj,
             ui->sharedFilesListWidget,
-            "Not you lol" // Owner label
+            ownerUsername
         );
     }
 }

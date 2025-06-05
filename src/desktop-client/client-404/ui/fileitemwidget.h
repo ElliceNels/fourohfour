@@ -13,6 +13,7 @@
 #include "constants.h"
 #include "utils/securebufferutils.h"  // Added include for SodiumZeroDeleter
 #include "utils/widget_utils.h"
+#include "utils/shared_secret_utils.h" // Added for X3DH functionality
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -37,6 +38,7 @@ private:
     QString fileExtension;
     QString fileUuid;
     qint64 fileSizeBytes;
+    bool isOwner; 
     QPushButton *downloadButton;
     QPushButton *shareButton;
     QPushButton *deleteButton;

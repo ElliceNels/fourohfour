@@ -22,6 +22,7 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->fileExtension = fileFormat;
     this->fileUuid = uuid;
     this->fileSizeBytes = fileSize;
+    this->isOwner = isOwner;  // Store isOwner as a member variable
     this->fileNameLabel = UIUtils::createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth, this);
     
     // Format file size for display
@@ -32,14 +33,14 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     // Buttons
     this->previewButton = UIUtils::createIconButton(previewIconPath, this);
     this->downloadButton = UIUtils::createIconButton(downloadIconPath, this);
-    if(isOwner){
+    if(this->isOwner){  // Use the member variable instead of the parameter
         this->shareButton = UIUtils::createIconButton(shareIconPath, this);  // only owners can share files
         this->deleteButton = UIUtils::createIconButton(deleteIconPath, this);
     }
   
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
 
-    if (isOwner) {
+    if (this->isOwner) {  // Use the member variable instead of the parameter
         connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare); // only owners can share files
         connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     } 
@@ -53,7 +54,7 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     layout->addWidget(this->ownerLabel);
     layout->addStretch();
     layout->addWidget(this->downloadButton);
-    if (isOwner) {
+    if (this->isOwner) {  // Use the member variable instead of the parameter
         layout->addWidget(this->shareButton);
         layout->addWidget(this->deleteButton);
     }
@@ -87,9 +88,9 @@ void FileItemWidget::handleDownload() {
     
     // Get file encryption key from local storage
     auto fileKey = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
-    if (!FileCryptoUtils::getFileEncryptionKey(this->fileUuid, fileKey.get(), 
-                                             crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
-        return; // Error already shown to user within getFileEncryptionKey
+        if (!FileCryptoUtils::getFileEncryptionKey(this->fileUuid, fileKey.get(), 
+                                                crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
+            return; // Error already shown to user within getFileEncryptionKey
     }
     
     // Extract nonce and ciphertext and prepare for decryption
