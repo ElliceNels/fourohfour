@@ -287,3 +287,57 @@ QStringList X3DHNetworkUtils::getFilePermissions(
     qDebug() << "Retrieved" << permissionsList.size() << "permissions for file" << fileUuid;
     return permissionsList;
 }
+
+/**
+ * @brief Removes a permission for a user to access a file
+ */
+bool X3DHNetworkUtils::removePermission(
+    const QString& fileUuid,
+    const QString& username,
+    QWidget* parent) {
+    
+    // Validate inputs
+    if (fileUuid.isEmpty() || username.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Invalid Input", 
+                                "File UUID and username are required for removing file permission.");
+        }
+        qWarning() << "Invalid input for file permission removal";
+        return false;
+    }
+    
+    // Construct the endpoint URL with the file UUID and username
+    QString endpoint = QString("/api/permissions/%1/%2").arg(fileUuid).arg(username);
+    
+    // Make the DELETE request to the server
+    RequestUtils::Response response = LoginSessionManager::getInstance().del(endpoint.toStdString(), QJsonObject());
+    
+    // Check if request was successful
+    if (!response.success) {
+        QString errorMessage = "Failed to remove file permission: " + QString::fromStdString(response.errorMessage);
+        if (parent) {
+            QMessageBox::warning(parent, "Permission Error", errorMessage);
+        }
+        qWarning() << errorMessage;
+        return false;
+    }
+    
+    // Parse the response
+    QJsonObject responseObj = response.jsonData.object();
+    
+    // Check if there's an error in the response
+    if (responseObj.contains("error")) {
+        QString errorMessage = "Server error: " + responseObj["error"].toString();
+        if (parent) {
+            QMessageBox::warning(parent, "Server Error", errorMessage);
+        }
+        qWarning() << errorMessage;
+        return false;
+    }
+    
+    // Log success
+    qDebug() << "Successfully removed permission for file" << fileUuid 
+             << "from user" << username;
+    
+    return true;
+}

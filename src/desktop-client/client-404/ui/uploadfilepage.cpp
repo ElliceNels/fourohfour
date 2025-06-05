@@ -177,7 +177,8 @@ QString UploadFilePage::uploadFileToServer(const SecureVector& encryptedData, co
     fileObj["contents"] = base64String;
 
     QJsonObject metadataObj;
-    metadataObj["size"] = static_cast<double>(this->fileSize);
+    // Include encryption overhead in the size so it matches the actual encrypted file size
+    metadataObj["size"] = static_cast<double>(this->fileSize + FileUpload::ENCRYPTION_OVERHEAD_BYTES);
     metadataObj["format"] = this->fileType;
 
     QJsonObject requestPayload;
