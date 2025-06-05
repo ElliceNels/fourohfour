@@ -3,7 +3,6 @@ MASTER_KEY_PATH = "./masterKey_"
 BINARY_EXTENSION = ".bin"
 JSON_EXTENSION = ".json"
 RESTRICTED_CHARS = set("!@#$%^&*()+=[]{}|\\;:'\",<>/?`~")
-SERVER_URL = "https://fourohfour.gobbler.info"
 SIGN_UP_ENDPOINT = "/sign_up"
 LOGIN_ENDPOINT = "/login"
 GET_USER_ENDPOINT = "/get_current_user"
