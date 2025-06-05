@@ -33,7 +33,6 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->ownerLabel = UIUtils::createElidedLabel(owner, fileOwnerLabelWidth, this);
 
     // Buttons
-    this->previewButton = UIUtils::createIconButton(previewIconPath, this);
     this->downloadButton = UIUtils::createIconButton(downloadIconPath, this);
     if(this->isOwner){  // Use the member variable instead of the parameter
         this->shareButton = UIUtils::createIconButton(shareIconPath, this);  // only owners can share files
@@ -47,8 +46,6 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
         connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     } 
 
-    connect(this->previewButton, &QPushButton::clicked, this, &FileItemWidget::handlePreview);
-
     // Layout
     auto *layout = new QHBoxLayout(this);
     layout->addWidget(this->fileNameLabel);
@@ -60,7 +57,6 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
         layout->addWidget(this->shareButton);
         layout->addWidget(this->deleteButton);
     }
-    layout->addWidget(this->previewButton);
 
 
     this->setLayout(layout);
@@ -356,7 +352,3 @@ void FileItemWidget::handleDelete() {
     }
 }
 
-void FileItemWidget::handlePreview() {
-    // preview logic here
-    qDebug() << "Preview clicked for file:" << this->fileNameLabel->toolTip();
-}
