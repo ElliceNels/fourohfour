@@ -16,6 +16,8 @@
 #include "constants.h"
 #include "loginsessionmanager.h"
 #include "key_utils.h"
+#include "utils/x3dh_network_utils.h"
+#include "utils/file_sharing_utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -74,12 +76,12 @@ void LoginPage::onLoginButtonClicked()
 
     sendLogInRequest(username, password);
 
-
     QString salt = getSaltRequest();
 
-
-
     if (decryptMasterKey(username, password, salt)) {
+        // Check and replenish one-time pre-keys if needed
+        replenishOneTimePreKeys();
+        
         // Switch to main menu after login
         this->ui->usernameLineEdit->clear();
         this->ui->passwordLineEdit->clear();
@@ -92,6 +94,45 @@ void LoginPage::onLoginButtonClicked()
         this->ui->loginButton->setEnabled(true);
         this->ui->loginButton->setText("Log In");
         this->ui->loginButton->repaint();
+    }
+}
+
+/**
+ * @brief Check and replenish one-time pre-keys if count is below threshold
+ */
+bool LoginPage::replenishOneTimePreKeys() {
+    // Check current OTPK count
+    int otpkCount = X3DHNetworkUtils::getOtpkCount(this);
+    
+    if (otpkCount < 0) {
+        // Error retrieving count
+        qDebug() << "Failed to retrieve OTPK count. Continuing with login.";
+        return false;
+    }
+    
+    if (otpkCount < MIN_OTPK_COUNT) {
+        qDebug() << "Current OTPK count (" << otpkCount << ") is below minimum (" 
+                << MIN_OTPK_COUNT << "). Generating and uploading more OTPKs...";
+        
+        // Generate new OTPKs
+        QJsonArray newOTPKs = FileSharingUtils::generateOneTimePreKeyPairs();
+        
+        if (!newOTPKs.isEmpty()) {
+            // Upload new keys
+            if (X3DHNetworkUtils::uploadOneTimePreKeys(newOTPKs, this)) {
+                qDebug() << "Successfully uploaded" << newOTPKs.size() << "new one-time pre-keys";
+                return true;
+            } else {
+                qDebug() << "Failed to upload new one-time pre-keys";
+                return false;
+            }
+        } else {
+            qDebug() << "Failed to generate new one-time pre-keys";
+            return false;
+        }
+    } else {
+        qDebug() << "Current OTPK count (" << otpkCount << ") is sufficient. No need to generate more.";
+        return true;
     }
 }
 

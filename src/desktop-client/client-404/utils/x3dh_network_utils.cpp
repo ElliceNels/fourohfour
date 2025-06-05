@@ -293,8 +293,6 @@ QStringList X3DHNetworkUtils::getFilePermissions(
  * @brief Gets the count of unused one-time pre-keys for the current user
  */
 int X3DHNetworkUtils::getOtpkCount(QWidget* parent) {
-    // Make the request to the server
-    const std::string COUNT_OTPK_ENDPOINT = "/api/auth/count_otpk";
     RequestUtils::Response response = LoginSessionManager::getInstance().get(COUNT_OTPK_ENDPOINT, QJsonObject());
     
     if (!response.success || response.jsonData.isEmpty()) {
