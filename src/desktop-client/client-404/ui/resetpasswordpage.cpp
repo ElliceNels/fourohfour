@@ -233,9 +233,7 @@ QString ResetPasswordPage::getSaltRequest(){
         QJsonObject jsonObj = response.jsonData.object();
 
         // Extract salt from the response
-        oldSalt = jsonObj["salt"].toString();
-        QByteArray decodedSalt = QByteArray::fromBase64(oldSalt.toUtf8());
-        oldSalt = QString::fromUtf8(decodedSalt);  // Convert back to QString
+        QString oldSalt = jsonObj["salt"].toString();
 
 
         return oldSalt;
