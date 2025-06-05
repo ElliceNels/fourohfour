@@ -29,41 +29,15 @@ import logging
 setup_logger()
 logger = logging.getLogger(__name__)
 
-# Directory to store encrypted keyfiles
-KEYFILES_DIR = os.path.join(os.path.dirname(__file__), 'keyfiles')
-if not os.path.exists(KEYFILES_DIR):
-    os.makedirs(KEYFILES_DIR)
+# Directory to store encrypted keyfiles - REMOVED for security
+# KEYFILES_DIR = os.path.join(os.path.dirname(__file__), 'keyfiles')
+# if not os.path.exists(KEYFILES_DIR):
+#     os.makedirs(KEYFILES_DIR)
 
-def get_keyfile_path(username):
-    """Get the file path for a user's encrypted keyfile"""
-    safe_username = hashlib.sha256(username.encode()).hexdigest()[:32]  # Use hash for safety
-    return os.path.join(KEYFILES_DIR, f"{safe_username}.keyfile")
-
-def store_encrypted_keyfile(username, keyfile_data):
-    """Store encrypted keyfile data for a user"""
-    try:
-        keyfile_path = get_keyfile_path(username)
-        with open(keyfile_path, 'w') as f:
-            json.dump(keyfile_data, f)
-        logger.info(f"Stored encrypted keyfile for user: {username}")
-        return True
-    except Exception as e:
-        logger.error(f"Error storing keyfile for {username}: {str(e)}")
-        return False
-
-def retrieve_encrypted_keyfile(username):
-    """Retrieve encrypted keyfile data for a user"""
-    try:
-        keyfile_path = get_keyfile_path(username)
-        if not os.path.exists(keyfile_path):
-            return None
-        with open(keyfile_path, 'r') as f:
-            keyfile_data = json.load(f)
-        logger.info(f"Retrieved encrypted keyfile for user: {username}")
-        return keyfile_data
-    except Exception as e:
-        logger.error(f"Error retrieving keyfile for {username}: {str(e)}")
-        return None
+# REMOVED: Keyfile storage functions - keyfiles now handled client-side only
+# def get_keyfile_path(username):
+# def store_encrypted_keyfile(username, keyfile_data):
+# def retrieve_encrypted_keyfile(username):
 
 @app.route('/')
 def title_page():
@@ -84,9 +58,9 @@ def signup():
                 spk_signature = data.get('spk_signature')
                 otpks = data.get('otpks')
                 password = data.get('password')
-                # New: Get encrypted keyfile data for server-side storage
-                encrypted_key = data.get('encrypted_key')
-                encrypted_master_key = data.get('encrypted_master_key')
+                # REMOVED: encrypted keyfile data is no longer stored server-side
+                # encrypted_key = data.get('encrypted_key')
+                # encrypted_master_key = data.get('encrypted_master_key')
             except Exception as e:
                 logger.error(f"Error parsing JSON data: {str(e)}")
                 return (f"Error parsing JSON data: {str(e)}", 400)
@@ -102,27 +76,20 @@ def signup():
                 'password': password,
                 'public_key': public_key,
                 'spk': spk,
-                'spk_signature': spk_signature,
-                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,                'otpks': otpks
+                'spk_signature': spk_signature,                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
+                'otpks': otpks
             }
             try:
                 resp = requests.post(signup_url, json=payload)
             except requests.exceptions.RequestException as e:
                 logger.error(f"Error during signup request: {str(e)}")
                 return (f"Error during signup request: {str(e)}", 500)
+            
             if resp.status_code != 200:
                 return (resp.text, resp.status_code)
             
-            # Store encrypted keyfile server-side if provided
-            if encrypted_key and encrypted_master_key:
-                keyfile_data = {
-                    'encrypted_key': encrypted_key,
-                    'encrypted_master_key': encrypted_master_key,
-                    'salt': salt
-                }
-                if not store_encrypted_keyfile(account_name, keyfile_data):
-                    logger.error(f"Failed to store keyfile for {account_name}")
-                    return ("Failed to store encrypted keyfile", 500)
+            # REMOVED: Keyfile storage - keyfiles are now handled client-side only
+            # No longer storing encrypted keyfiles on the server for security
             
             session['username'] = account_name
             clear_flashes()
@@ -342,26 +309,11 @@ def test_libsodium():
     """Route to test libsodium loading"""
     return render_template('libsodium_test.html')
 
-@app.route('/get_encrypted_keyfile', methods=['POST'])
-def get_encrypted_keyfile():
-    """Endpoint to retrieve encrypted keyfile for a user during login"""
-    if not request.is_json:
-        return jsonify({'error': 'JSON payload required'}), 400
-    
-    data = request.get_json()
-    username = data.get('username')
-    
-    if not username:
-        return jsonify({'error': 'Username required'}), 400
-    
-    keyfile_data = retrieve_encrypted_keyfile(username)
-    if keyfile_data is None:
-        return jsonify({'error': 'No keyfile found for this user'}), 404
-    
-    return jsonify({
-        'success': True,
-        'keyfile_data': keyfile_data
-    })
+# REMOVED: /get_encrypted_keyfile endpoint - keyfiles are now handled client-side only
+# @app.route('/get_encrypted_keyfile', methods=['POST'])
+# def get_encrypted_keyfile():
+#     """Endpoint to retrieve encrypted keyfile for a user during login"""
+#     ...endpoint removed for security...
 
 @app.route('/test_crypto')
 def test_crypto():
