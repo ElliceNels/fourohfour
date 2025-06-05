@@ -64,6 +64,52 @@ public:
         QString& usedPreKeyId,
         QWidget* parent = nullptr);
 
+    /**
+     * @brief Encrypts a file key using a shared secret
+     * 
+     * Retrieves the file encryption key by UUID from local storage
+     * and encrypts it using the shared secret generated from X3DH protocol.
+     * This allows secure transmission of the file key to another party.
+     * 
+     * @param sharedSecret The shared secret derived from the X3DH protocol
+     * @param fileUuid UUID of the file whose key we want to encrypt
+     * @param senderIdentityKey Base64-encoded sender's identity key
+     * @param recipientIdentityKey Base64-encoded recipient's identity key
+     * @param encryptedKeyData Output parameter that will contain the encrypted key data
+     * @param parent Optional parent widget for displaying error messages
+     * @return bool True if the operation was successful, false otherwise
+     */
+    static bool encryptFileKeyWithSharedSecret(
+        const SecureVector& sharedSecret,
+        const QString& fileUuid,
+        const QString& senderIdentityKey,
+        const QString& recipientIdentityKey,
+        QByteArray& encryptedKeyData,
+        QWidget* parent = nullptr);
+
+    /**
+     * @brief Decrypts a file key using a shared secret
+     * 
+     * Decrypts a file encryption key that was encrypted with a shared secret.
+     * This allows the recipient to securely receive a file key from another party.
+     * 
+     * @param sharedSecret The shared secret derived from the X3DH protocol
+     * @param encryptedKeyData Encrypted key data with nonce prepended
+     * @param senderIdentityKey Base64-encoded sender's identity key
+     * @param recipientIdentityKey Base64-encoded recipient's identity key
+     * @param fileKey Output parameter that will contain the decrypted file key
+     * @param parent Optional parent widget for displaying error messages
+     * @return bool True if the operation was successful, false otherwise
+     */
+    static bool decryptFileKeyWithSharedSecret(
+        const SecureVector& sharedSecret,
+        const QByteArray& encryptedKeyData,
+        const QString& senderIdentityKey,
+        const QString& recipientIdentityKey,
+        unsigned char* fileKey,
+        size_t fileKeySize,
+        QWidget* parent = nullptr);
+
 private:
     /**
      * @brief Converts Ed25519 keys to X25519 format for Diffie-Hellman operations
