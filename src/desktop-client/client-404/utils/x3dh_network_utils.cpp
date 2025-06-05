@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QDateTime>
 #include <QJsonObject>
+#include <QJsonArray>
 #include "core/loginsessionmanager.h"
 #include "constants.h"
 #include "utils/file_sharing_utils.h"
@@ -286,6 +287,93 @@ QStringList X3DHNetworkUtils::getFilePermissions(
     
     qDebug() << "Retrieved" << permissionsList.size() << "permissions for file" << fileUuid;
     return permissionsList;
+}
+
+/**
+ * @brief Sends one-time pre-keys to the server for secure communication
+ */
+bool X3DHNetworkUtils::uploadOneTimePreKeys(const QJsonArray& oneTimePreKeysJson, QWidget* parent) {
+    // Create request JSON object
+    QJsonObject requestData;
+    requestData["otpks"] = oneTimePreKeysJson;
+    
+    qDebug() << "Sending" << oneTimePreKeysJson.size() << "one-time pre-keys to server";
+    
+    // Send to /add_otpks endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(ADD_OTPKS_ENDPOINT, requestData);
+    
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+        int otpkCount = jsonObj["otpk_count"].toInt();
+        
+        qDebug() << "Successfully stored one-time pre-keys on server. Current count:" << otpkCount;
+        return true;
+    } else {
+        if (parent) {
+            QMessageBox::warning(parent, "OTPK Upload Warning", 
+                "Failed to upload security keys to server. Some secure sharing features may not work properly.");
+        }
+        qWarning() << "Failed to send one-time pre-keys:" << QString::fromStdString(response.errorMessage);
+        return false;
+    }
+}
+
+/**
+ * @brief Uploads a new signed pre-key and its signature to the server
+ */
+bool X3DHNetworkUtils::updateSignedPreKey(
+    const QString& signedPreKeyPublic,
+    const QString& signature,
+    QWidget* parent) {
+    
+    // Validate inputs
+    if (signedPreKeyPublic.isEmpty() || signature.isEmpty()) {
+        if (parent) {
+            QMessageBox::warning(parent, "Invalid Input", 
+                                "Signed pre-key and signature cannot be empty.");
+        }
+        qWarning() << "Invalid input for signed pre-key update";
+        return false;
+    }
+    
+    // Prepare request data
+    QJsonObject requestData;
+    requestData["spk"] = signedPreKeyPublic;
+    requestData["spk_signature"] = signature;
+    
+    qDebug() << "Sending updated signed pre-key to server";
+    
+    // Make the API request to update the signed pre-key
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(UPDATE_SPK_ENDPOINT, requestData);
+    
+    // Check if request was successful
+    if (!response.success) {
+        QString errorMessage = "Failed to update signed pre-key: " + QString::fromStdString(response.errorMessage);
+        if (parent) {
+            QMessageBox::warning(parent, "Update Error", errorMessage);
+        }
+        qWarning() << errorMessage;
+        return false;
+    }
+    
+    // Parse the response
+    QJsonObject responseObj = response.jsonData.object();
+    
+    // Check if there's an error in the response
+    if (responseObj.contains("error")) {
+        QString errorMessage = "Server error: " + responseObj["error"].toString();
+        if (parent) {
+            QMessageBox::warning(parent, "Server Error", errorMessage);
+        }
+        qWarning() << errorMessage;
+        return false;
+    }
+    
+    // Log success
+    qDebug() << "Successfully updated signed pre-key on the server";
+    
+    return true;
 }
 
 /**

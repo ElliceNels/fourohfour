@@ -16,6 +16,7 @@
 #include "utils/request_utils.h"
 #include "utils/file_sharing_utils.h"
 #include "utils/friend_storage_utils.h"
+#include "utils/x3dh_network_utils.h"
 #include "simplecontainer.h"
 
 using namespace std;
@@ -203,7 +204,7 @@ void RegisterPage::onCreateAccountClicked()
     cout << "Salt: " << *saltPtr << endl;
 
     if (sendSignUpRequest(accountName, password, pubKeyBase64, signedPreKeyPublic, signature, salt)) {
-        if (!sendOneTimePreKeysRequest(oneTimePreKeysJson)) {
+        if (!X3DHNetworkUtils::uploadOneTimePreKeys(oneTimePreKeysJson, this)) {
             qWarning() << "One-time pre-keys were not uploaded to the server";
             // We don't fail the registration process for this, but we warn the user
         }
@@ -288,41 +289,6 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
         return true;
     } else {
         QMessageBox::critical(this, "Registration Error", QString::fromStdString(response.errorMessage));
-        return false;
-    }
-}
-
-/**
- * @brief Sends one-time pre-keys to the server for secure communication
- * 
- * This method sends the JSON array of base64-encoded one-time pre-keys
- * to the server's /add_otpks endpoint. On success, it logs the 
- * number of OTPKs stored on the server.
- *
- * @param oneTimePreKeysJson JSON array of base64-encoded one-time pre-key public keys
- * @return true if the keys were successfully sent and stored, false otherwise
- */
-bool RegisterPage::sendOneTimePreKeysRequest(const QJsonArray& oneTimePreKeysJson) {
-    // Create request JSON object
-    QJsonObject requestData;
-    requestData["otpks"] = oneTimePreKeysJson;
-    
-    qDebug() << "Sending" << oneTimePreKeysJson.size() << "one-time pre-keys to server";
-    
-    // Send to /add_otpks endpoint
-    RequestUtils::Response response = LoginSessionManager::getInstance().post(ADD_OTPKS_ENDPOINT, requestData);
-    
-    // Check if request was successful
-    if (response.success) {
-        QJsonObject jsonObj = response.jsonData.object();
-        int otpkCount = jsonObj["otpk_count"].toInt();
-        
-        qDebug() << "Successfully stored one-time pre-keys on server. Current count:" << otpkCount;
-        return true;
-    } else {
-        QMessageBox::warning(this, "OTPK Upload Warning", 
-            "Failed to upload security keys to server. Some secure sharing features may not work properly.");
-        qWarning() << "Failed to send one-time pre-keys:" << QString::fromStdString(response.errorMessage);
         return false;
     }
 }
