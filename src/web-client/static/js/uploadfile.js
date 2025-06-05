@@ -99,7 +99,10 @@ async function encryptFileData(fileBuffer, key) {
 
 // Store the symmetric key in localStorage (per file UUID)
 function storeFileKey(fileUuid, key) {
-  localStorage.setItem('filekey_' + fileUuid, sodium.to_base64(key));
+  localStorage.setItem(
+    'filekey_' + fileUuid,
+    sodium.to_base64(key, sodium.base64_variants.ORIGINAL)
+  );
 }
 
 window.addEventListener('DOMContentLoaded', function () {

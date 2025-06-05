@@ -159,21 +159,77 @@ async function encryptXChaCha20Poly1305(data, key) {
   return { ciphertext, nonce };
 }
 
-// Store encrypted keys following desktop client pattern: [nonce][ciphertext]
-// No longer using localStorage - will send to server for storage
-function prepareEncryptedKeyData(encryptedKey, encryptedMasterKey, salt) {
-  return {
+// Generate keyfile for download instead of server storage
+function prepareKeyfileForDownload(
+  encryptedKey,
+  encryptedMasterKey,
+  salt,
+  username
+) {
+  const combinedKey = combineNonceCiphertext(
+    encryptedKey.nonce,
+    encryptedKey.ciphertext
+  );
+  const combinedMasterKey = combineNonceCiphertext(
+    encryptedMasterKey.nonce,
+    encryptedMasterKey.ciphertext
+  );
+
+  // Create keyfile data structure
+  const keyfileData = {
+    version: '1.0',
+    username: username,
     encrypted_key: sodium.to_base64(
-      combineNonceCiphertext(encryptedKey.nonce, encryptedKey.ciphertext)
+      combinedKey,
+      sodium.base64_variants.ORIGINAL
     ),
     encrypted_master_key: sodium.to_base64(
-      combineNonceCiphertext(
-        encryptedMasterKey.nonce,
-        encryptedMasterKey.ciphertext
-      )
+      combinedMasterKey,
+      sodium.base64_variants.ORIGINAL
     ),
-    salt: sodium.to_base64(salt),
+    salt: sodium.to_base64(salt, sodium.base64_variants.ORIGINAL),
+    created_at: new Date().toISOString(),
   };
+
+  console.log('Keyfile prepared for download:', {
+    username: keyfileData.username,
+    encrypted_key_length: keyfileData.encrypted_key.length,
+    encrypted_master_key_length: keyfileData.encrypted_master_key.length,
+    salt_length: keyfileData.salt.length,
+  });
+
+  return keyfileData;
+}
+
+// Download keyfile to user's device
+function downloadKeyfile(keyfileData, username) {
+  const jsonString = JSON.stringify(keyfileData, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${username}_keyfile.json`;
+  link.style.display = 'none';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+  console.log(`Keyfile downloaded: ${username}_keyfile.json`);
+}
+
+// Store keyfile in localStorage for session persistence
+function storeKeyfileInBrowser(keyfileData) {
+  try {
+    localStorage.setItem('fourohfour_keyfile', JSON.stringify(keyfileData));
+    console.log('Keyfile stored in browser localStorage');
+    return true;
+  } catch (error) {
+    console.error('Failed to store keyfile in localStorage:', error);
+    return false;
+  }
 }
 
 // Combine nonce and ciphertext following desktop client format
@@ -194,9 +250,9 @@ async function generateSignedPreKey(identityKeyPair) {
     identityKeyPair.privateKey
   );
   return {
-    spkPub: sodium.to_base64(spk.publicKey),
+    spkPub: sodium.to_base64(spk.publicKey, sodium.base64_variants.ORIGINAL),
     spkPriv: spk.privateKey, // not sent to server
-    signature: sodium.to_base64(signature),
+    signature: sodium.to_base64(signature, sodium.base64_variants.ORIGINAL),
   };
 }
 
@@ -207,7 +263,9 @@ async function generateOneTimePreKeys(count = 10) {
   let privateKeys = [];
   for (let i = 0; i < count; i++) {
     const kp = await generateX25519KeyPair();
-    publicKeys.push(sodium.to_base64(kp.publicKey));
+    publicKeys.push(
+      sodium.to_base64(kp.publicKey, sodium.base64_variants.ORIGINAL)
+    );
     privateKeys.push(kp.privateKey); // not sent to server
   }
   // Store privateKeys in browser storage if needed
@@ -234,11 +292,12 @@ window.addEventListener('DOMContentLoaded', async function () {
     }
     try {
       // Initialize libsodium first
-      await initSodium();
-
-      // 1. Generate identity keypair (Ed25519)
+      await initSodium(); // 1. Generate identity keypair (Ed25519)
       const idKeyPair = await generateEd25519KeyPair();
-      const pubKeyB64 = sodium.to_base64(idKeyPair.publicKey);
+      const pubKeyB64 = sodium.to_base64(
+        idKeyPair.publicKey,
+        sodium.base64_variants.ORIGINAL
+      );
 
       // 2. Generate salt and derive key using Argon2id
       const salt = sodium.randombytes_buf(16); // 16 bytes salt
@@ -256,13 +315,12 @@ window.addEventListener('DOMContentLoaded', async function () {
       const encryptedMasterKey = await encryptXChaCha20Poly1305(
         masterKey,
         derivedKey
-      );
-
-      // 5. Prepare encrypted keyfile data for server storage
-      const keyfileData = prepareEncryptedKeyData(
+      ); // 5. Prepare keyfile for download (not server storage)
+      const keyfileData = prepareKeyfileForDownload(
         encryptedKey,
         encryptedMasterKey,
-        salt
+        salt,
+        username
       );
 
       // 6. Generate signed pre-key
@@ -270,25 +328,42 @@ window.addEventListener('DOMContentLoaded', async function () {
       // 7. Generate one-time pre-keys
       const otpk = await generateOneTimePreKeys(10);
 
-      // 8. Send public data AND encrypted keyfile data to server
+      // 8. Send only public data to server (NO encrypted keyfile data)
       const payload = {
         username: username,
         password: password, // send password for backend authentication
         public_key: pubKeyB64,
-        salt: sodium.to_base64(salt),
+        salt: sodium.to_base64(salt, sodium.base64_variants.ORIGINAL),
         spk: spk.spkPub,
         spk_signature: spk.signature,
         otpks: otpk,
-        // Add encrypted keyfile data for server-side storage
-        encrypted_key: keyfileData.encrypted_key,
-        encrypted_master_key: keyfileData.encrypted_master_key,
+        // NO encrypted keyfile data sent to server
       };
+
+      // Debug: Log the payload to check base64 formatting
+      console.log('Payload being sent:', {
+        ...payload,
+        password: '[REDACTED]', // Don't log the actual password
+      });
+
       const resp = await fetch('/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       if (resp.ok) {
+        // Store keyfile in browser localStorage for immediate use
+        storeKeyfileInBrowser(keyfileData);
+
+        // Download keyfile to user's device
+        downloadKeyfile(keyfileData, username);
+
+        // Show success message with instructions
+        alert(
+          'Registration successful! Your keyfile has been downloaded. Please keep it safe - you will need it to log in.'
+        );
+
         window.location.href = '/mainmenu';
       } else {
         let msg;
