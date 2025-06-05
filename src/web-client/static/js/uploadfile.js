@@ -23,7 +23,9 @@ function updateFileInfo(input) {
     fileName.value = file.name;
     // Use MIME type instead of file extension
     fileType.value = file.type || '-';
-    fileSize.value = `${file.size} bytes`;
+    // Calculate encrypted size (original + nonce + auth tag)
+    const encryptedSize = file.size + 24 + 16; // XChaCha20-Poly1305 nonce (24) + auth tag (16)
+    fileSize.value = `${encryptedSize} bytes (encrypted)`;
 
     uploadDetails.style.display = 'block';
     uploadInstructions.style.display = 'block';
@@ -105,6 +107,67 @@ function storeFileKey(fileUuid, key) {
   );
 }
 
+// Save keyfile to user's local disk storage
+function saveKeyfileToDisk(fileUuid, key, filename) {
+  const keyBase64 = sodium.to_base64(key, sodium.base64_variants.ORIGINAL);
+  const keyfileContent = JSON.stringify({
+    uuid: fileUuid,
+    filename: filename,
+    key: keyBase64,
+    created: new Date().toISOString(),
+    version: "1.0"
+  });
+
+  // Create downloadable keyfile
+  const blob = new Blob([keyfileContent], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.key`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Load keyfile from disk
+function loadKeyfileFromDisk(callback) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.key';
+  input.onchange = function(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const keyfileData = JSON.parse(e.target.result);
+          if (keyfileData.uuid && keyfileData.key) {
+            // Store key in localStorage
+            localStorage.setItem('filekey_' + keyfileData.uuid, keyfileData.key);
+            callback(null, keyfileData);
+          } else {
+            callback(new Error('Invalid keyfile format'));
+          }
+        } catch (error) {
+          callback(error);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+  input.click();
+}
+
+// Get stored key for a file UUID
+function getStoredKey(fileUuid) {
+  const keyBase64 = localStorage.getItem('filekey_' + fileUuid);
+  if (keyBase64) {
+    return sodium.from_base64(keyBase64, sodium.base64_variants.ORIGINAL);
+  }
+  return null;
+}
+
 window.addEventListener('DOMContentLoaded', function () {
   const form = document.getElementById('upload-form');
   if (!form) return;
@@ -126,45 +189,32 @@ window.addEventListener('DOMContentLoaded', function () {
     // 2. Prepare payload following desktop client format: [nonce][ciphertext]
     const combinedData = new Uint8Array(nonce.length + ciphertext.length);
     combinedData.set(nonce, 0);
-    combinedData.set(ciphertext, nonce.length);
-
-    const payload = {
+    combinedData.set(ciphertext, nonce.length);    const payload = {
       file: {
         filename: file.name,
         contents: arrayBufferToBase64(combinedData),
       },
       metadata: {
-        size: file.size,
+        size: combinedData.length, // Use encrypted file size (original + encryption overhead)
         format: file.type || '-',
       },
-    };
-
-    // 3. Get auth token from LoginSessionManager (assume it exposes getAccessToken)
-    const token =
-      window.LoginSessionManager && window.LoginSessionManager.getAccessToken
-        ? window.LoginSessionManager.getAccessToken()
-        : null;
-    if (!token) {
-      alert('You must be logged in to upload files.');
-      return;
-    }
-
-    // 4. Upload to server
+    };// 3. Upload to server (using Flask session authentication)
     const resp = await fetch('/api/files/upload', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
       },
       body: JSON.stringify(payload),
-    });
-
-    if (resp.ok) {
+    });    if (resp.ok) {
       const result = await resp.json();
       const fileUuid = result.uuid;
-      // 5. Store the symmetric key locally, indexed by file UUID
+      // 4. Store the symmetric key locally, indexed by file UUID
       storeFileKey(fileUuid, key);
-      alert('File uploaded successfully!');
+      
+      // 5. Save keyfile to user's local disk storage
+      saveKeyfileToDisk(fileUuid, key, file.name);
+      
+      alert('File uploaded successfully! Keyfile has been saved to your downloads folder.');
       window.location.href = '/view_files';
     } else {
       const msg = await resp.text();
