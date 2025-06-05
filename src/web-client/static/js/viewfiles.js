@@ -270,18 +270,14 @@ async function getMasterKeyWithRetry() {
 
 // Download file functionality
 async function downloadFile(fileUuid, filename, isOwner) {
-    console.log(`downloadFile called with: ${fileUuid}, ${filename}, ${isOwner}`);
-    alert(`Download starting for: ${filename}`);
+    console.log(`Downloading file: ${filename} (${fileUuid})`);
     
     let button = null;
     let originalText = '';
     
     try {
-        console.log('Step 1: About to initialize sodium...');
         await initSodium();
-        console.log('Step 2: Sodium initialized successfully');
 
-        console.log('Step 3: Looking for button...');
         // Find the button that triggered this call
         // Since we're called via onclick, we need to find the button manually
         const buttons = document.querySelectorAll('button');
@@ -291,38 +287,29 @@ async function downloadFile(fileUuid, filename, isOwner) {
                 break;
             }
         }
-        console.log('Step 4: Button found:', !!button);
 
         if (button) {
             originalText = button.textContent;
             button.textContent = 'Downloading...';
             button.disabled = true;
-        }
-
-        console.log('Step 5: About to fetch file from server...');
-        // Get the encrypted file from server via proxy endpoint
+        }        // Get the encrypted file from server via proxy endpoint
         const response = await fetch(`/api/files/${fileUuid}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
-        console.log('Step 6: Response received:', response.status, response.statusText);
+        
         if (!response.ok) {
             throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
         }
 
-        console.log('Parsing response JSON...');
         const fileData = await response.json();
-        console.log('Received file data structure:', Object.keys(fileData));
-        console.log('Encrypted file data length:', fileData.encrypted_file ? fileData.encrypted_file.length : 'missing');
 
         let fileKey;
         
         if (isOwner) {
             // For owned files, decrypt using master key
-            console.log('Downloading owned file...');
-            
             // Get file key from keyfile
             const keyfile = getUserKeyfile();
             if (!keyfile || !keyfile.files || !keyfile.files[fileUuid]) {
