@@ -269,12 +269,13 @@ window.addEventListener('DOMContentLoaded', function () {
         result = await resp.json();
       } catch (e) {
         result = { success: false, error: 'Invalid server response' };
-      }      if (resp.ok && result.success) {
+      }
+      if (resp.ok && result.success) {
         console.log('Login successful, keyfile available for session');
-        
+
         // Handle SPK and OTPK management after successful login
         await handleKeyManagement(result, username, password, keyfileData);
-        
+
         window.location.href = '/mainmenu';
       } else {
         const msg = result && result.error ? result.error : 'Login failed';
@@ -386,7 +387,11 @@ async function uploadOneTimePreKeys(otpks) {
       );
       return true;
     } else {
-      console.error('Failed to upload OTPKs:', response.status, response.statusText);
+      console.error(
+        'Failed to upload OTPKs:',
+        response.status,
+        response.statusText
+      );
       return false;
     }
   } catch (error) {
@@ -411,7 +416,11 @@ async function updateSignedPreKey(spk, signature) {
       console.log('Successfully updated signed pre-key');
       return true;
     } else {
-      console.error('Failed to update SPK:', response.status, response.statusText);
+      console.error(
+        'Failed to update SPK:',
+        response.status,
+        response.statusText
+      );
       return false;
     }
   } catch (error) {
@@ -421,7 +430,12 @@ async function updateSignedPreKey(spk, signature) {
 }
 
 // Handle SPK and OTPK management after successful login
-async function handleKeyManagement(loginResponse, username, password, keyfileData) {
+async function handleKeyManagement(
+  loginResponse,
+  username,
+  password,
+  keyfileData
+) {
   try {
     const spkOutdated = loginResponse.spk_outdated || false;
     const otpkCountLow = loginResponse.otpk_count_low || false;
@@ -433,12 +447,16 @@ async function handleKeyManagement(loginResponse, username, password, keyfileDat
 
     // Handle low OTPK count
     if (otpkCountLow) {
-      console.log(`OTPK count is low (${unusedOtpkCount}). Generating new OTPKs...`);
+      console.log(
+        `OTPK count is low (${unusedOtpkCount}). Generating new OTPKs...`
+      );
       const newOTPKs = await generateOneTimePreKeys(KEY_GEN_COUNT);
       if (newOTPKs.length > 0) {
         const uploadSuccess = await uploadOneTimePreKeys(newOTPKs);
         if (uploadSuccess) {
-          console.log(`Successfully uploaded ${newOTPKs.length} new one-time pre-keys`);
+          console.log(
+            `Successfully uploaded ${newOTPKs.length} new one-time pre-keys`
+          );
         } else {
           console.log('Failed to upload new one-time pre-keys');
         }
