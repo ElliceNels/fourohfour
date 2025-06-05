@@ -59,13 +59,17 @@ def test_user():
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
     
+    # Generate a random salt and encode as base64
+    salt_bytes = uuid.uuid4().bytes
+    unique_salt = base64.b64encode(salt_bytes).decode()
+    
     return {
         "username": unique_username,
         "password": "test_password",
         "public_key": unique_public_key,
         "spk": unique_spk,
         "spk_signature": unique_spk_signature,
-        "salt": "test_salt"
+        "salt": unique_salt
     }
 
 @pytest.fixture
@@ -83,7 +87,7 @@ def signed_up_user(client, test_user):
             public_key=test_user["public_key"],
             spk=test_user["spk"],
             spk_signature=test_user["spk_signature"],
-            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            salt=base64.b64decode(test_user["salt"]),  # Decode base64 salt to bytes
             spk_updated_at=current_time,
             updated_at=current_time,
             created_at=current_time
@@ -189,9 +193,13 @@ def test_refresh_token(client: FlaskClient, logged_in_user):
 
 def test_change_password(client: FlaskClient, logged_in_user):
     """Test changing password."""
+    # Generate a new random salt and encode as base64
+    new_salt_bytes = uuid.uuid4().bytes
+    new_salt_b64 = base64.b64encode(new_salt_bytes).decode()
+    
     new_password_data = {
         "new_password": "new_test_password",
-        "salt": "new_test_salt"  # Send as string, route will convert to bytes
+        "salt": new_salt_b64  # Send as base64-encoded string
     }
 
     headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}

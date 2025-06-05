@@ -51,25 +51,28 @@ def client(app_fixture):
 
 @pytest.fixture
 def test_user():
-    """Generate a unique test user for each run with a valid base64 public key."""
+    """Generate a unique test user for each run with valid base64 cryptographic keys."""
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
-    # Generate random bytes for cryptographic keys
+    # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_public_key = base64.b64encode(random_bytes).decode()
-    
-    # Generate spk and spk_signature
+    # Generate SPK and signature (mock values for testing)
     spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    spk = base64.b64encode(spk_bytes).decode()
+    unique_spk = base64.b64encode(spk_bytes).decode()  # Encode as string for JSON
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    spk_signature = base64.b64encode(signature_bytes).decode()
+    unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
+    
+    # Generate a random salt and encode as base64
+    salt_bytes = uuid.uuid4().bytes
+    unique_salt = base64.b64encode(salt_bytes).decode()
     
     return {
         "username": unique_username,
         "password": "test_password",
         "public_key": unique_public_key,
-        "salt": "test_salt",
-        "spk": spk,
-        "spk_signature": spk_signature
+        "spk": unique_spk,
+        "spk_signature": unique_spk_signature,
+        "salt": unique_salt
     }
 
 @pytest.fixture
@@ -121,6 +124,10 @@ def third_test_user():
 @pytest.fixture
 def signed_up_user(client, test_user):
     """Sign up a user and return the user data and tokens."""
+    from server.models.tables import Users, OTPK
+    from server.utils.db_setup import get_session
+    from server.utils.auth import hash_password
+    
     current_time = datetime.now(UTC)
     with get_session() as db:
         user = Users(
@@ -129,7 +136,7 @@ def signed_up_user(client, test_user):
             public_key=test_user["public_key"],
             spk=test_user["spk"],
             spk_signature=test_user["spk_signature"],
-            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            salt=base64.b64decode(test_user["salt"]),  # Decode base64 salt to bytes
             spk_updated_at=current_time,
             updated_at=current_time,
             created_at=current_time
@@ -283,6 +290,48 @@ def stored_file_data(logged_in_user, test_file_data, client):
     except Exception as e:
         logger.error(f"Error cleaning up test file: {str(e)}")
 
+@pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
+    (CREATED, True, True, True, True),  # Success: all fields included
+    (CONFLICT, True, True, True, True),  # Conflict: all fields included
+    (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
+    (BAD_REQUEST, True, True, False, True),      # Error: missing username
+    (BAD_REQUEST, False, True, True, True),      # Error: missing key_for_recipient
+    (NOT_FOUND, True, True, True, False),        # Error: file not found
+])
+def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
+    """Test creating file permissions with various scenarios."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    permission_data = {}
+    
+    if include_file:
+        # For NOT_FOUND test case, use a random UUID
+        if expected_status == NOT_FOUND and not is_owner:
+            permission_data["file_uuid"] = str(uuid.uuid4())
+        else:
+            permission_data["file_uuid"] = stored_file_data["file_uuid"]
+    
+    if include_key:
+        # Generate random bytes for keys and encode as base64
+        key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        
+        permission_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
+        permission_data["otpk"] = base64.b64encode(otpk_bytes).decode()
+        permission_data["ephemeral_key"] = base64.b64encode(ephemeral_key_bytes).decode()
+    
+    if include_user_id:
+        permission_data["username"] = second_signed_up_user["username"]
+    
+    if expected_status == CONFLICT:
+        # Create permission first time
+        response = client.post("/api/permissions", json=permission_data, headers=headers)
+        assert response.status_code == CREATED
+    
+    # Now make the actual test request
+    response = client.post("/api/permissions", json=permission_data, headers=headers)
+    assert response.status_code == expected_status
+
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner, is_self_removal", [
     (SUCCESS, True, True, True, True, False),  # Success: owner removing permission
     (SUCCESS, True, True, True, False, True),  # Success: user removing their own permission
@@ -328,10 +377,6 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, third_
         else:
             remove_data["file_uuid"] = stored_file_data["file_uuid"]
     
-    if include_key:
-        key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-        remove_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
-    
     if include_user_id:
         # For forbidden case, we want to try to remove someone else's permission
         # For self-removal case, use the logged-in user's username
@@ -347,18 +392,12 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, third_
         else:
             remove_data["username"] = logged_in_user["user"]["username"] if is_self_removal else second_signed_up_user["username"]
     
-    # Add debug logging
-    logger.info(f"Test case: expected_status={expected_status}, is_owner={is_owner}, is_self_removal={is_self_removal}")
-    logger.info(f"Logged in user: {logged_in_user['user']['username']}")
-    logger.info(f"Second user: {second_signed_up_user['username']}")
-    logger.info(f"Remove data: {remove_data}")
-    
     # Make the removal request
     response = client.delete("/api/permissions", json=remove_data, headers=headers)
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
-    (CREATED, True, True, True, True),  # Success: all fields included
+    (SUCCESS, True, True, True, True),  # Success: all fields included
     (CONFLICT, True, True, True, True),  # Conflict: all fields included
     (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
     (BAD_REQUEST, True, True, False, True),      # Error: missing username
@@ -371,7 +410,11 @@ def test_create_permission(client, logged_in_user, second_signed_up_user, stored
     permission_data = {}
     
     if include_file:
-        permission_data["file_uuid"] = uuid.uuid4() if not is_owner else stored_file_data["file_uuid"]
+        # For NOT_FOUND test case, use a random UUID
+        if expected_status == NOT_FOUND and not is_owner:
+            permission_data["file_uuid"] = str(uuid.uuid4())
+        else:
+            permission_data["file_uuid"] = stored_file_data["file_uuid"]
     
     if include_key:
         # Generate random bytes for keys and encode as base64
