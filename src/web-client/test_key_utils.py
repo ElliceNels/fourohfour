@@ -8,7 +8,7 @@ from nacl.bindings import (
     crypto_pwhash_SALTBYTES,
 )
 import re
-from key_utils import generate_sodium_keypair, generate_salt, decode_salt, derive_key_from_password, encrypt_and_save_key, encrypt_and_save_master_key, decrypt_and_reencrypt_user_file
+from utils.key_gen import generate_sodium_keypair, generate_salt, decode_salt, derive_key_from_password, encrypt_and_save_key, encrypt_and_save_master_key, decrypt_and_reencrypt_user_file
 
 
 def test_generate_sodium_keypair():

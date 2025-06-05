@@ -1,4 +1,4 @@
-from session_manager import LoginSessionManager
+from utils.auth.session_manager import LoginSessionManager
 from constants import LOGIN_ENDPOINT
 from exceptions import UserNotFoundError, InvalidPasswordError, ServerError
 

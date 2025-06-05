@@ -11,8 +11,8 @@ from nacl.bindings import (
 )
 import nacl.utils
 from nacl import pwhash
-from encryption_helper import EncryptionHelper  
-from session_manager import LoginSessionManager
+from utils.encryption_helper import EncryptionHelper  
+from utils.auth.session_manager import LoginSessionManager
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 import os
 from nacl.signing import SigningKey

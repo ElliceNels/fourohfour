@@ -1,9 +1,9 @@
 from flask import Flask, render_template, request, redirect, flash, url_for, session, jsonify
-from login import manage_login
-from signup import validate_registration, manage_registration
-from uploadfile import validate_file_size, validate_file_type
-from resetpassword import manage_reset_password
-from session_manager import LoginSessionManager
+from utils.auth.login import manage_login
+from utils.auth.signup import validate_registration, manage_registration
+from utils.auth.resetpassword import manage_reset_password
+from utils.files import my_files, validate_file_size, validate_file_type
+from utils.auth.session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
 from constants import GET_USER_ENDPOINT
 import time
@@ -13,7 +13,6 @@ MAX_ATTEMPTS = 5
 WINDOW_SECONDS = 300  # 5 minutes
 
 from utils.verify_user import generate_code, save_friend
-from utils.view_files import my_files
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
