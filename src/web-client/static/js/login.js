@@ -249,11 +249,9 @@ window.addEventListener('DOMContentLoaded', function () {
       const masterKeyRaw = await decryptXChaCha20Poly1305(
         encryptedMasterKeyData,
         derivedKey
-      );
-
-      // Store master key in session
+      );      // Store master key in session using consistent key format
       sessionStorage.setItem(
-        'masterKey_' + username,
+        'fourohfour_master_key',
         sodium.to_base64(masterKeyRaw, sodium.base64_variants.ORIGINAL)
       );
 

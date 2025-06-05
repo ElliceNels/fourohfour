@@ -5,14 +5,16 @@ function clearBrowserStorage() {
   try {
     // Clear keyfile from localStorage
     localStorage.removeItem('fourohfour_keyfile');
-    console.log('Keyfile cleared from localStorage on logout');
+    console.log('Keyfile cleared from localStorage on logout');    // Clear master key from sessionStorage (using consistent key format)
+    sessionStorage.removeItem('fourohfour_master_key');
+    console.log('Cleared fourohfour_master_key from sessionStorage');
 
-    // Clear master key from sessionStorage (if stored there)
+    // Also clear any legacy master keys (for backward compatibility)
     const sessionKeys = Object.keys(sessionStorage);
     sessionKeys.forEach((key) => {
       if (key.startsWith('masterKey_')) {
         sessionStorage.removeItem(key);
-        console.log(`Cleared master key: ${key}`);
+        console.log(`Cleared legacy master key: ${key}`);
       }
     });
 
