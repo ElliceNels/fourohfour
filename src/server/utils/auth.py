@@ -422,8 +422,8 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
             )
             db.add(new_otk)
         
-        # Flush to make new records visible to queries
-        db.flush()
+        # Commit to make new records visible to queries
+        db.commit()
         
         # Get count using existing function
         try:
@@ -432,9 +432,6 @@ def add_otpks(otpks: List[str], user_info: Dict) -> Dict:
             logger.warning(f"Add OTPKs failed: Error counting OTPKs - {str(e)}")
             return {"error": str(e)}, 400
         
-        # Commit the transaction
-        db.commit()
-    
     logger.info(f"Added {len(otpks)} OTPKs for user {user_info['username']}")
     return {
         "message": f"Added {len(otpks)} OTPKs successfully",
