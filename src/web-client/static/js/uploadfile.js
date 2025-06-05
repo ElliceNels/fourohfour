@@ -34,3 +34,110 @@ function updateFileInfo(input) {
 function triggerBrowse() {
     document.getElementById('file-input').click();
 }
+
+// Secure file upload: browser-side encryption, no private keys on server
+// Requires: LoginSessionManager.js (must provide getAccessToken())
+
+// Helper: Convert ArrayBuffer to base64
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    let bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+}
+
+// Helper: Generate a random AES-GCM key
+async function generateSymmetricKey() {
+    return await window.crypto.subtle.generateKey(
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"]
+    );
+}
+
+// Helper: Encrypt file data with AES-GCM
+async function encryptFileData(fileBuffer, key) {
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const ciphertext = await window.crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        fileBuffer
+    );
+    return { ciphertext, iv };
+}
+
+// Store the symmetric key in localStorage/sessionStorage (per file UUID)
+function storeFileKey(fileUuid, key) {
+    window.crypto.subtle.exportKey("raw", key).then(rawKey => {
+        localStorage.setItem("filekey_" + fileUuid, arrayBufferToBase64(rawKey));
+    });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('upload-form');
+    if (!form) return;
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const fileInput = document.getElementById('file-input');
+        if (!fileInput.files.length) {
+            alert("Please select a file.");
+            return;
+        }
+        const file = fileInput.files[0];
+        const arrayBuffer = await file.arrayBuffer();
+
+        // 1. Generate symmetric key and encrypt file
+        const key = await generateSymmetricKey();
+        const { ciphertext, iv } = await encryptFileData(arrayBuffer, key);
+
+        // 2. Prepare payload
+        const encryptedData = new Uint8Array(ciphertext);
+        const payload = {
+            file: {
+                filename: file.name,
+                contents: arrayBufferToBase64(
+                    new Uint8Array([...iv, ...encryptedData])
+                )
+            },
+            metadata: {
+                size: file.size,
+                format: file.type || "-"
+            }
+        };
+
+        // 3. Get auth token from LoginSessionManager (assume it exposes getAccessToken)
+        const token = window.LoginSessionManager && window.LoginSessionManager.getAccessToken
+            ? window.LoginSessionManager.getAccessToken()
+            : null;
+        if (!token) {
+            alert("You must be logged in to upload files.");
+            return;
+        }
+
+        // 4. Upload to server
+        const resp = await fetch('/api/files/upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (resp.ok) {
+            const result = await resp.json();
+            const fileUuid = result.uuid;
+            // 5. Store the symmetric key locally, indexed by file UUID
+            storeFileKey(fileUuid, key);
+            alert("File uploaded successfully!");
+            window.location.href = "/view_files";
+        } else {
+            const msg = await resp.text();
+            alert("Upload failed: " + msg);
+        }
+    });
+});
