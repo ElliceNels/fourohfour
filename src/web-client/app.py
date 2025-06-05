@@ -510,8 +510,7 @@ def proxy_file_upload():
             'Content-Type': 'application/json',
             'Authorization': f'Bearer {access_token}'
         }
-        
-        # Forward the exact payload from the client
+          # Forward the exact payload from the client
         resp = requests.post(upload_url, json=data, headers=headers)
         
         if resp.status_code == 201:  # Backend returns 201 for created
@@ -522,6 +521,81 @@ def proxy_file_upload():
             
     except requests.exceptions.RequestException as e:
         logger.error(f"Error forwarding file upload: {str(e)}")
+        return jsonify({'error': 'Request failed'}), 500
+
+# Proxy endpoint for file download
+@app.route('/api/files/<file_uuid>', methods=['GET'])
+def proxy_file_download(file_uuid):
+    """Proxy endpoint to download files from the backend server"""
+    # Check if user is logged in via Flask session
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Forward file download request to backend server using session manager tokens
+    download_url = config.server.url.rstrip('/') + f'/api/files/{file_uuid}'
+    session_manager = LoginSessionManager.getInstance()
+    
+    try:
+        # Get session tokens (returns tuple: access_token, refresh_token)
+        access_token, refresh_token = session_manager.getTokens()
+        if not access_token:
+            return jsonify({'error': 'No valid session token'}), 401
+        
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        # Forward the request to the backend
+        resp = requests.get(download_url, headers=headers)
+        
+        if resp.status_code == 200:
+            return jsonify(resp.json()), 200
+        else:
+            logger.error(f"Backend file download failed: {resp.status_code} - {resp.text}")
+            return jsonify({'error': 'Backend server error'}), resp.status_code
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error forwarding file download: {str(e)}")
+        return jsonify({'error': 'Request failed'}), 500
+
+# Proxy endpoint for file deletion
+@app.route('/api/files/<file_uuid>', methods=['DELETE'])
+def proxy_file_delete(file_uuid):
+    """Proxy endpoint to delete files from the backend server"""
+    # Check if user is logged in via Flask session
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    # Forward file deletion request to backend server using session manager tokens
+    delete_url = config.server.url.rstrip('/') + f'/api/files/{file_uuid}'
+    session_manager = LoginSessionManager.getInstance()
+    
+    try:
+        # Get session tokens (returns tuple: access_token, refresh_token)
+        access_token, refresh_token = session_manager.getTokens()
+        if not access_token:
+            return jsonify({'error': 'No valid session token'}), 401
+        
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        # Forward the request to the backend
+        resp = requests.delete(delete_url, headers=headers)
+        
+        if resp.status_code == 200:
+            # Handle both JSON and plain text responses
+            try:
+                return jsonify(resp.json()), 200
+            except ValueError:
+                # If response is not JSON, return success message
+                return jsonify({'message': 'File deleted successfully'}), 200
+        else:
+            logger.error(f"Backend file deletion failed: {resp.status_code} - {resp.text}")
+            return jsonify({'error': 'Backend server error'}), resp.status_code
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error forwarding file deletion: {str(e)}")
         return jsonify({'error': 'Request failed'}), 500
 
 if __name__ == '__main__':
