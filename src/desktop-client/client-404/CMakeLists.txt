@@ -86,6 +86,10 @@ set(UTILS_SOURCES
     utils/file_crypto_utils.cpp
     utils/widget_utils.h
     utils/widget_utils.cpp
+    utils/shared_secret_utils.h
+    utils/shared_secret_utils.cpp
+    utils/x3dh_network_utils.h
+    utils/x3dh_network_utils.cpp
 )
 
 set(CORE_SOURCES
