@@ -38,5 +38,10 @@
 
     "otpk": {
       "min_unused_count": 10
+    },
+
+    "file": {
+      "max_size_bytes": 104857600,
+      "max_size_mb": 100
     }
 }

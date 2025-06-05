@@ -172,13 +172,15 @@ def logged_in_user(client, signed_up_user):
 @pytest.fixture
 def test_file_data():
     """Generate a sample file data for testing."""
+    file_content = b"test file content"
+    encoded_content = base64.b64encode(file_content).decode('utf-8')
     return {
         "file": {
-            "filename": "testfile",
-            "contents": "dGVzdCBmaWxlIGNvbnRlbnQ="  # base64 encoded "test file content"
+            "filename": "testfile.txt",
+            "contents": encoded_content
         },
         "metadata": {
-            "size": 1234,
+            "size": len(file_content),  # Use actual file size instead of hardcoded value
             "format": "txt"
         }
     }

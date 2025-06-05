@@ -7,6 +7,7 @@ from server.models.tables import Files, FilePermissions, FileMetadata, Users
 from server.utils.db_setup import get_session
 import logging
 from werkzeug.utils import secure_filename
+from server.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,31 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
     # Decode base64 contents
     try:
         import base64
-        file_contents = base64.b64decode(file_contents_b64)
+        file_contents: bytes = base64.b64decode(file_contents_b64)
     except Exception as e:
         logger.error(f"Error decoding base64 file contents: {str(e)}")
         return jsonify({'error': 'Invalid base64 file contents'}), 400
+
+    # Validate file size before any database operations
+    # len(bytes) returns int, comparing with config.file.max_size_bytes (int)
+    file_size: int = len(file_contents)
+    if file_size > config.file.max_size_bytes:
+        logger.warning(f"Upload failed: File size {file_size} bytes exceeds maximum allowed size of {config.file.max_size_mb}MB")
+        return jsonify({'error': f'File size exceeds maximum allowed size of {config.file.max_size_mb}MB'}), 400
+
+    # Validate metadata size matches actual file size
+    if metadata and 'size' in metadata:
+        try:
+            metadata_size = float(metadata['size'])
+            if abs(metadata_size - len(file_contents)) > 1:  # Allow 1 byte difference for floating point precision
+                logger.warning(f"Upload failed: Metadata size {metadata_size} does not match actual file size {len(file_contents)}")
+                return jsonify({'error': 'File size in metadata does not match actual file size'}), 400
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Upload failed: Invalid size in metadata: {str(e)}")
+            return jsonify({'error': 'Invalid file size in metadata'}), 400
+    else:
+        logger.warning("Upload failed: Missing size in metadata")
+        return jsonify({'error': 'Invalid file size in metadata'}), 400
 
     with get_session() as db:
         try:
