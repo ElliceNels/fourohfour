@@ -71,17 +71,6 @@ public:
         QWidget* parent = nullptr);
 
     /**
-     * @brief Gets the count of unused one-time pre-keys for the current user
-     * 
-     * This method retrieves the count of unused OTPKs available for the authenticated
-     * user. It helps determine if additional OTPKs need to be generated and uploaded.
-     *
-     * @param parent Optional parent widget for displaying message boxes
-     * @return int The count of unused OTPKs, or -1 if the request failed
-     */
-    static int getOtpkCount(QWidget* parent = nullptr);
-
-    /**
      * @brief Sends one-time pre-keys to the server for secure communication
      * 
      * This method sends the JSON array of base64-encoded one-time pre-keys

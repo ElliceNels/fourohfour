@@ -290,40 +290,6 @@ QStringList X3DHNetworkUtils::getFilePermissions(
 }
 
 /**
- * @brief Gets the count of unused one-time pre-keys for the current user
- */
-int X3DHNetworkUtils::getOtpkCount(QWidget* parent) {
-    RequestUtils::Response response = LoginSessionManager::getInstance().get(COUNT_OTPK_ENDPOINT, QJsonObject());
-    
-    if (!response.success || response.jsonData.isEmpty()) {
-        QString errorMsg = QString::fromStdString(response.errorMessage);
-        qWarning() << "Failed to retrieve OTPK count:" << errorMsg;
-        if (parent) {
-            QMessageBox::warning(parent, "Error", 
-                               "Failed to retrieve one-time pre-key count: " + errorMsg);
-        }
-        return -1;
-    }
-    
-    QJsonObject jsonObj = response.jsonData.object();
-    
-    // Check if the response has the expected field
-    if (!jsonObj.contains("otpk_count")) {
-        qWarning() << "OTPK count response missing required field";
-        if (parent) {
-            QMessageBox::warning(parent, "Error", 
-                               "Server response missing OTPK count field");
-        }
-        return -1;
-    }
-    
-    int otpkCount = jsonObj["otpk_count"].toInt(-1);
-    qDebug() << "Current OTPK count:" << otpkCount;
-    
-    return otpkCount;
-}
-
-/**
  * @brief Sends one-time pre-keys to the server for secure communication
  */
 bool X3DHNetworkUtils::uploadOneTimePreKeys(const QJsonArray& oneTimePreKeysJson, QWidget* parent) {

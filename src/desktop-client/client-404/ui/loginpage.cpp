@@ -74,21 +74,24 @@ void LoginPage::onLoginButtonClicked()
     LoginSessionManager::getInstance().setUsername(username);
     LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
-    sendLogInRequest(username, password);
+    if (sendLogInRequest(username, password)) {
+        // Get salt for key derivation
+        QString salt = getSaltRequest();
 
-    QString salt = getSaltRequest();
-
-    if (decryptMasterKey(username, password, salt)) {
-        // Check and replenish one-time pre-keys if needed
-        replenishOneTimePreKeys();
-        
-        // Switch to main menu after login
-        this->ui->usernameLineEdit->clear();
-        this->ui->passwordLineEdit->clear();
-        this->ui->loginButton->setEnabled(true);
-        this->ui->loginButton->setText("Log In");
-        this->ui->loginButton->repaint();
-        emit this->goToMainMenuRequested();
+        if (decryptMasterKey(username, password, salt)) {
+            // Switch to main menu after login
+            this->ui->usernameLineEdit->clear();
+            this->ui->passwordLineEdit->clear();
+            this->ui->loginButton->setEnabled(true);
+            this->ui->loginButton->setText("Log In");
+            this->ui->loginButton->repaint();
+            emit this->goToMainMenuRequested();
+        } else {
+            // Only reset the button if login failed
+            this->ui->loginButton->setEnabled(true);
+            this->ui->loginButton->setText("Log In");
+            this->ui->loginButton->repaint();
+        }
     } else {
         // Only reset the button if login failed
         this->ui->loginButton->setEnabled(true);
@@ -97,54 +100,12 @@ void LoginPage::onLoginButtonClicked()
     }
 }
 
-/**
- * @brief Check and replenish one-time pre-keys if count is below threshold
- */
-bool LoginPage::replenishOneTimePreKeys() {
-    // Check current OTPK count
-    int otpkCount = X3DHNetworkUtils::getOtpkCount(this);
-    
-    if (otpkCount < 0) {
-        // Error retrieving count
-        qDebug() << "Failed to retrieve OTPK count. Continuing with login.";
-        return false;
-    }
-    
-    if (otpkCount < MIN_OTPK_COUNT) {
-        qDebug() << "Current OTPK count (" << otpkCount << ") is below minimum (" 
-                << MIN_OTPK_COUNT << "). Generating and uploading more OTPKs...";
-        
-        // Generate new OTPKs
-        QJsonArray newOTPKs = FileSharingUtils::generateOneTimePreKeyPairs();
-        
-        if (!newOTPKs.isEmpty()) {
-            // Upload new keys
-            if (X3DHNetworkUtils::uploadOneTimePreKeys(newOTPKs, this)) {
-                qDebug() << "Successfully uploaded" << newOTPKs.size() << "new one-time pre-keys";
-                return true;
-            } else {
-                qDebug() << "Failed to upload new one-time pre-keys";
-                return false;
-            }
-        } else {
-            qDebug() << "Failed to generate new one-time pre-keys";
-            return false;
-        }
-    } else {
-        qDebug() << "Current OTPK count (" << otpkCount << ") is sufficient. No need to generate more.";
-        return true;
-    }
-}
-
 bool LoginPage::sendLogInRequest(const QString& username, const QString& password)
 {
-
-
     // Prepare JSON payload for registration
     QJsonObject requestData;
     requestData["username"] = username;
     requestData["password"] = password;
-
 
     // Make the POST request to the sign_up endpoint
     RequestUtils::Response response = LoginSessionManager::getInstance().post(LOGIN_ENDPOINT, requestData);
@@ -156,9 +117,29 @@ bool LoginPage::sendLogInRequest(const QString& username, const QString& passwor
         // Extract tokens from the response
         QString accessToken = jsonObj["access_token"].toString();
         QString refreshToken = jsonObj["refresh_token"].toString();
+        
+        // Extract key status information
+        bool otpkCountLow = jsonObj["otpk_count_low"].toBool();
+        int unusedOtpkCount = jsonObj["unused_otpk_count"].toInt();
 
         // Set tokens in the LoginSessionManager
         LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+        
+        // Handle low OTPK count
+        if (otpkCountLow) {
+            qDebug() << "OTPK count is low (" << unusedOtpkCount << "). Generating new OTPKs...";
+            QJsonArray newOTPKs = FileSharingUtils::generateOneTimePreKeyPairs();
+            if (!newOTPKs.isEmpty()) {
+                if (X3DHNetworkUtils::uploadOneTimePreKeys(newOTPKs, this)) {
+                    qDebug() << "Successfully uploaded" << newOTPKs.size() << "new one-time pre-keys";
+                } else {
+                    qDebug() << "Failed to upload new one-time pre-keys";
+                }
+            }
+        }
+        else {
+            qDebug() << "OTPK count is sufficient (" << unusedOtpkCount << "). No action needed.";
+        }
 
         qDebug() << "Login successful. Tokens saved in session manager.";
         return true;
