@@ -44,7 +44,6 @@ const int fileOwnerLabelWidth = 200;
 const int usernameLabelWidth = 400;
 const float friendTruncationFactor = 0.9;
 
-const QString previewIconPath = ":/images/eye-bold.svg";
 const QString shareIconPath = ":/images/share-fat-fill.svg";
 const QString deleteIconPath = ":/images/trash-fill.svg";
 const QString downloadIconPath =":/images/download-simple-bold.svg";
