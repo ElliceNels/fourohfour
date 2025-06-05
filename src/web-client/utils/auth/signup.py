@@ -1,7 +1,7 @@
 import os
 import unicodedata
-from key_utils import generate_sodium_keypair, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
-from session_manager import LoginSessionManager
+from utils.key_gen import generate_sodium_keypair, encrypt_and_save_key, derive_key_from_password, generate_salt, decode_salt
+from utils.auth.session_manager import LoginSessionManager
 from constants import SIGN_UP_ENDPOINT, ADD_OTPK_ENDPOINT
 from exceptions import UsernameAlreadyExistsError, ServerError
 import logging
@@ -10,13 +10,13 @@ logger = logging.getLogger(__name__)
 
 RESTRICTED_CHARS = set('!@#$%^&*()+=[]{}|\\;:\'",<>/?`~')  
 
-def load_dictionary_words(filepath):
+def _load_dictionary_words(filepath):
     with open(filepath, encoding='utf-8') as f:
         return set(line.strip().lower() for line in f if line.strip())
 
 def validate_registration(account_name, password, confirm_password, old_password = None):
     common_pw_path = os.path.join(os.path.dirname(__file__), 'common_passwords.txt')
-    dictionary_words = load_dictionary_words(common_pw_path)
+    dictionary_words = _load_dictionary_words(common_pw_path)
 
     if password != confirm_password:
         return False, "Passwords do not match!"

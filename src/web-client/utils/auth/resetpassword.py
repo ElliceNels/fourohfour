@@ -1,6 +1,6 @@
-from session_manager import LoginSessionManager
+from utils.auth.session_manager import LoginSessionManager
 from constants import GET_USER_ENDPOINT, RESET_PASSWORD_ENDPOINT
-from key_utils import generate_salt, decrypt_and_reencrypt_user_file
+from utils.key_gen import generate_salt, decrypt_and_reencrypt_user_file
 import base64
 
 

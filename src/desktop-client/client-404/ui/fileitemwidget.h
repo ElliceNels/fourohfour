@@ -29,7 +29,6 @@ private slots:
     void handleDownload();
     void handleShare();
     void handleDelete();
-    void handlePreview();
 
 private:
     QLabel *fileNameLabel;
@@ -42,7 +41,6 @@ private:
     QPushButton *downloadButton;
     QPushButton *shareButton;
     QPushButton *deleteButton;
-    QPushButton *previewButton;
 
     // UI helper methods
     QPushButton* createIconButton(const QString& iconPath);

@@ -11,8 +11,8 @@ from nacl.bindings import (
 )
 import nacl.utils
 from nacl import pwhash
-from encryption_helper import EncryptionHelper  
-from session_manager import LoginSessionManager
+from utils.encryption_helper import EncryptionHelper  
+from utils.auth.session_manager import LoginSessionManager
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 import os
 from nacl.signing import SigningKey
@@ -120,7 +120,7 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
     crypto = EncryptionHelper()
 
     # Read encrypted file
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}")
+    file_path = f"{MASTER_KEY_PATH}{username}{BINARY_EXTENSION}"
     try:
         with open(file_path, 'rb') as file:
             encrypted_data = file.read()
