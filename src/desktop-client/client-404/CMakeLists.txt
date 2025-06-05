@@ -88,6 +88,8 @@ set(UTILS_SOURCES
     utils/shared_secret_utils.cpp
     utils/x3dh_network_utils.h
     utils/x3dh_network_utils.cpp
+    utils/file_sharing_manager_utils.h
+    utils/file_sharing_manager_utils.cpp
 )
 
 set(CORE_SOURCES

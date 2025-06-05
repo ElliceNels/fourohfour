@@ -33,9 +33,11 @@ public slots:
     void loadFriendsList();
     void onFriendShareRequested(const QString &username);
     void onFriendDeleteRequested(const QString &username);
+    void onFileSelected(const QString &fileUuid); // New slot to handle file selection
 
 private:
     Ui::ViewFilesPage *ui;
+    QString selectedFileUuid; // Store the currently selected file UUID
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
@@ -53,6 +55,7 @@ signals:
     void goToFriendsPageRequested();
     void switchToOwnedFilesRequested();
     void switchToSharedFilesRequested();
+    void showStatusMessage(const QString &message); // Added for status updates
 };
 
 #endif // VIEWFILESPAGE_H

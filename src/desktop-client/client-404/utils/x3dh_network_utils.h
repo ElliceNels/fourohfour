@@ -34,6 +34,29 @@ public:
         QString& otpk,
         QString& spk,
         QWidget* parent = nullptr);
+        
+    /**
+     * @brief Creates a permission for a file to be accessed by a recipient
+     * 
+     * This method creates a permission on the server that allows the specified
+     * recipient to access a shared file. It sends the encrypted file key that was
+     * encrypted with the shared secret from the X3DH protocol.
+     *
+     * @param fileUuid UUID of the file being shared
+     * @param recipientUsername Username of the user receiving permission
+     * @param encryptedKey The file key encrypted with the shared secret
+     * @param oneTimePreKey The one-time prekey used in the X3DH protocol
+     * @param ephemeralKey The ephemeral key used in the X3DH protocol
+     * @param parent Optional parent widget for displaying message boxes
+     * @return bool True if the permission was successfully created
+     */
+    static bool createPermission(
+        const QString& fileUuid,
+        const QString& recipientUsername,
+        const QByteArray& encryptedKey,
+        const QString& oneTimePreKey,
+        const QString& ephemeralKey,
+        QWidget* parent = nullptr);
 
 private:
     /**

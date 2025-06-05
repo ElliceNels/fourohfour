@@ -11,6 +11,7 @@
 #include "core/loginsessionmanager.h"
 #include "utils/request_utils.h"
 #include "utils/friend_storage_utils.h" 
+#include "utils/file_sharing_manager_utils.h" // Add the new utility
 
 ViewFilesPage::ViewFilesPage(QWidget *parent)
     : BasePage(parent)
@@ -71,6 +72,12 @@ void ViewFilesPage::switchMainPage(int pageIndex) {
 }
 
 void ViewFilesPage::onShareRequested() {
+    // Check if a file is selected
+    if (selectedFileUuid.isEmpty()) {
+        QMessageBox::warning(this, "Selection Required", "Please select a file to share first.");
+        return;
+    }
+    
     // Switch to the sharing page
     switchMainPage(SHARING_PAGE_INDEX);
 }
@@ -144,9 +151,11 @@ void ViewFilesPage::addFileItem(const QJsonObject& fileObj, QListWidget* listWid
     );
     
     // Connect to file widget signals 
-    // Must be done internally after the widget is created
     connect(fileWidget, &FileItemWidget::fileDeleted, this, &ViewFilesPage::fetchUserFiles);
-    connect(fileWidget, &FileItemWidget::shareRequested, this, &ViewFilesPage::onShareRequested);
+    connect(fileWidget, &FileItemWidget::shareRequested, [this, fileUuid]() {
+        this->onFileSelected(fileUuid);
+        this->onShareRequested();
+    });
     
     QListWidgetItem* item = new QListWidgetItem(listWidget);
     listWidget->setItemWidget(item, fileWidget);
@@ -222,10 +231,43 @@ void ViewFilesPage::addFriendItem(const QString &username, const QString &public
 
 void ViewFilesPage::onFriendShareRequested(const QString &username) {
     qDebug() << "Share requested for friend:" << username;
-    // Future functionality will be added here
-    QMessageBox::information(this, "Share", "Share functionality with " + username + " will be implemented soon.");
+    
+    // Check if a file is selected
+    if (selectedFileUuid.isEmpty()) {
+        QMessageBox::warning(this, "Selection Required", "Please select a file to share first.");
+        return;
+    }
+    
+    // Get the recipient's public key - fixed method name here
+    QString publicKey = FriendStorageUtils::getUserPublicKey(username, this);
+    if (publicKey.isEmpty()) {
+        QMessageBox::warning(this, "Error", "Could not retrieve public key for " + username);
+        return;
+    }
+    
+    // Show a confirmation dialog
+    if (!UIUtils::confirmAction("Confirm Sharing", 
+                              QString("Are you sure you want to share this file with %1?").arg(username), 
+                              this)) {
+        return;
+    }
+    
+    // Use FileSharingManagerUtils to share the file
+    bool success = FileSharingManagerUtils::shareFileWithUser(
+        selectedFileUuid,
+        username,
+        publicKey,
+        this
+    );
+    
+    if (success) {
+        QMessageBox::information(this, "Success", 
+                               QString("File shared successfully with %1.").arg(username));
+        // Return to files page after successful sharing
+        navigateToFilesListPage();
+    }
+    // Error handling is done within the FileSharingManagerUtils class
 }
-
 void ViewFilesPage::onFriendDeleteRequested(const QString &username) {
     if (FriendStorageUtils::removeFriend(username, this)) {
         QMessageBox::information(this, "Success", "Friend removed successfully.");
