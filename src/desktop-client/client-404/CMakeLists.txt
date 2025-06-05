@@ -56,6 +56,8 @@ set(UI_SOURCES
     ui/resetpasswordpage.ui
     ui/resetpasswordpage.h
     ui/resetpasswordpage.cpp
+    ui/anotherbasepage.h
+    ui/anotherbasepage.cpp
 )
 
 set(CRYPTO_SOURCES
@@ -107,6 +109,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         resource.qrc
+        simplecontainer.h
+
     )
 else()
     if(ANDROID)
@@ -142,6 +146,8 @@ add_executable(tst_key_utils
     core/loginsessionmanager.cpp
     utils/json_sanitizer.h
     utils/json_sanitizer.cpp
+    ui/anotherbasepage.h
+    ui/anotherbasepage.cpp
 )
 
 # Include directories for the whole project

@@ -15,78 +15,23 @@ from encryption_helper import EncryptionHelper
 from session_manager import LoginSessionManager
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 import os
+from nacl.signing import SigningKey
 
 def generate_sodium_keypair() -> tuple[str, str]:
     """
-    Generate a public/private keypair using libsodium (PyNaCl) and return as base64-encoded strings.
+    Generate an Ed25519 public/private keypair using libsodium (PyNaCl) and return as base64-encoded strings.
 
     Returns:
         tuple[str, str]: (public_key_base64, private_key_base64)
     """
-    private_key = PrivateKey.generate()
-    public_key = private_key.public_key
-    public_b64 = base64.b64encode(bytes(public_key)).decode('utf-8')
-    private_b64 = base64.b64encode(bytes(private_key)).decode('utf-8')
+    signing_key = SigningKey.generate()
+    verify_key = signing_key.verify_key
+    
+    public_b64 = base64.b64encode(bytes(verify_key)).decode('utf-8')
+    private_b64 = base64.b64encode(bytes(signing_key)).decode('utf-8')
+    
     return public_b64, private_b64
 
-def save_keys_to_json_file(public_key_b64: str, private_key_b64: str) -> Tuple[bool, Optional[str]]:
-    """
-    Save public and private keys (base64-encoded) to a JSON file using a file dialog.
-
-    Args:
-        public_key_b64 (str): Base64-encoded public key.
-        private_key_b64 (str): Base64-encoded private key.
-
-    Returns:
-        Tuple[bool, Optional[str]]: A tuple containing:
-            - bool: True if successful, False if user cancelled or error occurred
-            - Optional[str]: The path where the file was saved, or None if failed
-    """
-    try:
-        # Create and hide the root window
-        root = tk.Tk()
-        root.attributes('-topmost', True)  
-        root.withdraw()  
-
-        # Prepare the data to save
-        data = {
-            "publicKey": public_key_b64,
-            "privateKey": private_key_b64
-        }
-
-        # Open the file dialog
-        file_path = filedialog.asksaveasfilename(
-            parent=root,  
-            title="Save Your Keys",  
-            defaultextension=".json", 
-            initialfile="keys.json",  
-            filetypes=[  
-                ("JSON files", "*.json"),
-                ("All files", "*.*")
-            ]
-        )
-
-        # If user cancels the dialog, file_path will be empty
-        if not file_path:
-            return False, None
-
-        # Save the file
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2)
-
-        return True, file_path
-
-    except Exception as e:
-        print(f"Error in save_keys_to_json_file: {str(e)}")  # Add error logging
-        return False, None
-
-    finally:
-        # Clean up
-        try:
-            root.destroy()
-        except Exception as e:
-            print(f"Error destroying root window: {str(e)}")  # Add error logging
-            pass
 
 def encrypt_and_save_key(private_key_b64: str, derived_key: bytes, username: str) -> bool:
     """

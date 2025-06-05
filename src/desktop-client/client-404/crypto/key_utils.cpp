@@ -37,20 +37,8 @@ bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64) 
     return true;
 }
 
-bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString &privateKey, const QString &defaultName) {
-    QJsonObject json;
 
-    json["publicKey"] = publicKey;
-    json["privateKey"] = privateKey;
-
-    //Function pointer
-    bool (*saveFuncPtr)(QWidget*, const QJsonObject&, const QString&) = saveFile;
-
-    return saveFuncPtr(parent, json, defaultName);
-}
-
-
-bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username) {
+bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username, bool (*saveFuncPtrArg)(const QString&, const SecureVector&)) {
     QJsonObject json;
     json["privateKey"] = privateKey;
 
@@ -58,6 +46,8 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
     QByteArray jsonData = doc.toJson();
 
     shared_ptr<EncryptionHelper> crypto = make_shared<EncryptionHelper>();
+
+    AnotherBasePage crypto2(*crypto);
 
     auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
     auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
@@ -82,7 +72,7 @@ bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigne
 
     //Save encrypted private key file
     QString fileName = QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension; //encryptedKey_username.bin
-    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFile; //function pointer
+    bool (*saveFuncPtr)(const QString&, const SecureVector&) = saveFuncPtrArg; //function pointer
     if (!saveFuncPtr(fileName, combinedData)) {
         cout << "Error saving file" << endl;
         jsonData.fill(0);
@@ -279,3 +269,13 @@ bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultNa
     }
     return false;
 }
+
+bool (*getSaveFileFunction())(const QString&, const SecureVector&) {
+    // Declare the function pointer
+    bool (*saveFunc)(const QString&, const SecureVector&) = &saveFile;
+
+    // Return the function pointer
+    return saveFunc;
+}
+
+

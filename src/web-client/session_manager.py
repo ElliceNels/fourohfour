@@ -1,7 +1,7 @@
 from request_utils import post_request, get_request
 from typing import Optional
 import os
-from constants import SERVER_URL
+from config import config
 
 class LoginSessionManager:
     _instance = None
@@ -18,6 +18,7 @@ class LoginSessionManager:
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
         self.jwt_token: Optional[str] = None
+        self.SERVER_URL = config.server.url
 
     @classmethod
     def getInstance(cls):
@@ -54,14 +55,14 @@ class LoginSessionManager:
         return self.access_token, self.refresh_token
 
     def post(self, url: str, data: dict):
-        path = SERVER_URL + url
+        path = self.SERVER_URL + url
         access_token, refresh_token = self.getTokens()
     
         
         return post_request(path, data, access_token, refresh_token)
     
     def get(self, url: str, params: dict = None):
-        path = SERVER_URL + url
+        path = self.SERVER_URL + url
         access_token, refresh_token = self.access_token, self.refresh_token
 
         return get_request(path, access_token, refresh_token, params)

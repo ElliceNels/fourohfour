@@ -2,15 +2,20 @@
 #define ENCRYPTIONHELPER_H
 
 #include <sodium.h>
-// #include <vector>
+#include <QDebug>
 #include "utils/securevector.h"
+#include "ui/anotherbasepage.h"
 
 using namespace std;
 
-class EncryptionHelper
+class EncryptionHelper : public AnotherBasePage
 {
+
+private:
+    int demoValue;
 public:
-    EncryptionHelper();
+    //EncryptionHelper();
+    EncryptionHelper(int demoValue = 42) : demoValue(demoValue) {}
 
     void generateKey(unsigned char* key, size_t key_buffer_size);
     void generateNonce(unsigned char* nonce, size_t nonce_buffer_size);
@@ -30,6 +35,14 @@ public:
         const unsigned char* additional_data = nullptr,
         unsigned long long ad_len = 0
         );
+
+    EncryptionHelper(const EncryptionHelper& other) {
+        demoValue = other.demoValue; //copy the member variable from one object to the other
+        qDebug() << "Encryption helper copy constructor called";
+
+
+    }
+
 };
 
 #endif

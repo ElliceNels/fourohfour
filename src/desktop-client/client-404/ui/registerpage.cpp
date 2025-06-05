@@ -16,6 +16,7 @@
 #include "utils/request_utils.h"
 #include "utils/file_sharing_utils.h"
 #include "utils/friend_storage_utils.h"
+#include "simplecontainer.h"
 
 using namespace std;
 
@@ -137,6 +138,10 @@ void RegisterPage::onCreateAccountClicked()
     string sSalt =  salt.toStdString();
     QByteArray saltRaw = QByteArray(QByteArray::fromBase64(salt.toUtf8())); // decode to raw bytes
 
+    SimpleContainer<QString> stringBox;
+    stringBox.setValue(salt);
+    qDebug() << stringBox.getValue();
+
 
 
     //Generate key pair and save locally
@@ -152,6 +157,7 @@ void RegisterPage::onCreateAccountClicked()
     string sAccountName = accountName.toStdString();
     string sPassword = password.toStdString();
     string pubKey = pubKeyBase64.toStdString();
+
     string* saltPtr = &sSalt;
 
 
@@ -160,11 +166,6 @@ void RegisterPage::onCreateAccountClicked()
 
     deriveKeyFromPassword(sPassword, reinterpret_cast<const unsigned char*>(saltRaw.constData()), key, sizeof(key));
 
-    if (!saveKeysToJsonFile(this, pubKeyBase64, privKeyBase64, "keys.json")) {
-        QMessageBox::critical(this, "Key Storage Error", 
-            "Failed to save cryptographic keys to file. Registration cannot proceed.");
-        return;
-    }
 
     if (!encryptAndSaveKey(this, privKeyBase64, key, accountName)) {
         QMessageBox::critical(this, "Key Encryption Error", 
