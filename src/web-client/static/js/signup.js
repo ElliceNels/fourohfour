@@ -232,6 +232,19 @@ function storeKeyfileInBrowser(keyfileData) {
   }
 }
 
+// Cache the master key in session storage for immediate use after signup
+function cacheMasterKey(masterKey) {
+  try {
+    sessionStorage.setItem(
+      'fourohfour_master_key',
+      sodium.to_base64(masterKey, sodium.base64_variants.ORIGINAL)
+    );
+    console.log('Master key cached in session storage after signup');
+  } catch (error) {
+    console.error('Failed to cache master key:', error);
+  }
+}
+
 // Combine nonce and ciphertext following desktop client format
 function combineNonceCiphertext(nonce, ciphertext) {
   const combined = new Uint8Array(nonce.length + ciphertext.length);
@@ -350,11 +363,12 @@ window.addEventListener('DOMContentLoaded', async function () {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      });
-
-      if (resp.ok) {
+      });      if (resp.ok) {
         // Store keyfile in browser localStorage for immediate use
         storeKeyfileInBrowser(keyfileData);
+
+        // Cache the master key in sessionStorage for immediate file uploads
+        cacheMasterKey(masterKey);
 
         // Download keyfile to user's device
         downloadKeyfile(keyfileData, username);

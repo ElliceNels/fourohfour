@@ -66,27 +66,36 @@ def signup():
                 return (f"Error parsing JSON data: {str(e)}", 400)
             
             with suppress(Exception):
-                salt = base64.b64decode(salt)
-            # API call to server-side /signup endpoint
-            signup_url = config.server.url.rstrip('/') + '/sign_up'
+                salt = base64.b64decode(salt)            # Use the proper signup utility function that handles JWT tokens
             logger.info(f"Attempting to sign up user: {account_name}")
-            logger.debug(f"Signup URL: {signup_url}")
-            payload = {
-                'username': account_name,
-                'password': password,
-                'public_key': public_key,
-                'spk': spk,
-                'spk_signature': spk_signature,                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
-                'otpks': otpks
-            }
             try:
-                resp = requests.post(signup_url, json=payload)
-            except requests.exceptions.RequestException as e:
+                # Convert salt to base64 string if it's bytes
+                salt_str = base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt
+                
+                # Call the signup utility function that properly handles session management
+                from utils.auth.signup import register_user
+                signup_success = register_user(account_name, password, public_key, salt_str, spk, spk_signature)
+                
+                if not signup_success:
+                    logger.error(f"Signup failed for user: {account_name}")
+                    return ("Signup failed", 500)
+                
+                # Add OTPKs after successful signup
+                if otpks:
+                    try:
+                        from utils.auth.session_manager import LoginSessionManager
+                        session_manager = LoginSessionManager.getInstance()
+                        response = session_manager.post(ADD_OTPK_ENDPOINT, {"otpks": otpks})
+                        if response.status_code != 201:
+                            logger.warning(f"Failed to add OTPKs for user {account_name}: {response.status_code}")
+                            # Don't fail the entire signup for OTPK issues
+                    except Exception as e:
+                        logger.warning(f"Error adding OTPKs for user {account_name}: {str(e)}")
+                        # Don't fail the entire signup for OTPK issues
+                        
+            except Exception as e:
                 logger.error(f"Error during signup request: {str(e)}")
                 return (f"Error during signup request: {str(e)}", 500)
-            
-            if resp.status_code != 200:
-                return (resp.text, resp.status_code)
             
             # REMOVED: Keyfile storage - keyfiles are now handled client-side only
             # No longer storing encrypted keyfiles on the server for security
