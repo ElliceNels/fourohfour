@@ -10,7 +10,7 @@ bool saveFile(const QString &filePath, const SecureVector &data);
 bool saveFile(QWidget *parent, const QJsonObject &json, const QString &defaultName);
 bool generateSodiumKeyPair(QString &publicKeyBase64, QString &privateKeyBase64);
 bool saveKeysToJsonFile(QWidget *parent, const QString &publicKey, const QString &privateKey, const QString &defaultName);
-bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username, bool (*saveFuncPtrArg)(const QString&, const SecureVector&));
+bool encryptAndSaveKey(QWidget *parent, const QString &privateKey, const unsigned char *derivedKey, QString username, bool (*saveFuncPtrArg)(const QString&, const SecureVector&) = saveFile);
 bool encryptAndSaveMasterKey(const unsigned char *keyToEncrypt, size_t keyLen, const unsigned char *derivedKey, shared_ptr<EncryptionHelper> crypto, QString username);
 SecureVector encryptData(const QByteArray &plaintext, unsigned char *key, unsigned char *nonce, shared_ptr<EncryptionHelper> crypto);
 bool decryptAndReencryptUserFile(const QString& username, const QString& oldPassword, const QString& oldSalt, const QString& newPassword, const QString& newSalt);
