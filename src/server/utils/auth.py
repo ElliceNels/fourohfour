@@ -70,7 +70,6 @@ def login(username: str, password: str) -> dict:
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "spk_updated_at": user.spk_updated_at.isoformat(),
         "unused_otpk_count": otpk_count,
         "spk_outdated": spk_outdated,
         "otpk_count_low": otpk_count_low

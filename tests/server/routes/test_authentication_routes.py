@@ -179,7 +179,6 @@ def test_login(client: FlaskClient, test_user):
     data = response.json
     assert "access_token" in data
     assert "refresh_token" in data
-    assert "spk_updated_at" in data
     assert "unused_otpk_count" in data
     assert "spk_outdated" in data
     assert "otpk_count_low" in data
