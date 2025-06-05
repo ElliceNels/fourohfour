@@ -4,7 +4,7 @@ import os
 import nacl.public
 import nacl.signing
 from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
-from session_manager import LoginSessionManager
+from utils.auth.session_manager import LoginSessionManager
 from constants import KEYS_PATH, BINARY_EXTENSION
 from pathlib import Path
 import logging

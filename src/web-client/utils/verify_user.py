@@ -3,7 +3,7 @@ import json
 from config import config
 import logging
 from pathlib import Path
-from session_manager import LoginSessionManager
+from utils.auth.session_manager import LoginSessionManager
 from constants import GET_USER_ENDPOINT, GET_PUBLIC_KEY_ENDPOINT
 
 logger = logging.getLogger(__name__)
