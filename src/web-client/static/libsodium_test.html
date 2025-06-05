@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Libsodium Test</title>
+  </head>
+  <body>
+    <h1>Libsodium Loading Test</h1>
+    <div id="result">Loading...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/sodium.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', async function () {
+        const resultDiv = document.getElementById('result');
+
+        try {
+          console.log('sodium object:', typeof sodium);
+          if (typeof sodium === 'undefined') {
+            resultDiv.innerHTML = 'ERROR: sodium is undefined';
+            return;
+          }
+
+          console.log('Waiting for sodium.ready...');
+          await sodium.ready;
+          console.log('sodium ready!');
+
+          resultDiv.innerHTML = 'SUCCESS: Libsodium loaded correctly!';
+
+          // Test basic functionality
+          const randomBytes = sodium.randombytes_buf(16);
+          console.log('Random bytes test:', randomBytes);
+        } catch (error) {
+          console.error('Error:', error);
+          resultDiv.innerHTML = 'ERROR: ' + error.message;
+        }
+      });
+    </script>
+  </body>
+</html>
