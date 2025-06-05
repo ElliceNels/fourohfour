@@ -69,6 +69,19 @@ public:
     static QStringList getFilePermissions(
         const QString& fileUuid,
         QWidget* parent = nullptr);
+        
+    /**
+     * @brief Removes a permission for a user to access a file
+     * 
+     * @param fileUuid UUID of the file
+     * @param username Username of the user whose permission should be removed
+     * @param parent Optional parent widget for displaying message boxes
+     * @return bool True if the permission was successfully removed
+     */
+    static bool removePermission(
+        const QString& fileUuid,
+        const QString& username,
+        QWidget* parent = nullptr);
 
     /**
      * @brief Sends one-time pre-keys to the server for secure communication

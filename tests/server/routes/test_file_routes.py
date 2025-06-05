@@ -59,24 +59,28 @@ def client(app_fixture):
 
 @pytest.fixture
 def test_user():
-    """Generate a unique test user for each run with a valid base64 public key."""
-    import base64
+    """Generate a unique test user for each run with valid base64 cryptographic keys."""
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
-    # Generate a random 32-byte value and encode as base64
+    # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_public_key = base64.b64encode(random_bytes).decode()
     # Generate SPK and signature (mock values for testing)
     spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    unique_spk = base64.b64encode(spk_bytes).decode()  # Keep as base64 string
+    unique_spk = base64.b64encode(spk_bytes).decode()  # Encode as string for JSON
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-    unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Keep as base64 string
+    unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
+    
+    # Generate a random salt and encode as base64
+    salt_bytes = uuid.uuid4().bytes
+    unique_salt = base64.b64encode(salt_bytes).decode()
+    
     return {
         "username": unique_username,
         "password": "test_password",
         "public_key": unique_public_key,
         "spk": unique_spk,
         "spk_signature": unique_spk_signature,
-        "salt": "test_salt"
+        "salt": unique_salt
     }
 
 @pytest.fixture
@@ -94,7 +98,7 @@ def signed_up_user(client, test_user):
             public_key=test_user["public_key"],
             spk=test_user["spk"],
             spk_signature=test_user["spk_signature"],
-            salt=test_user["salt"].encode('utf-8'),  # Encode salt as UTF-8 bytes
+            salt=base64.b64decode(test_user["salt"]),  # Decode base64 salt to bytes
             spk_updated_at=current_time,
             updated_at=current_time,
             created_at=current_time
@@ -122,15 +126,9 @@ def signed_up_user(client, test_user):
     
     # Get tokens by logging in
     response = client.post("/login", json=test_user)
-    if response.status_code != 200:
-        raise RuntimeError(f"Failed to log in user: {response.json}")
+    assert response.status_code == 200
     data = response.json
-    return {
-        "user": test_user,
-        "access_token": data["access_token"],
-        "refresh_token": data["refresh_token"],
-        "response": response
-    }
+    return {"user": test_user, "access_token": data["access_token"], "refresh_token": data["refresh_token"]}
 
 @pytest.fixture
 def logged_in_user(client, signed_up_user):
