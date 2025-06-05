@@ -18,7 +18,6 @@
 #include "utils/friend_storage_utils.h"
 #include "utils/x3dh_network_utils.h"
 #include "simplecontainer.h"
-#include "password_utils.h"
 
 using namespace std;
 
