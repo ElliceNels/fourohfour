@@ -474,5 +474,55 @@ def proxy_update_spk():
         logger.error(f"Error forwarding SPK update: {str(e)}")
         return jsonify({'error': 'Request failed'}), 500
 
+# Proxy endpoint for file upload
+@app.route('/api/files/upload', methods=['POST'])
+def proxy_file_upload():
+    """Proxy endpoint to upload files to the backend server"""
+    if not request.is_json:
+        return jsonify({'error': 'JSON payload required'}), 400
+    
+    # Check if user is logged in via Flask session
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    
+    # Validate required fields
+    if not data or 'file' not in data or 'metadata' not in data:
+        return jsonify({'error': 'Missing file or metadata'}), 400
+    
+    file_data = data['file']
+    metadata = data['metadata']
+    
+    if not file_data.get('filename') or not file_data.get('contents'):
+        return jsonify({'error': 'Missing filename or contents'}), 400
+      # Forward file upload request to backend server using session manager tokens
+    upload_url = config.server.url.rstrip('/') + '/api/files/upload'
+    session_manager = LoginSessionManager.getInstance()
+    
+    try:
+        # Get session tokens (returns tuple: access_token, refresh_token)
+        access_token, refresh_token = session_manager.getTokens()
+        if not access_token:
+            return jsonify({'error': 'No valid session token'}), 401
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        # Forward the exact payload from the client
+        resp = requests.post(upload_url, json=data, headers=headers)
+        
+        if resp.status_code == 201:  # Backend returns 201 for created
+            return jsonify(resp.json()), 201
+        else:
+            logger.error(f"Backend file upload failed: {resp.status_code} - {resp.text}")
+            return jsonify({'error': 'Backend server error'}), resp.status_code
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error forwarding file upload: {str(e)}")
+        return jsonify({'error': 'Request failed'}), 500
+
 if __name__ == '__main__':
     app.run(host=config.server.host, port=config.server.port, debug=config.server.debug)
