@@ -31,52 +31,83 @@ def title_page():
 def signup():
     clear_flashes()
     if request.method == 'POST':
-        account_name = request.form['username']
-        password = request.form['password']
-        confirm_password = request.form['confirm_password']
-
-        valid, message = validate_registration(account_name, password, confirm_password)
-        if not valid:
-            clear_flashes()
-            flash(message, "error")
-        else:
-            registration_success, error_message = manage_registration(account_name, password)
-            if registration_success:
+        # Expect JSON payload from browser-side cryptography
+        if request.is_json:
+            try:
+                data = request.get_json()
+                account_name = data.get('username')
+                public_key = data.get('public_key')
+                salt = data.get('salt')
+                spk = data.get('spk')
+                spk_signature = data.get('spk_signature')
+                otpks = data.get('otpks')
+                password = data.get('password')
+                # Robust base64 decode for all cryptographic fields
+                import base64
+                if salt:
+                    try:
+                        salt = base64.b64decode(salt)
+                    except Exception:
+                        pass
+                # API call to server-side /signup endpoint
+                import requests
+                server_url = config.server.url.rstrip('/') + '/signup'
+                payload = {
+                    'username': account_name,
+                    'password': password,
+                    'public_key': public_key,
+                    'spk': spk,
+                    'spk_signature': spk_signature,
+                    'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
+                    'otpks': otpks
+                }
+                resp = requests.post(server_url, json=payload)
+                if resp.status_code != 200:
+                    return (resp.text, resp.status_code)
                 session['username'] = account_name
-                print(f"Registration successful for {account_name}")  
                 clear_flashes()
-                flash(message, "success")
-                return redirect(url_for('main_menu'))
-            else:
-                clear_flashes()
-                flash(error_message, "error")
+                flash('Registration successful!', 'success')
+                return ('', 200)
+            except Exception as e:
+                import traceback
+                print('Registration error:', e)
+                traceback.print_exc()
+                return (f'Registration error: {str(e)}', 500)
+        else:
+            return render_template('signup.html')
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     clear_flashes()
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
-        ip = request.remote_addr
-
-        if is_rate_limited(ip):
-            clear_flashes()
-            flash("Too many login attempts. Please try again in 5 minutes.", "error")
-            return render_template('login.html')
-        
-        login_success, message = manage_login(password, username)
-        record_login_attempt(ip) 
-        if login_success:
-            session['username'] = username
-            print(f"Login successful for {username}")
-            clear_flashes()
-            flash(message, "success")
-            return redirect(url_for('main_menu'))
+        # Accept JSON payload from browser-side cryptography
+        if request.is_json:
+            data = request.get_json()
+            username = data.get('username')
+            password = data.get('password')
+            print(f"Login attempt for user: {username}")
+            ip = request.remote_addr
+            if is_rate_limited(ip):
+                clear_flashes()
+                flash("Too many login attempts. Please try again in 5 minutes.", "error")
+                return ('Too many login attempts', 429)
+            # Only authenticate, do not handle cryptographic keys
+            login_success, message = manage_login(password, username)
+            record_login_attempt(ip)
+            if login_success:
+                session['username'] = username
+                clear_flashes()
+                flash(message, "success")
+                return ('', 200)
+            else:
+                clear_flashes()
+                flash(message, "error")
+                return (message, 401)
         else:
-            clear_flashes()
-            flash(message, "error")
-            
+            # Fallback for legacy form POST (should not be used)
+            return ('Invalid request', 400)
+    # Only return the login page for GET requests
     return render_template('login.html')
 
 @app.route('/mainmenu')
