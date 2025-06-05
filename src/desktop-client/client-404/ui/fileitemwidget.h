@@ -52,6 +52,7 @@ private:
     
     // Download helper methods
     bool fetchEncryptedFile(QByteArray& encryptedData);
+    bool fetchEncryptedFileWithMetadata(QByteArray& encryptedData, QJsonObject& jsonResponse);
     bool extractFileComponents(const QByteArray& encryptedData, 
                               std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce, 
                               SecureVector& fileCiphertext);
@@ -63,4 +64,8 @@ private:
                    SecureVector& decryptedFile);
     void saveDecryptedFile(const SecureVector& decryptedFile);
 
+    // Helper methods for file download process
+    std::unique_ptr<unsigned char[], SodiumZeroDeleter> getFileKey(const QJsonObject& jsonResponse);
+    bool getSharedFileKey(const QJsonObject& jsonResponse, unsigned char* fileKey);
+    bool processAndDecryptFile(const QByteArray& encryptedData, const unsigned char* fileKey);
 };

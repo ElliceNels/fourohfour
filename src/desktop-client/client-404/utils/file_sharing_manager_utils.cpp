@@ -3,7 +3,10 @@
 #include "utils/x3dh_network_utils.h"
 #include "utils/file_sharing_utils.h"
 #include "utils/friend_storage_utils.h"
+#include "utils/file_crypto_utils.h"  // Fixed: removed period, added slash
 #include "utils/widget_utils.h"
+#include "utils/securebufferutils.h"
+#include "crypto/encryptionhelper.h"
 #include "core/loginsessionmanager.h"
 #include <QMessageBox>
 #include <QDebug>
@@ -94,6 +97,77 @@ bool FileSharingManagerUtils::shareFileWithUser(
     
     showProgressMessage(parent, "File shared successfully!");
     qDebug() << "Successfully shared file" << fileUuid << "with user" << recipientUsername;
+    
+    return true;
+}
+
+bool FileSharingManagerUtils::receiveSharedFile(
+    const QString& fileUuid,
+    const QString& senderIdentityKey,
+    const QString& senderEphemeralKey,
+    const QByteArray& encryptedKeyData,
+    const QString& recipientSignedPreKey,
+    const QString& oneTimePreKey,
+    unsigned char* fileKey,
+    size_t fileKeySize,
+    QWidget* parent) {
+    
+    if (fileUuid.isEmpty() || senderIdentityKey.isEmpty() || senderEphemeralKey.isEmpty() ||
+        encryptedKeyData.isEmpty() || recipientSignedPreKey.isEmpty() || 
+        oneTimePreKey.isEmpty() || fileKey == nullptr || 
+        fileKeySize < crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
+        showErrorMessage(parent, "Invalid Input", "Required parameters missing for file key decryption");
+        return false;
+    }
+    
+    // Get recipient's public key (this user's key)
+    showProgressMessage(parent, "Retrieving identity keys...");
+    QString recipientIdentityKey = FriendStorageUtils::getUserPublicKey(
+        LoginSessionManager::getInstance().getUsername(), parent);
+    
+    if (recipientIdentityKey.isEmpty()) {
+        showErrorMessage(parent, "Key Error", "Could not retrieve recipient's identity key");
+        return false;
+    }
+    
+    // Step 1: Generate the shared secret using X3DH protocol (recipient side)
+    showProgressMessage(parent, "Generating shared secret...");
+    SecureVector sharedSecret = SharedSecretUtils::generateRecipientSharedSecret(
+        senderIdentityKey,
+        senderEphemeralKey,
+        recipientSignedPreKey,
+        oneTimePreKey,
+        true,  // Remove used one-time prekey
+        parent
+    );
+    
+    if (sharedSecret.empty()) {
+        showErrorMessage(parent, "Security Error", "Failed to generate shared secret for decryption");
+        return false;
+    }
+    
+    // Step 2: Decrypt the file encryption key using the shared secret
+    showProgressMessage(parent, "Decrypting file key...");
+    bool keyDecrypted = SharedSecretUtils::decryptFileKeyWithSharedSecret(
+        sharedSecret,
+        encryptedKeyData,
+        senderIdentityKey,
+        recipientIdentityKey,
+        fileKey,
+        fileKeySize,
+        parent
+    );
+    
+    if (!keyDecrypted) {
+        showErrorMessage(parent, "Decryption Error", "Failed to decrypt file key");
+        return false;
+    }
+    
+    // Clear sensitive data
+    sodium_memzero(sharedSecret.data(), sharedSecret.size());
+    
+    showProgressMessage(parent, "File key decrypted successfully!");
+    qDebug() << "Successfully decrypted file key for shared file" << fileUuid;
     
     return true;
 }

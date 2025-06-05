@@ -246,6 +246,7 @@ def get_file_by_uuid(file_uuid: str, user_info: dict) -> dict:
                 response_data.update({
                     'otpk': permission.otpk.key if permission.otpk else None,
                     'ephemeral_key': permission.ephemeral_key,
+                    'key_for_recipient': permission.encryption_key,
                     'spk': user.spk,
                     'spk_sig': user.spk_signature
                 })

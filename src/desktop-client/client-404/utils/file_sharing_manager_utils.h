@@ -4,6 +4,7 @@
 #include <QString>
 #include <QWidget>
 #include <QByteArray>
+#include "utils/securevector.h"  // Add this include for SecureVector
 
 /**
  * @brief Manages the complete file sharing workflow through X3DH protocol
@@ -31,6 +32,36 @@ public:
         const QString& fileUuid,
         const QString& recipientUsername,
         const QString& recipientPublicKey,
+        QWidget* parent = nullptr);
+
+    /**
+     * @brief Gets the decrypted file key for a shared file
+     * 
+     * This method handles the recipient side of key exchange:
+     * 1. Generates shared secret using X3DH protocol
+     * 2. Decrypts the file encryption key using the shared secret
+     * 3. Returns the decrypted key for file decryption
+     *
+     * @param fileUuid UUID of the file
+     * @param senderIdentityKey Sender's identity key (public key)
+     * @param senderEphemeralKey Sender's ephemeral key for this sharing
+     * @param encryptedKeyData Encrypted file key data
+     * @param recipientSignedPreKey Recipient's signed prekey used in this sharing
+     * @param oneTimePreKey One-time prekey used in this sharing
+     * @param fileKey Output buffer to receive the decrypted file key
+     * @param fileKeySize Size of the output buffer
+     * @param parent Optional parent widget for displaying UI feedback
+     * @return bool True if the file key was successfully decrypted
+     */
+    static bool receiveSharedFile(
+        const QString& fileUuid,
+        const QString& senderIdentityKey,
+        const QString& senderEphemeralKey,
+        const QByteArray& encryptedKeyData,
+        const QString& recipientSignedPreKey,
+        const QString& oneTimePreKey,
+        unsigned char* fileKey,
+        size_t fileKeySize,
         QWidget* parent = nullptr);
 
 private:
