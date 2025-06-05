@@ -122,7 +122,7 @@ bool LoginPage::sendLogInRequest(const QString& username, const QString& passwor
         qDebug() << "Login successful. Tokens saved in session manager.";
         return true;
     } else {
-        QMessageBox::critical(this, "Login Error", QString::fromStdString(response.errorMessage));
+        QMessageBox::critical(this, "Login Error", "Invalid username or password!");
         return false;
     }
 }

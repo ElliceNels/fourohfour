@@ -22,9 +22,9 @@ def manage_login(password, username):
         return False, ServerError().message
         
     except UserNotFoundError as e:
-        return False, e.message
+        return False, "Invalid username or password"
     except InvalidPasswordError as e:
-        return False, e.message
+        return False, "Invalid username or password"
     except ServerError as e:
         return False, e.message
     except Exception as e:
