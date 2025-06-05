@@ -449,11 +449,77 @@ GET /api/files/%2e%2e%2f%2e%2e%2fuploads%2fother_user_file.txt
 
 ### 5. Cryptographic Issues
 
-  
+**Description**: Conducted detailed analysis of the cryptographic implementation, focusing on the proper use of libsodium primitives and secure key management practices.
 
-#### Test Case: File Encryption Implementation
+**Testing Method**:
+1. **Cryptographic Primitives Verification**:
+   - Analyzed the use of XChaCha20-Poly1305 AEAD cipher
+   - Verified proper initialization of libsodium using `sodium_init()`
+   - Examined key generation using `crypto_aead_xchacha20poly1305_ietf_keygen()`
+   - Verified nonce generation using `randombytes_buf()`
+   - Tested encryption/decryption using `crypto_aead_xchacha20poly1305_ietf_encrypt()` and `crypto_aead_xchacha20poly1305_ietf_decrypt()`
 
-TODO Client side encryption??
+2. **Key Storage and Management Analysis**:
+   - Examined the use of `SecureVector` for sensitive data storage
+   - Verified proper memory handling through `make_secure_buffer`
+   - Analyzed key lifecycle management
+   - Tested secure memory clearing after operations
+   - Verified proper error handling for cryptographic operations
+
+**Findings**:
+1. **Cryptographic Primitives**:
+   - Proper use of modern AEAD cipher (XChaCha20-Poly1305)
+   - Correct implementation of key generation using cryptographically secure random number generation
+   - Appropriate nonce generation for each encryption operation
+   - Correct buffer size validation for keys and nonces
+
+2. **Key Management**:
+   - Secure memory handling through `SecureVector` implementation
+   - Proper use of `make_secure_buffer` for temporary cryptographic data
+   - Appropriate error handling for cryptographic operations
+   - Secure memory clearing after operations
+   - Proper validation of cryptographic parameters
+
+
+
+
+**Description**: Conducted comprehensive analysis of cryptographic implementation through automated unit testing (tests/tst_key_utils.cpp), focusing on key generation, encryption/decryption, and key derivation.
+
+**Testing Method**:
+1. **Key Generation and Format Verification**:
+   - Verified Ed25519 key pair generation (`testGenerateSodiumKeyPair`)
+   - Validated key lengths match libsodium specifications (`testGenerateSodiumKeyPairLength`)
+   - Confirmed proper base64 encoding of keys (`testGenerateSodiumKeyPairFormat`)
+
+2. **Encryption/Decryption Implementation**:
+   - Tested basic encryption/decryption flow (`testEncryptAndDecryptData`)
+   - Verified encryption of empty data (`testEncryptDataEmptyInput`)
+   - Tested encryption of large data (1MB) (`testEncryptDataLargeInput`)
+
+3. **Key Derivation and Management**:
+   - Tested password-based key derivation (`testDeriveKeyFromPassword`)
+   - Verified key derivation consistency with same inputs (`testDeriveKeyFromPasswordConsistency`)
+   - Confirmed different keys generated with different salts (`testDeriveKeyFromPasswordDifferentSalts`)
+   - Tested edge cases like empty passwords (`testDeriveKeyFromPasswordEmptyPassword`)
+
+4. **Salt Generation**:
+   - Verified secure salt generation (`testGenerateSalt`)
+   - Tested custom length salt generation (`testGenerateSaltCustomLength`)
+   - Confirmed uniqueness of generated salts
+
+**Findings**:
+1. **Cryptographic Primitives**:
+   - Proper implementation of XChaCha20-Poly1305 AEAD cipher
+   - Correct use of libsodium's cryptographic functions
+   - Successful encryption/decryption of various data sizes
+   - Proper initialization of libsodium
+
+2. **Key Management**:
+   - Secure key pair generation for Ed25519
+   - Proper key derivation from passwords using Argon2
+   - Secure salt generation and management
+   - Proper handling of cryptographic parameters
+   - Secure memory management through `SecureVector`
 
   
 
