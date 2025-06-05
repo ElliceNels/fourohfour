@@ -232,6 +232,7 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
             mock_permission.otpk = MagicMock()
             mock_permission.otpk.key = "mock_otpk_key"
             mock_permission.ephemeral_key = "mock_ephemeral_key"
+            mock_permission.encryption_key = "mock_encryption_key"
             perm_query.filter_by().first.return_value = mock_permission
         else:
             perm_query.filter_by().first.return_value = None
