@@ -5,9 +5,12 @@ from utils.auth.resetpassword import manage_reset_password
 from utils.files import my_files, validate_file_size, validate_file_type
 from utils.auth.session_manager import LoginSessionManager
 from exceptions import UserNotFoundError
-from constants import GET_USER_ENDPOINT
+from constants import GET_USER_ENDPOINT, SIGN_UP_ENDPOINT, ADD_OTPK_ENDPOINT
 import time
+from contextlib import suppress
 from config import config
+import base64
+import requests
 
 login_attempts = {}
 MAX_ATTEMPTS = 5
@@ -42,37 +45,36 @@ def signup():
                 spk_signature = data.get('spk_signature')
                 otpks = data.get('otpks')
                 password = data.get('password')
-                # Robust base64 decode for all cryptographic fields
-                import base64
-                if salt:
-                    try:
-                        salt = base64.b64decode(salt)
-                    except Exception:
-                        pass
-                # API call to server-side /signup endpoint
-                import requests
-                server_url = config.server.url.rstrip('/') + '/signup'
-                payload = {
-                    'username': account_name,
-                    'password': password,
-                    'public_key': public_key,
-                    'spk': spk,
-                    'spk_signature': spk_signature,
-                    'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
-                    'otpks': otpks
-                }
-                resp = requests.post(server_url, json=payload)
-                if resp.status_code != 200:
-                    return (resp.text, resp.status_code)
-                session['username'] = account_name
-                clear_flashes()
-                flash('Registration successful!', 'success')
-                return ('', 200)
             except Exception as e:
-                import traceback
-                print('Registration error:', e)
-                traceback.print_exc()
-                return (f'Registration error: {str(e)}', 500)
+                logger.error(f"Error parsing JSON data: {str(e)}")
+                return (f"Error parsing JSON data: {str(e)}", 400)
+            
+            with suppress(Exception):
+                salt = base64.b64decode(salt)
+            # API call to server-side /signup endpoint
+            signup_url = config.server.url.rstrip('/') + '/sign_up'
+            logger.info(f"Attempting to sign up user: {account_name}")
+            logger.debug(f"Signup URL: {signup_url}")
+            payload = {
+                'username': account_name,
+                'password': password,
+                'public_key': public_key,
+                'spk': spk,
+                'spk_signature': spk_signature,
+                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
+                'otpks': otpks
+            }
+            try:
+                resp = requests.post(signup_url, json=payload)
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Error during signup request: {str(e)}")
+                return (f"Error during signup request: {str(e)}", 500)
+            if resp.status_code != 200:
+                return (resp.text, resp.status_code)
+            session['username'] = account_name
+            clear_flashes()
+            flash('Registration successful!', 'success')
+            return ('', 200)
         else:
             return render_template('signup.html')
     return render_template('signup.html')
