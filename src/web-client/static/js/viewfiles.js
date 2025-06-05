@@ -6,11 +6,23 @@ let sodiumReady = false;
 async function initSodium() {
     if (!sodiumReady) {
         try {
-            // Wait for sodium to be available from the global script
-            while (typeof sodium === 'undefined') {
+            console.log('Checking if sodium is available...');
+            
+            // Wait for sodium to be available from the global script with timeout
+            let attempts = 0;
+            const maxAttempts = 100; // 5 seconds total
+            while (typeof sodium === 'undefined' && attempts < maxAttempts) {
                 await new Promise((resolve) => setTimeout(resolve, 50));
+                attempts++;
             }
+            
+            if (typeof sodium === 'undefined') {
+                throw new Error('Sodium library not loaded after timeout');
+            }
+            
+            console.log('Sodium found, waiting for ready...');
             await sodium.ready;
+            console.log('Sodium ready!');
             sodiumReady = true;
         } catch (error) {
             console.error('Failed to initialize libsodium:', error);
@@ -258,12 +270,18 @@ async function getMasterKeyWithRetry() {
 
 // Download file functionality
 async function downloadFile(fileUuid, filename, isOwner) {
+    console.log(`downloadFile called with: ${fileUuid}, ${filename}, ${isOwner}`);
+    alert(`Download starting for: ${filename}`);
+    
     let button = null;
     let originalText = '';
     
     try {
+        console.log('Step 1: About to initialize sodium...');
         await initSodium();
+        console.log('Step 2: Sodium initialized successfully');
 
+        console.log('Step 3: Looking for button...');
         // Find the button that triggered this call
         // Since we're called via onclick, we need to find the button manually
         const buttons = document.querySelectorAll('button');
@@ -273,25 +291,31 @@ async function downloadFile(fileUuid, filename, isOwner) {
                 break;
             }
         }
+        console.log('Step 4: Button found:', !!button);
 
         if (button) {
             originalText = button.textContent;
             button.textContent = 'Downloading...';
             button.disabled = true;
-        }        // Get the encrypted file from server via proxy endpoint
+        }
+
+        console.log('Step 5: About to fetch file from server...');
+        // Get the encrypted file from server via proxy endpoint
         const response = await fetch(`/api/files/${fileUuid}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json'
             }
         });
-
+        console.log('Step 6: Response received:', response.status, response.statusText);
         if (!response.ok) {
             throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
         }
 
+        console.log('Parsing response JSON...');
         const fileData = await response.json();
         console.log('Received file data structure:', Object.keys(fileData));
+        console.log('Encrypted file data length:', fileData.encrypted_file ? fileData.encrypted_file.length : 'missing');
 
         let fileKey;
         
@@ -448,5 +472,6 @@ async function deleteFile(fileUuid, filename) {
 }
 
 window.onload = function() {
+    console.log('viewfiles.js loaded successfully');
     switchTab('owned');
 };
