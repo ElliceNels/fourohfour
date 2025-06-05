@@ -58,6 +58,17 @@ public:
         const QString& ephemeralKey,
         QWidget* parent = nullptr);
 
+    /**
+     * @brief Gets the list of users who have access to a specific file
+     * 
+     * @param fileUuid UUID of the file
+     * @param parent Optional parent widget for displaying messages
+     * @return QStringList List of usernames with access to the file
+     */
+    static QStringList getFilePermissions(
+        const QString& fileUuid,
+        QWidget* parent = nullptr);
+
 private:
     /**
      * @brief Validates inputs for key bundle retrieval

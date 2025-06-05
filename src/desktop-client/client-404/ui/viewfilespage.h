@@ -5,6 +5,7 @@
 #include <QListWidget> 
 #include <QJsonArray>   
 #include <QJsonObject> 
+#include <QStringList>  // Added for currentPermissions
 #include "ui/basepage.h"
 
 namespace Ui {
@@ -34,10 +35,16 @@ public slots:
     void onFriendShareRequested(const QString &username);
     void onFriendDeleteRequested(const QString &username);
     void onFileSelected(const QString &fileUuid); // New slot to handle file selection
+    
+    // Permission-related slots
+    void loadFilePermissions(const QString& fileUuid);
+    void onRevokePermissionRequested(const QString &username);
+    void updateFriendsListFiltered();
 
 private:
     Ui::ViewFilesPage *ui;
     QString selectedFileUuid; // Store the currently selected file UUID
+    QStringList currentPermissions; // Store the list of current permissions for a file
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;
@@ -47,6 +54,7 @@ private:
     void displayFiles(const QJsonArray& ownedFiles, const QJsonArray& sharedFiles);
     void addFileItem(const QJsonObject& fileObj, QListWidget* listWidget, const QString& ownerLabel); 
     void addFriendItem(const QString &username, const QString &publicKey);
+    void addPermissionItem(const QString &username); // Add permission item to UI
 
 signals:
     void goToMainMenuRequested();

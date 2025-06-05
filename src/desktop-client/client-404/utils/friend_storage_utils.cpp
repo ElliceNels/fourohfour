@@ -197,7 +197,9 @@ QMap<QString, QString> FriendStorageUtils::getAllFriendsExceptSelf(QWidget* pare
     // Iterate through all keys and add to the map, excluding the current user
     for (auto it = friendsData.constBegin(); it != friendsData.constEnd(); ++it) {
         const QString& username = it.key();
-        if (username != currentUsername) {
+        
+        // Use case-insensitive comparison to be safer
+        if (username.compare(currentUsername, Qt::CaseInsensitive) != 0) {
             // Validate that the value is actually a string
             if (!it.value().isString()) {
                 qWarning() << "Invalid public key format for friend:" << username;

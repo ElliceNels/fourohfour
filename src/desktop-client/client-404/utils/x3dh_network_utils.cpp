@@ -235,3 +235,55 @@ bool X3DHNetworkUtils::createPermission(
     
     return true;
 }
+
+/**
+ * @brief Gets the list of users who have access to a specific file
+ */
+QStringList X3DHNetworkUtils::getFilePermissions(
+    const QString& fileUuid,
+    QWidget* parent) {
+    
+    QStringList permissionsList;
+    
+    // Validate input
+    if (fileUuid.isEmpty()) {
+        qWarning() << "Cannot retrieve permissions for empty file UUID";
+        if (parent) {
+            QMessageBox::warning(parent, "Error", "File UUID cannot be empty");
+        }
+        return permissionsList;
+    }
+    
+    // Make the request to the server
+    QString endpoint = QString("/api/permissions/%1").arg(fileUuid);
+    // Convert QString to std::string before passing to get()
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(endpoint.toStdString(), QJsonObject());
+    
+    if (!response.success || response.jsonData.isEmpty()) {
+        qWarning() << "Failed to retrieve file permissions:" 
+                  << QString::fromStdString(response.errorMessage);
+        if (parent) {
+            QMessageBox::warning(parent, "Error", 
+                                "Failed to retrieve file permissions");
+        }
+        return permissionsList;
+    }
+    
+    // Extract usernames from the response
+    QJsonObject jsonObj = response.jsonData.object();
+    if (!jsonObj.contains("permissions") || !jsonObj["permissions"].isArray()) {
+        qWarning() << "Invalid response format for file permissions";
+        return permissionsList;
+    }
+    
+    QJsonArray permissions = jsonObj["permissions"].toArray();
+    for (const QJsonValue &val : permissions) {
+        QJsonObject permObj = val.toObject();
+        if (permObj.contains("username")) {
+            permissionsList.append(permObj["username"].toString());
+        }
+    }
+    
+    qDebug() << "Retrieved" << permissionsList.size() << "permissions for file" << fileUuid;
+    return permissionsList;
+}

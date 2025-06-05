@@ -48,6 +48,8 @@ set(UI_SOURCES
     ui/fileitemwidget.cpp
     ui/frienditemwidget.h
     ui/frienditemwidget.cpp
+    ui/permissionwidget.h
+    ui/permissionwidget.cpp
     ui/viewfilespage.h
     ui/viewfilespage.cpp
     ui/viewfilespage.ui
