@@ -34,16 +34,21 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
 
     // Buttons
     this->downloadButton = UIUtils::createIconButton(downloadIconPath, this);
-    if(this->isOwner){  // Use the member variable instead of the parameter
-        this->shareButton = UIUtils::createIconButton(shareIconPath, this);  // only owners can share files
-        this->deleteButton = UIUtils::createIconButton(deleteIconPath, this);
+    
+    // Always create the delete button, but with different tooltip based on owner status
+    this->deleteButton = UIUtils::createIconButton(deleteIconPath, this);
+    this->deleteButton->setToolTip(isOwner ? "Delete file" : "Remove access");
+    
+    if(this->isOwner){
+        // Only owners can share files
+        this->shareButton = UIUtils::createIconButton(shareIconPath, this);
     }
   
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
+    connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
 
-    if (this->isOwner) {  // Use the member variable instead of the parameter
-        connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare); // only owners can share files
-        connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
+    if (this->isOwner) {
+        connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare);
     } 
 
     // Layout
@@ -53,11 +58,13 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     layout->addWidget(this->ownerLabel);
     layout->addStretch();
     layout->addWidget(this->downloadButton);
-    if (this->isOwner) {  // Use the member variable instead of the parameter
+    
+    if (this->isOwner) {
         layout->addWidget(this->shareButton);
-        layout->addWidget(this->deleteButton);
     }
-
+    
+    // Always add delete button
+    layout->addWidget(this->deleteButton);
 
     this->setLayout(layout);
 
@@ -92,7 +99,36 @@ void FileItemWidget::handleDownload() {
     }
     
     // Process, decrypt and save the file
-    processAndDecryptFile(encryptedData, fileKey.get());
+    bool downloadSuccess = processAndDecryptFile(encryptedData, fileKey.get());
+    
+    // If the download was successful and the user is not the owner, remove their permission
+    if (downloadSuccess && !isOwner) {
+        // Get the current username
+        QString currentUsername = LoginSessionManager::getInstance().getUsername();
+        
+        // Confirm with the user before removing permission
+        if (UIUtils::confirmAction("Auto-Remove Permission", 
+                                 "This file will be removed from your list after download.\n\n"
+                                 "Thile will need to be sent to you again from the owner if you need access in the future.",
+                                 this)) {
+            // Use X3DHNetworkUtils to remove permission
+            bool removalSuccess = X3DHNetworkUtils::removePermission(
+                this->fileUuid,
+                currentUsername,
+                this
+            );
+            
+            if (removalSuccess) {
+                QMessageBox::information(this, "Permission Removed", 
+                                       "Your access to this file has been removed.\n\n"
+                                       "If you need access again, please ask the owner to reshare the file.");
+                
+                // Trigger UI refresh by emitting the fileDeleted signal
+                emit fileDeleted();
+            }
+            // Error handling is done within the X3DHNetworkUtils::removePermission method
+        }
+    }
 }
 
 std::unique_ptr<unsigned char[], SodiumZeroDeleter> FileItemWidget::getFileKey(const QJsonObject& jsonResponse) {
@@ -171,9 +207,8 @@ bool FileItemWidget::processAndDecryptFile(const QByteArray& encryptedData, cons
         return false;
     }
     
-    // Save the decrypted file
-    saveDecryptedFile(decryptedFile);
-    return true;
+    // Save the decrypted file and return the result
+    return saveDecryptedFile(decryptedFile);
 }
 
 bool FileItemWidget::fetchEncryptedFile(QByteArray& encryptedData) {
@@ -247,8 +282,14 @@ QByteArray FileItemWidget::prepareFileMetadata() {
         fileName = fileName.left(fileName.length() - this->fileExtension.length() - 1);
     }
     
+    // Remove the encryption overhead from the file size to match what was used during encryption
+    qint64 adjustedFileSize = this->fileSizeBytes;
+    if (adjustedFileSize > FileUpload::ENCRYPTION_OVERHEAD_BYTES) {
+        adjustedFileSize -= FileUpload::ENCRYPTION_OVERHEAD_BYTES;
+    }
+    
     return FileCryptoUtils::formatFileMetadata(
-        fileName, this->fileExtension, this->fileSizeBytes);
+        fileName, this->fileExtension, adjustedFileSize);
 }
 
 bool FileItemWidget::decryptFile(const SecureVector& fileCiphertext,
@@ -278,7 +319,7 @@ bool FileItemWidget::decryptFile(const SecureVector& fileCiphertext,
     }
 }
 
-void FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
+bool FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
     // Extract the original filename without extension
     QString fileName = this->fileNameLabel->toolTip();
     if (fileName.endsWith("." + this->fileExtension)) {
@@ -300,7 +341,7 @@ void FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
     
     if (saveFilePath.isEmpty()) {
         // User cancelled the save dialog
-        return;
+        return false;
     }
     
     // Ensure the filename has the correct extension
@@ -312,7 +353,7 @@ void FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
     if (!saveFile.open(QIODevice::WriteOnly)) {
         QMessageBox::critical(this, "Error", 
             "Failed to open file for writing: " + saveFile.errorString());
-        return;
+        return false;
     }
     
     // Write the decrypted data to file
@@ -323,11 +364,13 @@ void FileItemWidget::saveDecryptedFile(const SecureVector& decryptedFile) {
     if (bytesWritten != static_cast<qint64>(decryptedFile.size())) {
         QMessageBox::critical(this, "Error", 
             "Failed to write complete file: " + saveFile.errorString());
-        return;
+        return false;
     }
     
     QMessageBox::information(this, "Success", 
         QString("File downloaded and saved successfully as: %1").arg(QFileInfo(saveFilePath).fileName()));
+        
+    return true;
 }
 
 void FileItemWidget::handleShare() {
@@ -335,19 +378,41 @@ void FileItemWidget::handleShare() {
 }
 
 void FileItemWidget::handleDelete() {
-    if (UIUtils::confirmAction("Confirm Deletion", "Are you sure you want to delete this file?", this)) {
-        // Construct the endpoint URL with the file UUID
-        std::string deleteUrl = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
-        
-        RequestUtils::Response response = LoginSessionManager::getInstance().del(deleteUrl);
-        
-        // Check the response and show appropriate message
-        if (response.success) {
-            QMessageBox::information(this, "Success", response.jsonData.object().value("message").toString());
-            emit fileDeleted(); // Emit the signal when deletion is successful to trigger UI refresh
-        } else {
-            QMessageBox::critical(this, "Error", 
-                "Failed to delete file: " + QString::fromStdString(response.errorMessage));
+    if (isOwner) {
+        // Owner deleting the file
+        if (UIUtils::confirmAction("Confirm Deletion", "Are you sure you want to delete this file?", this)) {
+            // Construct the endpoint URL with the file UUID
+            std::string deleteUrl = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
+            
+            RequestUtils::Response response = LoginSessionManager::getInstance().del(deleteUrl);
+            
+            // Check the response and show appropriate message
+            if (response.success) {
+                QMessageBox::information(this, "Success", response.jsonData.object().value("message").toString());
+                emit fileDeleted(); // Emit the signal when deletion is successful to trigger UI refresh
+            } else {
+                QMessageBox::critical(this, "Error", 
+                    "Failed to delete file: " + QString::fromStdString(response.errorMessage));
+            }
+        }
+    } else {
+        // Non-owner removing their own access
+        if (UIUtils::confirmAction("Confirm Removal", "Are you sure you want to remove your access to this file?", this)) {
+            // Get the current username
+            QString currentUsername = LoginSessionManager::getInstance().getUsername();
+            
+            // Use X3DHNetworkUtils to remove permission
+            bool success = X3DHNetworkUtils::removePermission(
+                this->fileUuid,
+                currentUsername,
+                this
+            );
+            
+            if (success) {
+                QMessageBox::information(this, "Success", "Your access to this file has been removed.");
+                emit fileDeleted(); // Trigger UI refresh
+            }
+            // Error handling is done within the X3DHNetworkUtils::removePermission method
         }
     }
 }

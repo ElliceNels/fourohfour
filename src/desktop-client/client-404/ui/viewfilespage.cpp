@@ -127,13 +127,23 @@ void ViewFilesPage::onRevokePermissionRequested(const QString &username) {
         return;
     }
     
-    // TODO: Implement actual permission revocation API call
-    QMessageBox::information(this, "Not Implemented", 
-                           "Revoking permissions is not yet implemented.");
-                           
-    // After successful revocation, reload permissions and update friend list
-    // loadFilePermissions(selectedFileUuid);
-    // updateFriendsListFiltered();
+    // Call the API to revoke permission
+    bool success = X3DHNetworkUtils::removePermission(selectedFileUuid, username, this);
+    
+    if (success) {
+        QMessageBox::information(this, "Permission Removed", 
+                               QString("%1's access to this file has been revoked.").arg(username));
+        
+        // Reload permissions to remove the revoked user
+        loadFilePermissions(selectedFileUuid);
+        
+        // Update the filtered friends list
+        updateFriendsListFiltered();
+        
+        // Navigate back to the files list page
+        navigateToFilesListPage();
+    }
+    // Error handling is done within the X3DHNetworkUtils::removePermission method
 }
 
 /**
