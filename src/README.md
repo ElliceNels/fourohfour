@@ -20,7 +20,7 @@ This document provides a high-level summary and quickstart for each part.
     ```
   - Run the application:
     ```sh
-    python app.py
+    python src/web-client/app.py
     ```
   - Access the app at [http://localhost:8080](http://localhost:8080)
 - **More info:** See `src/web-client/README.md`

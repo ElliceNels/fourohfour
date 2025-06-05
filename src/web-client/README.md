@@ -17,3 +17,13 @@ python app.py
 ```
 
 The application is now running on port 8080, so you can access the application on http://localhost:8080 on your browser. 
+
+
+## Testing
+
+Test cases are in web-client/test_key_utils.py. Run the following command from src/web-client directory;
+
+```
+pytest
+```
+
