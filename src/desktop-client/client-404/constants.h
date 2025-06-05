@@ -80,9 +80,12 @@ const std::string RESET_PASSWORD_ENDPOINT = "/change_password";
 const std::string GET_USER_ENDPOINT = "/get_current_user";
 const std::string GET_USER_FILES_ENDPOINT =  FILES_API_ENDPOINT + "/";
 const std::string ADD_OTPKS_ENDPOINT = "/add_otpks";
-const std:: string CREATE_PERMISSION_ENDPOINT = "/api/permissions";
+const std::string CREATE_PERMISSION_ENDPOINT = "/api/permissions";
+const std::string COUNT_OTPK_ENDPOINT = "/count_otpk";
+const std::string UPDATE_SPK_ENDPOINT = "/update_spk";
 
 const int MAX_AGE_DAYS = 7; // Maximum age of signed prekey in days
+const int MIN_OTPK_COUNT = 10; // Minimum number of one-time prekeys to keep on server
 
 //source: https://stackoverflow.com/questions/2053335/what-should-be-the-valid-characters-in-usernames
 const QString RESTRICTED_CHARS = QStringLiteral("\\/:*?\"<>|'%;&=+$#@!~()[]{}., ");

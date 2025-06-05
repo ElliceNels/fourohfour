@@ -16,6 +16,10 @@
 #include "constants.h"
 #include "loginsessionmanager.h"
 #include "key_utils.h"
+#include "utils/x3dh_network_utils.h"
+#include "utils/file_sharing_utils.h"
+#include "friend_storage_utils.h"
+#include "utils/file_crypto_utils.h"
 using namespace std;
 
 LoginPage::LoginPage(QWidget *parent) :
@@ -72,21 +76,24 @@ void LoginPage::onLoginButtonClicked()
     LoginSessionManager::getInstance().setUsername(username);
     LoginSessionManager::getInstance().setBaseUrl(DEFAULT_BASE_URL.c_str());
 
-    sendLogInRequest(username, password);
+    if (sendLogInRequest(username, password)) {
+        // Get salt for key derivation
+        QString salt = getSaltRequest();
 
-
-    QString salt = getSaltRequest();
-
-
-
-    if (decryptMasterKey(username, password, salt)) {
-        // Switch to main menu after login
-        this->ui->usernameLineEdit->clear();
-        this->ui->passwordLineEdit->clear();
-        this->ui->loginButton->setEnabled(true);
-        this->ui->loginButton->setText("Log In");
-        this->ui->loginButton->repaint();
-        emit this->goToMainMenuRequested();
+        if (decryptMasterKey(username, password, salt)) {
+            // Switch to main menu after login
+            this->ui->usernameLineEdit->clear();
+            this->ui->passwordLineEdit->clear();
+            this->ui->loginButton->setEnabled(true);
+            this->ui->loginButton->setText("Log In");
+            this->ui->loginButton->repaint();
+            emit this->goToMainMenuRequested();
+        } else {
+            // Only reset the button if login failed
+            this->ui->loginButton->setEnabled(true);
+            this->ui->loginButton->setText("Log In");
+            this->ui->loginButton->repaint();
+        }
     } else {
         // Only reset the button if login failed
         this->ui->loginButton->setEnabled(true);
@@ -97,13 +104,10 @@ void LoginPage::onLoginButtonClicked()
 
 bool LoginPage::sendLogInRequest(const QString& username, const QString& password)
 {
-
-
     // Prepare JSON payload for registration
     QJsonObject requestData;
     requestData["username"] = username;
     requestData["password"] = password;
-
 
     // Make the POST request to the sign_up endpoint
     RequestUtils::Response response = LoginSessionManager::getInstance().post(LOGIN_ENDPOINT, requestData);
@@ -115,9 +119,46 @@ bool LoginPage::sendLogInRequest(const QString& username, const QString& passwor
         // Extract tokens from the response
         QString accessToken = jsonObj["access_token"].toString();
         QString refreshToken = jsonObj["refresh_token"].toString();
+        
+        // Extract key status information
+        bool otpkCountLow = jsonObj["otpk_count_low"].toBool();
+        bool spk_outdated = jsonObj["spk_outdated"].toBool();
+        int unusedOtpkCount = jsonObj["unused_otpk_count"].toInt();
 
         // Set tokens in the LoginSessionManager
         LoginSessionManager::getInstance().setTokens(accessToken, refreshToken);
+        
+        // Handle low OTPK count
+        if (otpkCountLow) {
+            qDebug() << "OTPK count is low (" << unusedOtpkCount << "). Generating new OTPKs...";
+            QJsonArray newOTPKs = FileSharingUtils::generateOneTimePreKeyPairs();
+            if (!newOTPKs.isEmpty()) {
+                if (X3DHNetworkUtils::uploadOneTimePreKeys(newOTPKs, this)) {
+                    qDebug() << "Successfully uploaded" << newOTPKs.size() << "new one-time pre-keys";
+                } else {
+                    qDebug() << "Failed to upload new one-time pre-keys";
+                }
+            }
+        } else if (!otpkCountLow) {
+            qDebug() << "OTPK count is sufficient (" << unusedOtpkCount << "). No action needed.";
+        }
+
+        if (spk_outdated) {
+            qDebug() << "SPK is outdated. Generating new signed pre-key...";
+            QString signedPreKeyPublic, signedPreKeyPrivate, signature;
+            if (replaceSignedPreKey(username, signedPreKeyPublic, signature)) {
+                // Save the new signed pre-key
+                if (X3DHNetworkUtils::updateSignedPreKey(signedPreKeyPublic, signature, this)) {
+                    qDebug() << "Successfully updated signed pre-key";
+                } else {
+                    qDebug() << "Failed to update signed pre-key on server";
+                }
+            } else {
+                qDebug() << "Failed to generate new signed pre-key";
+            }
+        } else if (!spk_outdated) {
+            qDebug() << "SPK is up-to-date. No action needed.";
+        }
 
         qDebug() << "Login successful. Tokens saved in session manager.";
         return true;
@@ -138,6 +179,63 @@ void LoginPage::onShowPasswordClicked()
     }
 }
 
+bool LoginPage::replaceSignedPreKey(const QString username, QString& signedPreKeyPublic, QString& signature){
+    QString signedPreKeyPrivate;
+    QString identityPublicKeyBase64, identityPrivateKeyBase64;
+
+    identityPublicKeyBase64 = FriendStorageUtils::getUserPublicKey(username, this);
+
+    if (identityPublicKeyBase64.isEmpty()) {
+        qDebug() << "Failed to retrieve identity public key for user:" << username;
+        return false;
+    }
+
+    // Get the master key for accessing encrypted storage
+    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
+    if (!FileCryptoUtils::validateMasterKey(masterKey)) {
+        qDebug() << "Invalid master key for accessing identity private key";
+        return false;
+    }
+
+    // Read encrypted key storage file
+    QString filepath = FileCryptoUtils::buildKeyStorageFilePath();
+    QByteArray jsonData;
+    if (!FileCryptoUtils::readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
+        qDebug() << "Failed to decrypt key storage for user:" << username;
+        return false;
+    }
+
+    // Parse JSON data to extract private key
+    QJsonParseError parseError;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
+    if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+        qDebug() << "Failed to parse key storage JSON:" << parseError.errorString();
+        return false;
+    }
+
+    QJsonObject rootObject = doc.object();
+    if (!rootObject.contains("privateKey") || !rootObject["privateKey"].isString()) {
+        qDebug() << "Identity private key not found in key storage";
+        return false;
+    }
+
+    // Extract the identity private key
+    identityPrivateKeyBase64 = rootObject["privateKey"].toString();
+    
+    // Generate new signed prekey and signature using the identity keys
+    if (!FileSharingUtils::generateSignedPreKey(
+            identityPublicKeyBase64, 
+            identityPrivateKeyBase64, 
+            signedPreKeyPublic, 
+            signedPreKeyPrivate, 
+            signature)) {
+        qDebug() << "Failed to generate signed prekey";
+        return false;
+    }
+    
+    qDebug() << "Successfully generated new signed prekey for user:" << username;
+    return true;
+}
 
 QString LoginPage::getSaltRequest(){
 
