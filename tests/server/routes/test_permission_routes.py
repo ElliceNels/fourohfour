@@ -354,7 +354,7 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, third_
     logger.info(f"Remove data: {remove_data}")
     
     # Make the removal request
-    response = client.delete("/api/permissions", json=remove_data, headers=headers)
+    response = client.delete(f"/api/permissions/{remove_data['file_uuid']}/{remove_data['username']}", headers=headers)
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
