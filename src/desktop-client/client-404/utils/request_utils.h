@@ -88,6 +88,8 @@ private:
     // Private utility methods
     void setupCurl();
     void resetHeaders();
+
+    QString buildCertStorageFilePath();
     static size_t writeCallback(void* contents, size_t size, size_t nmemb, void* userp);
     std::string jsonToString(const QJsonObject& json);
     std::string validateHttpsUrl(const std::string& url);
