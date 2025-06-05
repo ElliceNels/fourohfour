@@ -93,15 +93,15 @@ def test_login_cases(username, password, expected_status, mock_db, app_ctx, mock
     else:
         assert "error" in data
 
-@pytest.mark.parametrize("username, password, spk_age_days, otpk_count, expected_status, expected_error", [
-    ("valid_user", "correct_password", 0, 10, CODE_SUCCESS, None),  # Fresh SPK, sufficient OTPKs
-    ("valid_user", "correct_password", 6, 10, CODE_SUCCESS, None),  # SPK within limit, sufficient OTPKs
-    ("valid_user", "correct_password", 7, 10, CODE_FORBIDDEN, "SPK is too old"),  # SPK too old
-    ("valid_user", "correct_password", 0, 4, CODE_FORBIDDEN, "Not enough unused OTPKs"),  # Not enough OTPKs
-    ("valid_user", "correct_password", 6, 4, CODE_FORBIDDEN, "Not enough unused OTPKs"),  # SPK ok but not enough OTPKs
+@pytest.mark.parametrize("username, password, spk_age_days, otpk_count, expected_status, expected_spk_outdated, expected_otpk_low", [
+    ("valid_user", "correct_password", 0, 10, CODE_SUCCESS, False, False),  # Fresh SPK, sufficient OTPKs
+    ("valid_user", "correct_password", 6, 10, CODE_SUCCESS, False, False),  # SPK within limit, sufficient OTPKs
+    ("valid_user", "correct_password", 7, 10, CODE_SUCCESS, True, False),  # SPK too old but still succeeds
+    ("valid_user", "correct_password", 0, 4, CODE_SUCCESS, False, True),  # Not enough OTPKs but still succeeds
+    ("valid_user", "correct_password", 6, 4, CODE_SUCCESS, False, True),  # SPK ok but not enough OTPKs
 ])
-def test_login_spk_otpk_validation(username, password, spk_age_days, otpk_count, expected_status, expected_error, mock_db, app_ctx, mocker):
-    """Test login validation of SPK age and OTPK count."""
+def test_login_spk_otpk_validation(username, password, spk_age_days, otpk_count, expected_status, expected_spk_outdated, expected_otpk_low, mock_db, app_ctx, mocker):
+    """Test login validation of SPK age and OTPK count flags."""
     spk_max_age = config.spk.max_age_days
     min_otpk_count = config.otpk.min_unused_count
     
@@ -136,16 +136,12 @@ def test_login_spk_otpk_validation(username, password, spk_age_days, otpk_count,
     
     if expected_status == CODE_SUCCESS:
         assert "access_token" in data
+        assert "spk_outdated" in data
+        assert "otpk_count_low" in data
+        assert data["spk_outdated"] == expected_spk_outdated
+        assert data["otpk_count_low"] == expected_otpk_low
     else:
         assert "error" in data
-        if expected_error:
-            assert expected_error in data["error"]
-            
-    # Verify that the validation was actually performed
-    if spk_age_days > spk_max_age:
-        assert "SPK is too old" in data["error"]
-    if otpk_count < min_otpk_count:
-        assert "Not enough unused OTPKs" in data["error"]
 
 @pytest.mark.parametrize("username, password, public_key, spk, spk_signature, salt, expected_status", [
     ("new_user", "secure_pass", "cHViX2tleQ==", "c3BrX2tleQ==", "c2lnbmF0dXJl", b"salt123", CODE_CREATED),  # Success - base64 values

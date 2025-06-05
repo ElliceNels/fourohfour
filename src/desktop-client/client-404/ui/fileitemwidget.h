@@ -14,6 +14,7 @@
 #include "utils/securebufferutils.h"  // Added include for SodiumZeroDeleter
 #include "utils/widget_utils.h"
 #include "utils/shared_secret_utils.h" // Added for X3DH functionality
+#include "utils/x3dh_network_utils.h" // Added for permission removal functionality
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -60,7 +61,7 @@ private:
                    std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce,
                    const QByteArray& metadataBytes,
                    SecureVector& decryptedFile);
-    void saveDecryptedFile(const SecureVector& decryptedFile);
+    bool saveDecryptedFile(const SecureVector& decryptedFile);
 
     // Helper methods for file download process
     std::unique_ptr<unsigned char[], SodiumZeroDeleter> getFileKey(const QJsonObject& jsonResponse);

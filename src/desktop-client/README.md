@@ -75,3 +75,8 @@ If `client-404/build` does not exist:
 2. Open the project
 3. Run **CMake**
 4. Build the project — this will create the required `build` directory
+
+
+## Testing 
+
+Run the tst_key_utils.cpp file in the "Test Results" section of QT Creator

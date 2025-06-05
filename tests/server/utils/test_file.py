@@ -213,7 +213,7 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
         file_obj.owner_id = user_id if owner else user_id + 100
         file_obj.name = "file.txt"
         file_obj.path = f"/tmp/{file_uuid}.txt"
-        file_obj.metadata = MagicMock(size=123, format='txt')
+        file_obj.file_metadata = type('Meta', (), {'size': 123, 'format': 'txt'})()
         file_obj.uploaded_at = None
 
         # Set up the file query mock
@@ -225,22 +225,24 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
         if not file_found:
             perm_query.filter_by().first.return_value = None
         elif owner:
-            perm_query.filter_by().all.return_value = [MagicMock(user_id=1, encryption_key='key')]
+            perm_query.filter_by().all.return_value = [type('Perm', (), {'user_id': 1, 'encryption_key': 'key'})()]
         elif has_permission:
             # Create a mock permission with all required fields
             mock_permission = MagicMock()
             mock_permission.otpk = MagicMock()
             mock_permission.otpk.key = "mock_otpk_key"
             mock_permission.ephemeral_key = "mock_ephemeral_key"
+            mock_permission.encryption_key = "mock_encryption_key"
             perm_query.filter_by().first.return_value = mock_permission
         else:
             perm_query.filter_by().first.return_value = None
 
         # Set up the user query mock for spk and spk_sig
         user_query = MagicMock()
-        mock_user = MagicMock()
-        mock_user.spk = "mock_spk"
-        mock_user.spk_signature = "mock_spk_sig"
+        mock_user = type('User', (), {
+            'spk': 'mock_spk',
+            'spk_signature': 'mock_spk_sig'
+        })()
         user_query.filter_by().first.return_value = mock_user
 
         # Make query() return different mocks based on the query

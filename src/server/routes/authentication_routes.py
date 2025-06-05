@@ -21,7 +21,10 @@ def login():
     Expected response:
     {
         "access_token": "<JWT_access_token>",
-        "refresh_token": "<JWT_refresh_token>"
+        "refresh_token": "<JWT_refresh_token>",
+        "unused_otpk_count": "<number>",
+        "spk_outdated": "<boolean>",
+        "otpk_count_low": "<boolean>"
     }
     """
 
@@ -87,7 +90,28 @@ def sign_up():
     spk = data.get('spk')
     spk_signature = data.get('spk_signature')
     salt = data.get('salt')
-    bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
+
+    # Validate base64 format for cryptographic data
+    try:
+        if public_key:
+            base64.b64decode(public_key)
+        if spk:
+            base64.b64decode(spk)
+        if spk_signature:
+            base64.b64decode(spk_signature)
+    except Exception as e:
+        logger.warning(f"Sign up failed: Invalid base64 format for cryptographic data - {str(e)}")
+        return jsonify({"error": "Invalid base64 format for cryptographic data"}), 400
+
+    try:
+        # First try to decode as base64 if it's a string
+        if isinstance(salt, str):
+            bytes_salt = base64.b64decode(salt)
+        else:
+            bytes_salt = salt
+    except Exception as e:
+        logger.warning(f"Sign up failed: Invalid salt format - {str(e)}")
+        return jsonify({"error": "Invalid salt format"}), 400
 
     return auth.sign_up(username, password, public_key, spk, spk_signature, bytes_salt)
 
@@ -144,7 +168,15 @@ def change_password():
     logger.debug(f"Received change password request")
     new_password = data.get('new_password')
     salt = data.get('salt')
-    bytes_salt = salt.encode('utf-8') if isinstance(salt, str) else salt
+    try:
+        # First try to decode as base64 if it's a string
+        if isinstance(salt, str):
+            bytes_salt = base64.b64decode(salt)
+        else:
+            bytes_salt = salt
+    except Exception as e:
+        logger.warning(f"Change password failed: Invalid salt format - {str(e)}")
+        return jsonify({"error": "Invalid salt format"}), 400
 
     try:
         token = jwt.get_current_token()
@@ -307,6 +339,14 @@ def add_otpks():
         if not data or not otpks:
             logger.warning("Add OTPKs failed: Missing or malformed request data")
             return jsonify({"error": "Missing request fields"}), 400
+
+        # Validate base64 format for all OTPKs
+        try:
+            for otpk in otpks:
+                base64.b64decode(otpk)
+        except Exception as e:
+            logger.warning(f"Add OTPKs failed: Invalid base64 format for OTPK - {str(e)}")
+            return jsonify({"error": "Invalid base64 format for OTPK"}), 400
         
         user_info, status_code = auth.get_current_user()
         if status_code != 200:
