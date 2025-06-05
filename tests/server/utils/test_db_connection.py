@@ -8,6 +8,7 @@ from server.config import config
 from server.utils.auth import hash_password
 from server.utils.db_setup import setup_db, get_session, teardown_db
 from server.models.tables import Users, Files, FilePermissions, FileMetadata
+import base64
 
 logger = logging.getLogger(__name__)
 
@@ -58,13 +59,24 @@ def create_user(session, username=None):
     """Create a test user with unique identifiers."""
     username = username or f"user_{uuid.uuid4().hex[:8]}"
     logger.info(f"Creating test user: {username}")
+    
+    # Generate random bytes for cryptographic keys
+    spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    spk = base64.b64encode(spk_bytes).decode()
+    signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    spk_signature = base64.b64encode(signature_bytes).decode()
+    
+    current_time = datetime.now(UTC)
     user = Users(
         username=username,
         password=hash_password("password"),
         salt=b"salt",
         public_key=f"public_key_{uuid.uuid4().hex[:8]}",
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC)
+        spk=spk,  # Add base64 encoded spk
+        spk_signature=spk_signature,  # Add base64 encoded spk_signature
+        spk_updated_at=current_time,  # Add spk_updated_at field
+        created_at=current_time,
+        updated_at=current_time
     )
     session.add(user)
     session.commit()
@@ -101,10 +113,19 @@ def create_metadata(session, file, size=1024, format="txt"):
 
 def create_permission(session, file, user, encryption_key=b"encrypted_key"):
     logger.info(f"Creating permission for file {file.name} (ID: {file.id}) and user {user.username}")
+    # Generate random bytes for ephemeral key and encode as base64
+    ephemeral_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    ephemeral_key = base64.b64encode(ephemeral_bytes).decode()
+    
+    # Convert encryption_key to base64 if it's bytes
+    if isinstance(encryption_key, bytes):
+        encryption_key = base64.b64encode(encryption_key).decode()
+    
     permission = FilePermissions(
         file_id=file.id,
         user_id=user.id,
         encryption_key=encryption_key,
+        ephemeral_key=ephemeral_key,  # Add base64 encoded ephemeral key
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC)
     )
@@ -166,13 +187,20 @@ def test_permission_lifecycle(db_session):
     file = create_file(db_session, user)
     permission = create_permission(db_session, file, user)
 
-    updated_key = b"new_key"
-    permission.encryption_key = updated_key
+    # Generate new random bytes for updated keys
+    new_encryption_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    new_encryption_key = base64.b64encode(new_encryption_bytes).decode()
+    new_ephemeral_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    new_ephemeral_key = base64.b64encode(new_ephemeral_bytes).decode()
+    
+    permission.encryption_key = new_encryption_key
+    permission.ephemeral_key = new_ephemeral_key
     permission.updated_at = datetime.now(UTC) + timedelta(seconds=1)
     db_session.commit()
 
     updated = db_session.query(FilePermissions).filter_by(id=permission.id).first()
-    assert updated.encryption_key == updated_key
+    assert updated.encryption_key == new_encryption_key
+    assert updated.ephemeral_key == new_ephemeral_key
 
 def test_cascading_delete_user(db_session):
     logger.info("Testing cascading delete for user")
@@ -213,7 +241,7 @@ def test_user_creation_with_missing_fields(db_session):
     logger.info("Testing user creation with missing fields")
     try:
         user = Users(
-            username="test_user",  # Missing password, salt, public_key
+            username="test_user",  # Missing password, salt, public_key, spk, spk_signature
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC)
         )
@@ -246,13 +274,23 @@ def test_duplicate_usernames_fail(db_session):
 def test_duplicate_public_keys_fail(db_session):
     """Test that creating users with duplicate public keys fails."""
     public_key = "duplicate_key"
+    # Generate random bytes for cryptographic keys
+    spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    spk = base64.b64encode(spk_bytes).decode()
+    signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    spk_signature = base64.b64encode(signature_bytes).decode()
+    
+    current_time = datetime.now(UTC)
     user1 = Users(
         username="user1",
         password=hash_password("password"),
         salt=b"salt",
         public_key=public_key,
-        created_at=datetime.now(UTC),
-        updated_at=datetime.now(UTC)
+        spk=spk,
+        spk_signature=spk_signature,
+        spk_updated_at=current_time,
+        created_at=current_time,
+        updated_at=current_time
     )
     db_session.add(user1)
     db_session.commit()
@@ -262,17 +300,22 @@ def test_duplicate_public_keys_fail(db_session):
             username="user2",
             password=hash_password("password"),
             salt=b"salt",
-            public_key=public_key,  # Same public key
-            created_at=datetime.now(UTC),
-            updated_at=datetime.now(UTC)
+            public_key=public_key,
+            spk=spk,
+            spk_signature=spk_signature,
+            spk_updated_at=current_time,
+            created_at=current_time,
+            updated_at=current_time
         )
         db_session.add(user2)
         db_session.commit()
         pytest.fail("Expected IntegrityError was not raised")
-    except IntegrityError:
+    except IntegrityError as e:
+        logger.debug(f"Caught expected IntegrityError for duplicate public key: {str(e)}")
         pass
     finally:
         db_session.rollback()
+        logger.debug("Rolled back transaction")
 
 def test_file_with_nonexistent_user_fails(db_session):
     """Test that creating a file with a non-existent user fails."""
@@ -342,11 +385,16 @@ def test_permission_with_nonexistent_file_fails(db_session):
     """Test that creating a permission for a non-existent file fails."""
     user = create_user(db_session)
     
+    # Generate random bytes for ephemeral key and encode as base64
+    ephemeral_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    ephemeral_key = base64.b64encode(ephemeral_bytes).decode()
+    
     try:
         permission = FilePermissions(
             file_id=99999,  # Non-existent file ID
             user_id=user.id,
-            encryption_key=b"key",
+            encryption_key=base64.b64encode(b"key").decode(),
+            ephemeral_key=ephemeral_key,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC)
         )
@@ -363,11 +411,16 @@ def test_permission_with_nonexistent_user_fails(db_session):
     user = create_user(db_session)
     file = create_file(db_session, user)
     
+    # Generate random bytes for ephemeral key and encode as base64
+    ephemeral_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    ephemeral_key = base64.b64encode(ephemeral_bytes).decode()
+    
     try:
         permission = FilePermissions(
             file_id=file.id,
             user_id=99999,  # Non-existent user ID
-            encryption_key=b"key",
+            encryption_key=base64.b64encode(b"key").decode(),
+            ephemeral_key=ephemeral_key,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC)
         )

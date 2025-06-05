@@ -17,11 +17,31 @@
     "database": {
       "db_name": "fourohfour",
       "db_host": "127.0.0.1",
-      "db_port": 3306
+      "db_port": 3306,
+      "pool": {
+        "size": 5,
+        "max_overflow": 10,
+        "timeout": 30,
+        "recycle": 1800,
+        "pre_ping": true
+      }
     },
 
     "jwt": {
       "access_token_expires_hours": 1,
       "refresh_token_expires_days": 7
+    },
+
+    "spk": {
+      "max_age_days": 7
+    },
+
+    "otpk": {
+      "min_unused_count": 10
+    },
+
+    "file": {
+      "max_size_bytes": 104857600,
+      "max_size_mb": 100
     }
 }

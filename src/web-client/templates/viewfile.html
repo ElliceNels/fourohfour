@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View File - fourohfour Files</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <span class="logo-primary">fourohfour</span>
+            <span class="logo-secondary">Files</span>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('view_files') }}" class="btn back-btn">Back to Files</a>
+        </div>
+    </div>
+    <div class="center-viewport" style="align-items: flex-start; justify-content: flex-start;">
+        <div class="files-container">
+            <div class="files-main">
+                <div class="files-title">Viewing: {{ filename }}</div>
+                <div class="file-content-view">
+                    {% if file_content %}
+                        <pre style="white-space: pre-wrap; word-break: break-all;">{{ file_content }}</pre>
+                    {% else %}
+                        <div class="files-table-empty">No content to display or file not found.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

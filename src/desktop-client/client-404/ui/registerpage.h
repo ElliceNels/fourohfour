@@ -2,8 +2,8 @@
 #define REGISTERPAGE_H
 
 #include <QWidget>
+#include <QJsonArray>
 #include "ui/basepage.h"
-using namespace std;
 
 namespace Ui {
 class RegisterPage;
@@ -31,8 +31,10 @@ private:
     void setupConnections() override;
 
     // Function to send sign-up request to the server
-    bool sendSignUpRequest(const QString& username, const QString& password, 
-                                    const QString& publicKey, const QString& salt);
+    bool sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, QString& signedPreKey, QString& signedPreKeySignature, const QString& salt);
+
+    // Function to send one-time pre-keys to the server - renamed for clarity
+    bool sendOneTimePreKeysRequest(const QJsonArray& oneTimePreKeysJson);
 
 
 signals:

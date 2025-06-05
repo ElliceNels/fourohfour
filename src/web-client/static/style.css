@@ -499,3 +499,28 @@ input[type="text"]:focus, input[type="password"]:focus {
     background: #1976D2;
     box-shadow: 4px 4px 0 0 #222;
 }
+
+.file-link {
+    color: #2196F3;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.file-link:hover {
+    text-decoration: underline;
+}
+
+.action-btn {
+    background: #2196F3;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+
+.action-btn:hover {
+    background: #1976D2;
+}

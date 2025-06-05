@@ -173,11 +173,41 @@ void RegisterPage::onCreateAccountClicked()
         return;
     }
 
+       // Generate and store one-time pre-key pairs
+    QJsonArray oneTimePreKeysJson = FileSharingUtils::generateOneTimePreKeyPairs();
+    if (oneTimePreKeysJson.isEmpty()) {
+        QMessageBox::critical(this, "Error", "Failed to generate one-time pre-keys. Registration cannot proceed without secure messaging capabilities.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+        return;
+    }
+    
+    // Generate and store signed pre-key
+    QString signedPreKeyPublic, signedPreKeyPrivate, signature;
+    bool signedPreKeySuccess = FileSharingUtils::generateSignedPreKey(
+        pubKeyBase64, privKeyBase64,  // Pass identity keys
+        signedPreKeyPublic, signedPreKeyPrivate, signature
+    );
+    
+    if (!signedPreKeySuccess) {
+        QMessageBox::critical(this, "Error", "Failed to generate signed pre-key. Registration cannot proceed without secure messaging capabilities.");
+        this->ui->createAccountButton->setEnabled(true);
+        this->ui->createAccountButton->setText("Create Account");
+        this->ui->createAccountButton->repaint();
+        return;
+    }
+
     //Debug prints
     cout << sAccountName << endl;
     cout << "Salt: " << *saltPtr << endl;
 
-    if (sendSignUpRequest(accountName, password, pubKeyBase64, salt)) {
+    if (sendSignUpRequest(accountName, password, pubKeyBase64, signedPreKeyPublic, signature, salt)) {
+        if (!sendOneTimePreKeysRequest(oneTimePreKeysJson)) {
+            qWarning() << "One-time pre-keys were not uploaded to the server";
+            // We don't fail the registration process for this, but we warn the user
+        }
+        
         QMessageBox::information(this, "Success", "Account created and logged in!");
         this->ui->accountNameLineEdit->clear();
         this->ui->passwordLineEdit->clear();
@@ -187,13 +217,10 @@ void RegisterPage::onCreateAccountClicked()
         this->ui->createAccountButton->repaint();
         emit goToMainMenuRequested();
     } else {
-
         this->ui->createAccountButton->setEnabled(true);
         this->ui->createAccountButton->setText("Create Account");
         this->ui->createAccountButton->repaint();
-
     }
-
 }
 
 void RegisterPage::onShowPasswordClicked()
@@ -221,10 +248,12 @@ void RegisterPage::onShowPasswordClicked()
  * @param username The username to register.
  * @param password The plaintext password of the user.
  * @param publicKey The user's public key for cryptographic operations.
+ * @param signedPreKey The signed pre-key for secure messaging.
+ * @param signedPreKeySignature The signature validating the signed pre-key.
  * @param salt The salt used for password hashing.
  * @return true if registration is successful and tokens are saved; false otherwise.
  */
-bool RegisterPage::sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, const QString& salt)
+bool RegisterPage::sendSignUpRequest(const QString& username, const QString& password,const QString& publicKey, QString& signedPreKey, QString& signedPreKeySignature, const QString& salt)
 {
 
     // Set base URL for the server
@@ -235,6 +264,8 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
     requestData["username"] = username;
     requestData["password"] = password;
     requestData["public_key"] = publicKey;
+    requestData["spk"] = signedPreKey;
+    requestData["spk_signature"] = signedPreKeySignature;
     requestData["salt"] = salt;
     
     // Make the POST request to the sign_up endpoint
@@ -257,6 +288,41 @@ bool RegisterPage::sendSignUpRequest(const QString& username, const QString& pas
         return true;
     } else {
         QMessageBox::critical(this, "Registration Error", QString::fromStdString(response.errorMessage));
+        return false;
+    }
+}
+
+/**
+ * @brief Sends one-time pre-keys to the server for secure communication
+ * 
+ * This method sends the JSON array of base64-encoded one-time pre-keys
+ * to the server's /add_otpks endpoint. On success, it logs the 
+ * number of OTPKs stored on the server.
+ *
+ * @param oneTimePreKeysJson JSON array of base64-encoded one-time pre-key public keys
+ * @return true if the keys were successfully sent and stored, false otherwise
+ */
+bool RegisterPage::sendOneTimePreKeysRequest(const QJsonArray& oneTimePreKeysJson) {
+    // Create request JSON object
+    QJsonObject requestData;
+    requestData["otpks"] = oneTimePreKeysJson;
+    
+    qDebug() << "Sending" << oneTimePreKeysJson.size() << "one-time pre-keys to server";
+    
+    // Send to /add_otpks endpoint
+    RequestUtils::Response response = LoginSessionManager::getInstance().post(ADD_OTPKS_ENDPOINT, requestData);
+    
+    // Check if request was successful
+    if (response.success) {
+        QJsonObject jsonObj = response.jsonData.object();
+        int otpkCount = jsonObj["otpk_count"].toInt();
+        
+        qDebug() << "Successfully stored one-time pre-keys on server. Current count:" << otpkCount;
+        return true;
+    } else {
+        QMessageBox::warning(this, "OTPK Upload Warning", 
+            "Failed to upload security keys to server. Some secure sharing features may not work properly.");
+        qWarning() << "Failed to send one-time pre-keys:" << QString::fromStdString(response.errorMessage);
         return false;
     }
 }

@@ -27,3 +27,8 @@ class ServerError(Exception):
     def __init__(self):
         self.message = "Server error occurred"
         super().__init__(self.message)
+
+class SamePasswordError(Exception):
+    def __init__(self):
+        self.message = "New password is same as old password"
+        super().__init__(self.message)

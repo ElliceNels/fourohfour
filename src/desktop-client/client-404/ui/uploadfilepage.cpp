@@ -15,6 +15,7 @@
 #include "request_utils.h"
 #include <QJsonArray>
 #include <QJsonValue>
+#include "utils/file_crypto_utils.h"
 
 using namespace std;
 
@@ -97,24 +98,10 @@ void UploadFilePage::on_uploadButton_clicked()
 
 
 QByteArray UploadFilePage::formatFileMetadata(){
-
-    // Converting the file metadata to this format ensures consistency.
-    // The server will return the metadata as a JSON object, which will be authenticated during decryption.
-    // To keep it consistent on both ends, we also format it as a JSON object before encryption.
-
-    QJsonObject fileMetaData;
-    fileMetaData.insert("fileName", this->fileName);
-    fileMetaData.insert("fileType", this->fileType);
-    fileMetaData.insert("fileSize", static_cast<double>(this->fileSize)); // Ensure JSON number type
-
-    QJsonDocument metadataDoc(fileMetaData);
-    QByteArray metadataBytes = metadataDoc.toJson(QJsonDocument::Compact);
-
-    return metadataBytes;
+    return FileCryptoUtils::formatFileMetadata(this->fileName, this->fileType, this->fileSize);
 }
 
 void UploadFilePage::tryEncryptAndUploadFile() {
-    
     EncryptionHelper crypto;
 
     auto key = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
@@ -144,8 +131,8 @@ void UploadFilePage::tryEncryptAndUploadFile() {
         // This will be the data that is sent to the server
         SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
 
-        copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());    // Copy nonce to beginning
-        copy(ciphertext.data(), ciphertext.data() + ciphertext.size(),  combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);  // Move ciphertext data to avoid copying
+        copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());
+        copy(ciphertext.begin(), ciphertext.end(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
 
         // Upload the file to server and get the UUID
         QString fileUuid = uploadFileToServer(combinedData);
@@ -154,11 +141,11 @@ void UploadFilePage::tryEncryptAndUploadFile() {
         }
 
         // Save using the server-provided UUID
-        if (!SaveKeyToLocalStorage(fileUuid, key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES)) {
+        if (!FileCryptoUtils::saveKeyToLocalStorage(fileUuid, key.get(), crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
             QMessageBox::warning(this, "Error", "Failed to save encryption key to local storage");
         }
 
-    } catch (const exception &e) {
+    } catch (const std::exception &e) {
         QMessageBox::critical(this, "Encryption Error", e.what());
     }
 }
@@ -270,189 +257,6 @@ bool UploadFilePage::showOverwriteConfirmation() {
 QString UploadFilePage::reuploadWithUuid(const SecureVector& encryptedData, const QString& fileUuid) {
     // Simply call uploadFileToServer with the UUID and a custom success message
     return uploadFileToServer(encryptedData, fileUuid, "File overwritten successfully!");
-}
-
-bool UploadFilePage::SaveKeyToLocalStorage(const QString &fileUuid, const unsigned char *key, size_t keyLen) {
-    // Validate inputs
-    if (!validateKeyParameters(key, keyLen)) {
-        return false;
-    }
-
-    // Get master key and validate it
-    const SecureVector masterKey = LoginSessionManager::getInstance().getMasterKey();
-    if (!validateMasterKey(masterKey)) {
-        return false;
-    }
-
-    // Get file path for user's key storage
-    const QString filepath = buildKeyStorageFilePath();
-    
-    // Read and decrypt key storage file
-    QByteArray jsonData;
-    if (!readAndDecryptKeyStorage(filepath, masterKey, jsonData)) {
-        return false;
-    }
-    
-    // Update JSON with new key
-    QByteArray updatedJsonData;
-    if (!addKeyToJsonStorage(jsonData, fileUuid, key, keyLen, updatedJsonData)) {
-        return false;
-    }
-    
-    // Encrypt and save updated storage
-    return encryptAndSaveKeyStorage(filepath, updatedJsonData, masterKey);
-}
-
-// Validate key parameters 
-bool UploadFilePage::validateKeyParameters(const unsigned char *key, size_t keyLen) {
-    if (key == nullptr || keyLen != crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
-        QMessageBox::warning(this, "Error",
-                             QString("Invalid file encryption key length: expected %1 bytes, got %2 bytes")
-                                 .arg(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
-                                 .arg(keyLen));
-        return false;
-    }
-    return true;
-}
-
-// Validate master key
-bool UploadFilePage::validateMasterKey(const SecureVector &masterKey) {
-    if (masterKey.empty() || masterKey.size() != crypto_aead_xchacha20poly1305_ietf_KEYBYTES) {
-        QMessageBox::warning(this, "Error",
-                             QString("Invalid master key length: expected %1 bytes, got %2 bytes")
-                                 .arg(crypto_aead_xchacha20poly1305_ietf_KEYBYTES)
-                                 .arg(masterKey.size()));
-        return false;
-    }
-    return true;
-}
-
-// Build the key storage file path
-QString UploadFilePage::buildKeyStorageFilePath() {
-    const QString username = LoginSessionManager::getInstance().getUsername();
-    return QCoreApplication::applicationDirPath() + keysPath + username + binaryExtension;
-}
-
-// Read and decrypt the key storage file
-bool UploadFilePage::readAndDecryptKeyStorage(const QString &filepath, 
-                                             const SecureVector &masterKey,
-                                             QByteArray &jsonData) {
-    // Check if file exists
-    if (!QFile::exists(filepath)) {
-        QMessageBox::warning(this, "Decryption Error", "Could not find encrypted keys file.");
-        return false;
-    }
-
-    // Read file data
-    QFile file(filepath);
-    if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::warning(this, "Decryption Error", 
-                            "Failed to open encrypted keys file: " + file.errorString());
-        return false;
-    }
-    const QByteArray fileData = file.readAll();
-    file.close();
-
-    // Validate data size
-    const int ciphertextSize = fileData.size() - crypto_aead_xchacha20poly1305_ietf_NPUBBYTES;
-    if (ciphertextSize <= 0) {
-        QMessageBox::warning(this, "Decryption Error", "Encrypted file is too small. It may be corrupted.");
-        return false;
-    }
-
-    // Extract components
-    SecureVector ciphertext(ciphertextSize);
-    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-    
-    copy(fileData.constData(), fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, nonce.get());
-    copy(fileData.constData() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, fileData.constData() + fileData.size(), ciphertext.begin());
-
-    // Decrypt data
-    EncryptionHelper crypto;
-    SecureVector plaintext;
-    try {
-        plaintext = crypto.decrypt(
-            ciphertext.data(),
-            ciphertextSize,
-            masterKey.data(),
-            nonce.get(),
-            nullptr,
-            0
-        );
-        
-        jsonData = QByteArray(reinterpret_cast<const char*>(plaintext.data()),
-                              static_cast<int>(plaintext.size()));
-        
-        return true;
-    } catch (const exception& e) {
-        QMessageBox::critical(this, "Decryption Error", 
-                             QString("Decryption failed: %1").arg(e.what()));
-        return false;
-    }
-}
-
-// Add a key to the JSON storage
-bool UploadFilePage::addKeyToJsonStorage(const QByteArray &jsonData, const QString &fileUuid, const unsigned char *key, size_t keyLen, QByteArray &updatedJsonData) {
-    // Parse JSON
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
-    
-    if (parseError.error != QJsonParseError::NoError) {
-        QMessageBox::warning(this, "Error",
-                            QString("Failed to parse JSON: %1").arg(parseError.errorString()));
-        return false;
-    }
-
-    // Update JSON structure
-    QJsonObject json = doc.isObject() ? doc.object() : QJsonObject();
-    QJsonObject filesObject = json.contains("files") ? json["files"].toObject() : QJsonObject();
-    
-    // Convert key to base64
-    QByteArray keyBytes(reinterpret_cast<const char*>(key), keyLen);
-    filesObject[fileUuid] = QString(keyBytes.toBase64());
-    
-    json["files"] = filesObject;
-    doc.setObject(json);
-    
-    // Convert back to bytes
-    updatedJsonData = doc.toJson(QJsonDocument::Compact);
-    return true;
-}
-
-// Encrypt and save the updated key storage
-bool UploadFilePage::encryptAndSaveKeyStorage(const QString &filepath, const QByteArray &jsonData, const SecureVector &masterKey) {
-    EncryptionHelper crypto;
-    auto nonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
-    crypto.generateNonce(nonce.get(), crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-    
-    // Encrypt data
-    SecureVector ciphertext = crypto.encrypt(
-        reinterpret_cast<const unsigned char*>(jsonData.constData()),
-        jsonData.size(),
-        masterKey.data(),
-        nonce.get(),
-        nullptr,
-        0
-    );
-    
-    // Prepare data for saving: [nonce][ciphertext]
-    SecureVector combinedData(crypto_aead_xchacha20poly1305_ietf_NPUBBYTES + ciphertext.size());
-
-    copy(nonce.get(), nonce.get() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES, combinedData.begin());
-    copy(ciphertext.data(), ciphertext.data() + ciphertext.size(), combinedData.begin() + crypto_aead_xchacha20poly1305_ietf_NPUBBYTES);
-    
-    // Save file
-    QFile file(filepath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::warning(this, "Encryption Error", 
-                            "Failed to open file for writing: " + file.errorString());
-        return false;
-    }
-    
-    file.write(reinterpret_cast<const char*>(combinedData.data()), static_cast<qint64>(combinedData.size()));
-    file.close();
-    qDebug() << "Key storage updated and saved successfully";
-    return true;
 }
 
 void UploadFilePage::on_confirmButton_clicked(){

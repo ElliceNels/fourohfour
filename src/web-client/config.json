@@ -3,7 +3,7 @@
 
     "server": {
       "host": "127.0.0.1",
-      "port": 5000,
+      "port": 8080,
       "debug": false,
       "url": "http://localhost:5000"
     },

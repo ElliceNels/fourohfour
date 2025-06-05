@@ -15,6 +15,14 @@ class ServerConfig(BaseModel):
     debug: bool
     url: str
 
+class DatabasePoolConfig(BaseModel):
+    """Database connection pool configuration class."""
+    size: int
+    max_overflow: int
+    timeout: int
+    recycle: int
+    pre_ping: bool
+
 class DatabaseConfig(BaseModel):
     """Database configuration class."""
     db_name: str
@@ -23,6 +31,7 @@ class DatabaseConfig(BaseModel):
     environment: str = os.getenv("DB_ENVIRONMENT", "development")  # Default to development if not set
     db_user: str = os.getenv("DB_USER", "db_user")
     db_password: str = os.getenv("DB_PASSWORD", "db_password")
+    pool: DatabasePoolConfig
 
 class LoggingConfig(BaseModel):
     """Logging configuration class."""
@@ -43,6 +52,25 @@ class JWTConfig(BaseModel):
         
         super().__init__(**data)
 
+class SPKConfig(BaseModel):
+    """SPK (Signed Pre Key) configuration class."""
+    max_age_days: int
+    max_age: timedelta
+
+    def __init__(self, **data):
+        """Initialize SPK config with timedelta conversion."""
+        data['max_age'] = timedelta(days=data['max_age_days'])
+        super().__init__(**data)
+
+class OTPKConfig(BaseModel):
+    """OTPK (One-Time Pre Key) configuration class."""
+    min_unused_count: int
+
+class FileConfig(BaseModel):
+    """File configuration class."""
+    max_size_bytes: int
+    max_size_mb: int
+
 class Config(BaseModel):
     """Singleton configuration class."""
 
@@ -53,6 +81,9 @@ class Config(BaseModel):
     logging: LoggingConfig
     database: DatabaseConfig
     jwt: JWTConfig
+    spk: SPKConfig
+    otpk: OTPKConfig
+    file: FileConfig
 
     def __new__(cls, *args, **kwargs):
         """Singleton pattern enforcing on Config class creation."""

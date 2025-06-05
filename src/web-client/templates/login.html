@@ -20,7 +20,6 @@
         }
 
         function showLoginProgressAndDisableBtn() {
-            document.getElementById('progress-message').style.display = 'block';
             var btn = document.getElementById('login-btn');
             btn.disabled = true;
             btn.textContent = 'Logging in...';
@@ -39,11 +38,6 @@
                 <span class="hero-primary">Welcome</span> <span class="hero-secondary">Back</span>
             </h1>
             <p class="hero-subtitle">Sign in to access your files</p>
-        </div>
-
-        <!-- Progress message (hidden by default) -->
-        <div id="progress-message" style="display:none; color: #0d47a1; margin-bottom: 10px;">
-            Logging in...
         </div>
 
         <!-- Flash messages for validation errors/success -->

@@ -7,6 +7,7 @@ from server.models.tables import Files, FilePermissions, FileMetadata, Users
 from server.utils.db_setup import get_session
 import logging
 from werkzeug.utils import secure_filename
+from server.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -21,10 +22,31 @@ def upload_file_to_db(user_id: int, filename: str, file_contents_b64: str, metad
     # Decode base64 contents
     try:
         import base64
-        file_contents = base64.b64decode(file_contents_b64)
+        file_contents: bytes = base64.b64decode(file_contents_b64)
     except Exception as e:
         logger.error(f"Error decoding base64 file contents: {str(e)}")
         return jsonify({'error': 'Invalid base64 file contents'}), 400
+
+    # Validate file size before any database operations
+    # len(bytes) returns int, comparing with config.file.max_size_bytes (int)
+    file_size: int = len(file_contents)
+    if file_size > config.file.max_size_bytes:
+        logger.warning(f"Upload failed: File size {file_size} bytes exceeds maximum allowed size of {config.file.max_size_mb}MB")
+        return jsonify({'error': f'File size exceeds maximum allowed size of {config.file.max_size_mb}MB'}), 400
+
+    # Validate metadata size matches actual file size
+    if metadata and 'size' in metadata:
+        try:
+            metadata_size = float(metadata['size'])
+            if abs(metadata_size - len(file_contents)) > 1:  # Allow 1 byte difference for floating point precision
+                logger.warning(f"Upload failed: Metadata size {metadata_size} does not match actual file size {len(file_contents)}")
+                return jsonify({'error': 'File size in metadata does not match actual file size'}), 400
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Upload failed: Invalid size in metadata: {str(e)}")
+            return jsonify({'error': 'Invalid file size in metadata'}), 400
+    else:
+        logger.warning("Upload failed: Missing size in metadata")
+        return jsonify({'error': 'Invalid file size in metadata'}), 400
 
     with get_session() as db:
         try:
@@ -193,32 +215,37 @@ def get_user_files(user_id: int) -> dict:
         logger.error(f"Error retrieving files for user {user_id}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
+def get_file_by_uuid(file_uuid: str, user_info: dict) -> dict:
     """Get a specific file by UUID if user has access.
 
     Args:
         file_uuid (str): UUID of the requested file
-        user_id (int): ID of the user requesting the file
+        user_info (dict): Dictionary containing user information including user_id and username
 
     Returns:
-        dict: Response containing file data and sharing keys if user is owner
+        dict: Response containing:
+            - If user is owner: encrypted_file
+            - If file is shared with user: encrypted_file, otpk, ephemeral_key, spk, spk_sig
     """
+    user_id = user_info.get('user_id')
+    username = user_info.get('username')
     try:
         with get_session() as db:
             # Find the file
             file = db.query(Files).filter_by(uuid=file_uuid).first()
             if not file:
-                logger.warning(f"File with UUID {file_uuid} not found for user {user_id}")
+                logger.warning(f"File with UUID {file_uuid} not found for user {username}")
                 return jsonify({'error': 'File not found'}), 404
 
             # Check if user has access
+            permission = None
             if file.owner_id != user_id:
                 permission = db.query(FilePermissions).filter_by(
                     file_id=file.id,
                     user_id=user_id
                 ).first()
                 if not permission:
-                    logger.warning(f"User {user_id} not authorized to access file {file_uuid}")
+                    logger.warning(f"User {username} not authorized to access file {file_uuid}")
                     return jsonify({'error': 'Not authorized to access this file'}), 403
 
             # Read the encrypted file
@@ -233,17 +260,23 @@ def get_file_by_uuid(file_uuid: str, user_id: int) -> dict:
                 'encrypted_file': base64.b64encode(encrypted_file).decode('utf-8')
             }
 
-            # If user is owner, include all sharing keys
-            if file.owner_id == user_id:
-                permissions = db.query(FilePermissions).filter_by(file_id=file.id).all()
-                response_data['encrypted_keys'] = {
-                    perm.user_id: perm.encryption_key for perm in permissions
-                }
-            logger.info(f"User {user_id} retrieved file {file_uuid} successfully")
-        return jsonify(response_data), 200
+            # If user is not the owner, include the sharing keys
+            if file.owner_id != user_id:
+                # Get the user's signed pre key and signature
+                user = db.query(Users).filter_by(id=user_id).first()
+                
+                response_data.update({
+                    'otpk': permission.otpk.key if permission.otpk else None,
+                    'ephemeral_key': permission.ephemeral_key,
+                    'spk': user.spk,
+                    'spk_sig': user.spk_signature
+                })
+
+            logger.info(f"User {username} retrieved file {file_uuid} successfully")
+            return jsonify(response_data), 200
 
     except Exception as e:
-        logger.error(f"Error retrieving file {file_uuid} for user {user_id}: {str(e)}")
+        logger.error(f"Error retrieving file {file_uuid} for user {username}: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 def delete_file_by_uuid(file_uuid: str, user_id: int) -> dict:

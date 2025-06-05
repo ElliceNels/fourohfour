@@ -12,6 +12,7 @@ from nacl.bindings import (
 import nacl.utils
 from nacl import pwhash
 from encryption_helper import EncryptionHelper  
+from session_manager import LoginSessionManager
 from constants import BINARY_EXTENSION, KEYS_PATH, MASTER_KEY_PATH
 import os
 from nacl.signing import SigningKey
@@ -87,6 +88,7 @@ def encrypt_and_save_master_key(key_to_encrypt: bytes, derived_key: bytes, usern
         bool: True if successful, False otherwise.
     """
     nonce = EncryptionHelper.generate_nonce()
+    LoginSessionManager.getInstance().setMasterKey(derived_key)
     encrypted_key = EncryptionHelper.encrypt(key_to_encrypt, derived_key, nonce)
     combined_data = nonce + encrypted_key
 
@@ -128,8 +130,8 @@ def decrypt_and_reencrypt_user_file(username: str, old_password: str, old_salt: 
 
     # Extract nonce and ciphertext
     nonce_size = crypto_aead_xchacha20poly1305_ietf_NPUBBYTES
-    nonce = encrypted_data[:nonce_size]  # <-- CORRECT: reads from the start
-    ciphertext = encrypted_data[nonce_size:]  # <-- CORRECT: reads after the nonce
+    nonce = encrypted_data[:nonce_size]  
+    ciphertext = encrypted_data[nonce_size:] 
 
     # Derive old key
     old_key = derive_key_from_password(old_password, old_salt)

@@ -32,3 +32,5 @@ logs/
 # Ignore vstudio files
 .vs/
 .vscode/
+
+*.bin
