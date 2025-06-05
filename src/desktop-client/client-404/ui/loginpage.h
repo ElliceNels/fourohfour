@@ -35,7 +35,7 @@ private:
     QString getSaltRequest();
     QString getClientIP();
     bool sendLogInRequest(const QString& username, const QString& password);
-    bool replenishOneTimePreKeys(); 
+    bool replaceSignedPreKey(const QString username, QString& signedPreKeyPublic, QString& signature);
 
     // Overridden methods from BasePage abstract class
     void initialisePageUi() override;

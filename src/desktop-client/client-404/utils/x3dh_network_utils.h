@@ -83,6 +83,23 @@ public:
      */
     static bool uploadOneTimePreKeys(const QJsonArray& oneTimePreKeysJson, QWidget* parent = nullptr);
 
+    /**
+     * @brief Uploads a new signed pre-key and its signature to the server
+     * 
+     * This method sends a new signed pre-key pair and its signature to the server
+     * to replace the current one. This should be done periodically for security
+     * as recommended by the X3DH protocol.
+     *
+     * @param signedPreKeyPublic The base64-encoded public part of the signed pre-key
+     * @param signature The base64-encoded signature of the signed pre-key
+     * @param parent Optional parent widget for displaying error messages
+     * @return bool True if the update was successful, false otherwise
+     */
+    static bool updateSignedPreKey(
+        const QString& signedPreKeyPublic,
+        const QString& signature,
+        QWidget* parent = nullptr);
+
 private:
     /**
      * @brief Validates inputs for key bundle retrieval
