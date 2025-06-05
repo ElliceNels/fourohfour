@@ -17,16 +17,22 @@ def manage_login(password, username):
         if access_token and refresh_token:
             LoginSessionManager.getInstance().setTokens(access_token, refresh_token)
             LoginSessionManager.getInstance().setUsername(username)
-            return True, "Login successful"
             
-        return False, ServerError().message
+            # Return additional SPK/OTPK status information from server response
+            return True, "Login successful", {
+                'spk_outdated': json_data.get('spk_outdated', False),
+                'otpk_count_low': json_data.get('otpk_count_low', False),
+                'unused_otpk_count': json_data.get('unused_otpk_count', 0)
+            }
+            
+        return False, ServerError().message, None
         
     except UserNotFoundError as e:
-        return False, "Invalid username or password"
+        return False, "Invalid username or password", None
     except InvalidPasswordError as e:
-        return False, "Invalid username or password"
+        return False, "Invalid username or password", None
     except ServerError as e:
-        return False, e.message
+        return False, e.message, None
     except Exception as e:
         print(f"An error occurred during login: {e}")
-        return False, ServerError().message
+        return False, ServerError().message, None

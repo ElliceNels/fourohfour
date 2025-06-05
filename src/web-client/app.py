@@ -114,13 +114,28 @@ def login():
                 clear_flashes()
                 flash("Too many login attempts. Please try again in 5 minutes.", "error")
                 return ('Too many login attempts', 429)            # Only authenticate, do not handle cryptographic keys
-            login_success, message = manage_login(password, username)
+            login_result = manage_login(password, username)
             record_login_attempt(ip)
+            
+            # Handle new return format with SPK/OTPK status
+            if len(login_result) == 3:
+                login_success, message, key_status = login_result
+            else:
+                # Fallback for old format
+                login_success, message = login_result
+                key_status = None
+            
             if login_success:
                 session['username'] = username
                 clear_flashes()
                 flash(message, "success")
-                return jsonify({'success': True, 'message': message}), 200
+                
+                # Include SPK/OTPK status in response
+                response_data = {'success': True, 'message': message}
+                if key_status:
+                    response_data.update(key_status)
+                
+                return jsonify(response_data), 200
             else:
                 clear_flashes()
                 flash(message, "error")
@@ -364,6 +379,100 @@ def test_crypto():
     </body>
     </html>
     '''
+
+@app.route('/proxy_add_otpks', methods=['POST'])
+def proxy_add_otpks():
+    """Proxy endpoint to add OTPKs to the backend server"""
+    if not request.is_json:
+        return jsonify({'error': 'JSON payload required'}), 400
+    
+    # Check if user is logged in via Flask session
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    otpks = data.get('otpks')
+    
+    if not otpks:
+        return jsonify({'error': 'Missing OTPKs'}), 400
+    
+    # Forward OTPK request to backend server using session manager tokens
+    add_otpks_url = config.server.url.rstrip('/') + '/add_otpks'
+    session_manager = LoginSessionManager.getInstance()
+    
+    try:
+        # Get session tokens (returns tuple: access_token, refresh_token)
+        access_token, refresh_token = session_manager.getTokens()
+        if not access_token:
+            return jsonify({'error': 'No valid session token'}), 401
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        payload = {'otpks': otpks}
+        
+        resp = requests.post(add_otpks_url, json=payload, headers=headers)
+        
+        if resp.status_code == 201:  # Backend returns 201 for created
+            return jsonify(resp.json()), 201
+        else:
+            logger.error(f"Backend OTPK upload failed: {resp.status_code} - {resp.text}")
+            return jsonify({'error': 'Backend server error'}), resp.status_code
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error forwarding OTPK request: {str(e)}")
+        return jsonify({'error': 'Request failed'}), 500
+
+@app.route('/proxy_update_spk', methods=['POST'])
+def proxy_update_spk():
+    """Proxy endpoint to update SPK on the backend server"""
+    if not request.is_json:
+        return jsonify({'error': 'JSON payload required'}), 400
+    
+    # Check if user is logged in via Flask session
+    if 'username' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    
+    data = request.get_json()
+    spk = data.get('spk')
+    spk_signature = data.get('spk_signature')
+    
+    if not spk or not spk_signature:
+        return jsonify({'error': 'Missing SPK or signature'}), 400
+    
+    # Forward SPK update request to backend server using session manager tokens
+    update_spk_url = config.server.url.rstrip('/') + '/update_spk'
+    session_manager = LoginSessionManager.getInstance()
+    
+    try:
+        # Get session tokens (returns tuple: access_token, refresh_token)
+        access_token, refresh_token = session_manager.getTokens()
+        if not access_token:
+            return jsonify({'error': 'No valid session token'}), 401
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {access_token}'
+        }
+        
+        payload = {
+            'spk': spk,
+            'spk_signature': spk_signature
+        }
+        
+        resp = requests.post(update_spk_url, json=payload, headers=headers)
+        
+        if resp.status_code == 200:
+            return jsonify(resp.json()), 200
+        else:
+            logger.error(f"Backend SPK update failed: {resp.status_code} - {resp.text}")
+            return jsonify({'error': 'Backend server error'}), resp.status_code
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Error forwarding SPK update: {str(e)}")
+        return jsonify({'error': 'Request failed'}), 500
 
 if __name__ == '__main__':
     app.run(host=config.server.host, port=config.server.port, debug=config.server.debug)

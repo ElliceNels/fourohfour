@@ -269,10 +269,12 @@ window.addEventListener('DOMContentLoaded', function () {
         result = await resp.json();
       } catch (e) {
         result = { success: false, error: 'Invalid server response' };
-      }
-
-      if (resp.ok && result.success) {
+      }      if (resp.ok && result.success) {
         console.log('Login successful, keyfile available for session');
+        
+        // Handle SPK and OTPK management after successful login
+        await handleKeyManagement(result, username, password, keyfileData);
+        
         window.location.href = '/mainmenu';
       } else {
         const msg = result && result.error ? result.error : 'Login failed';
@@ -312,3 +314,182 @@ window.addEventListener('DOMContentLoaded', function () {
     loginInProgress = false;
   }
 });
+
+// SPK and OTPK management constants (matching desktop client)
+const KEY_GEN_COUNT = 50; // Number of OTPKs to generate
+
+// Generate X25519 keypair (for pre-keys) using libsodium
+async function generateX25519KeyPair() {
+  await initSodium();
+  const keypair = sodium.crypto_box_keypair();
+  return {
+    publicKey: keypair.publicKey,
+    privateKey: keypair.privateKey,
+  };
+}
+
+// Generate one-time pre-keys (X25519) - matching desktop client
+async function generateOneTimePreKeys(count = KEY_GEN_COUNT) {
+  await initSodium();
+  let publicKeys = [];
+
+  for (let i = 0; i < count; i++) {
+    const kp = await generateX25519KeyPair();
+    publicKeys.push(
+      sodium.to_base64(kp.publicKey, sodium.base64_variants.ORIGINAL)
+    );
+    // Note: Private keys should be stored locally but are not implemented in web client yet
+    // Desktop client stores them securely for message decryption
+  }
+
+  console.log(`Generated ${publicKeys.length} new OTPKs`);
+  return publicKeys;
+}
+
+// Generate a signed pre-key (X25519 + Ed25519 signature) - matching desktop client
+async function generateSignedPreKey(identityPrivateKey) {
+  await initSodium();
+
+  // Generate new X25519 key pair for the signed pre-key
+  const spk = await generateX25519KeyPair();
+
+  // Sign the public key with Ed25519 identity private key (X3DH spec)
+  const signature = sodium.crypto_sign_detached(
+    spk.publicKey,
+    identityPrivateKey
+  );
+
+  return {
+    spkPub: sodium.to_base64(spk.publicKey, sodium.base64_variants.ORIGINAL),
+    spkPriv: spk.privateKey, // Would be stored locally in a full implementation
+    signature: sodium.to_base64(signature, sodium.base64_variants.ORIGINAL),
+  };
+}
+
+// Upload new OTPKs to server
+async function uploadOneTimePreKeys(otpks) {
+  try {
+    const response = await fetch('/proxy_add_otpks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        otpks,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(
+        `Successfully uploaded ${otpks.length} OTPKs. New count: ${
+          result.otpk_count || 'unknown'
+        }`
+      );
+      return true;
+    } else {
+      console.error('Failed to upload OTPKs:', response.status, response.statusText);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error uploading OTPKs:', error);
+    return false;
+  }
+}
+
+// Update SPK on server
+async function updateSignedPreKey(spk, signature) {
+  try {
+    const response = await fetch('/proxy_update_spk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        spk,
+        spk_signature: signature,
+      }),
+    });
+
+    if (response.ok) {
+      console.log('Successfully updated signed pre-key');
+      return true;
+    } else {
+      console.error('Failed to update SPK:', response.status, response.statusText);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error updating SPK:', error);
+    return false;
+  }
+}
+
+// Handle SPK and OTPK management after successful login
+async function handleKeyManagement(loginResponse, username, password, keyfileData) {
+  try {
+    const spkOutdated = loginResponse.spk_outdated || false;
+    const otpkCountLow = loginResponse.otpk_count_low || false;
+    const unusedOtpkCount = loginResponse.unused_otpk_count || 0;
+
+    console.log(
+      `Key status: SPK outdated: ${spkOutdated}, OTPK count low: ${otpkCountLow}, Unused OTPKs: ${unusedOtpkCount}`
+    );
+
+    // Handle low OTPK count
+    if (otpkCountLow) {
+      console.log(`OTPK count is low (${unusedOtpkCount}). Generating new OTPKs...`);
+      const newOTPKs = await generateOneTimePreKeys(KEY_GEN_COUNT);
+      if (newOTPKs.length > 0) {
+        const uploadSuccess = await uploadOneTimePreKeys(newOTPKs);
+        if (uploadSuccess) {
+          console.log(`Successfully uploaded ${newOTPKs.length} new one-time pre-keys`);
+        } else {
+          console.log('Failed to upload new one-time pre-keys');
+        }
+      }
+    } else {
+      console.log(
+        `OTPK count is sufficient (${unusedOtpkCount}). No action needed.`
+      );
+    }
+
+    // Handle outdated SPK
+    if (spkOutdated) {
+      console.log('SPK is outdated. Generating new signed pre-key...');
+
+      // Get identity private key from keyfile
+      const encryptedKeyData = sodium.from_base64(
+        keyfileData.encrypted_key,
+        sodium.base64_variants.ORIGINAL
+      );
+
+      // Derive key from password to decrypt identity key
+      const salt = sodium.from_base64(
+        keyfileData.salt,
+        sodium.base64_variants.ORIGINAL
+      );
+      const derivedKey = await deriveKeyFromPassword(password, salt);
+
+      // Decrypt identity private key
+      const identityPrivateKey = await decryptXChaCha20Poly1305(
+        encryptedKeyData,
+        derivedKey
+      );
+
+      // Generate new signed pre-key
+      const newSPK = await generateSignedPreKey(identityPrivateKey);
+
+      // Update SPK on server
+      const updateSuccess = await updateSignedPreKey(
+        newSPK.spkPub,
+        newSPK.signature
+      );
+
+      if (updateSuccess) {
+        console.log('Successfully updated signed pre-key');
+      } else {
+        console.log('Failed to update signed pre-key on server');
+      }
+    } else {
+      console.log('SPK is up-to-date. No action needed.');
+    }
+  } catch (error) {
+    console.error('Error during key management:', error);
+  }
+}
