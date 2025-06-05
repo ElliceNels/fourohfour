@@ -13,6 +13,7 @@
 #include "constants.h"
 #include "utils/securebufferutils.h"  // Added include for SodiumZeroDeleter
 #include "utils/widget_utils.h"
+#include "utils/shared_secret_utils.h" // Added for X3DH functionality
 
 class FileItemWidget : public QWidget {
     Q_OBJECT
@@ -37,6 +38,7 @@ private:
     QString fileExtension;
     QString fileUuid;
     qint64 fileSizeBytes;
+    bool isOwner; 
     QPushButton *downloadButton;
     QPushButton *shareButton;
     QPushButton *deleteButton;
@@ -50,6 +52,7 @@ private:
     
     // Download helper methods
     bool fetchEncryptedFile(QByteArray& encryptedData);
+    bool fetchEncryptedFileWithMetadata(QByteArray& encryptedData, QJsonObject& jsonResponse);
     bool extractFileComponents(const QByteArray& encryptedData, 
                               std::unique_ptr<unsigned char[], SodiumZeroDeleter>& fileNonce, 
                               SecureVector& fileCiphertext);
@@ -61,4 +64,8 @@ private:
                    SecureVector& decryptedFile);
     void saveDecryptedFile(const SecureVector& decryptedFile);
 
+    // Helper methods for file download process
+    std::unique_ptr<unsigned char[], SodiumZeroDeleter> getFileKey(const QJsonObject& jsonResponse);
+    bool getSharedFileKey(const QJsonObject& jsonResponse, unsigned char* fileKey);
+    bool processAndDecryptFile(const QByteArray& encryptedData, const unsigned char* fileKey);
 };

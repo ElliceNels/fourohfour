@@ -140,6 +140,7 @@ def get_file(file_uuid):
             "encrypted_file": <base64_encoded_file_data>,
             "otpk": <otpk used, base64 encoded>,
             "ephemeral_key": <ephemeral key, base64 encoded>,
+            <key_for_recipient>: <encrypted base64_encoded_symmetric_key>
             "spk": <current user's signed pre key>,
             "spk_sig": <spk signature>
         }

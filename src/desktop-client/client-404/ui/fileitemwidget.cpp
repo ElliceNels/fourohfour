@@ -15,6 +15,8 @@
 #include "utils/file_crypto_utils.h"
 #include "utils/securebufferutils.h"
 #include "utils/widget_utils.h"
+#include "utils/file_sharing_manager_utils.h"
+#include "utils/friend_storage_utils.h"
 
 FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileFormat, qint64 fileSize, const QString &owner, const bool isOwner, const QString& uuid, QWidget *parent)
     : QWidget(parent)
@@ -22,6 +24,7 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     this->fileExtension = fileFormat;
     this->fileUuid = uuid;
     this->fileSizeBytes = fileSize;
+    this->isOwner = isOwner;  // Store isOwner as a member variable
     this->fileNameLabel = UIUtils::createElidedLabel(fileName + "." + fileFormat, fileNameLabelWidth, this);
     
     // Format file size for display
@@ -32,14 +35,14 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     // Buttons
     this->previewButton = UIUtils::createIconButton(previewIconPath, this);
     this->downloadButton = UIUtils::createIconButton(downloadIconPath, this);
-    if(isOwner){
+    if(this->isOwner){  // Use the member variable instead of the parameter
         this->shareButton = UIUtils::createIconButton(shareIconPath, this);  // only owners can share files
         this->deleteButton = UIUtils::createIconButton(deleteIconPath, this);
     }
   
     connect(this->downloadButton, &QPushButton::clicked, this, &FileItemWidget::handleDownload);
 
-    if (isOwner) {
+    if (this->isOwner) {  // Use the member variable instead of the parameter
         connect(this->shareButton, &QPushButton::clicked, this, &FileItemWidget::handleShare); // only owners can share files
         connect(this->deleteButton, &QPushButton::clicked, this, &FileItemWidget::handleDelete);
     } 
@@ -53,7 +56,7 @@ FileItemWidget::FileItemWidget(const QString &fileName, const QString &fileForma
     layout->addWidget(this->ownerLabel);
     layout->addStretch();
     layout->addWidget(this->downloadButton);
-    if (isOwner) {
+    if (this->isOwner) {  // Use the member variable instead of the parameter
         layout->addWidget(this->shareButton);
         layout->addWidget(this->deleteButton);
     }
@@ -81,22 +84,86 @@ void FileItemWidget::handleDownload() {
     
     // Fetch the encrypted file from server
     QByteArray encryptedData;
-    if (!fetchEncryptedFile(encryptedData)) {
-        return; // Error already shown to user within fetchEncryptedFile
+    QJsonObject jsonResponse;
+    if (!fetchEncryptedFileWithMetadata(encryptedData, jsonResponse)) {
+        return; // Error already shown to user
     }
     
-    // Get file encryption key from local storage
+    // Get the file encryption key (either from local storage or via X3DH)
+    auto fileKey = getFileKey(jsonResponse);
+    if (!fileKey) {
+        return; // Error already shown to user
+    }
+    
+    // Process, decrypt and save the file
+    processAndDecryptFile(encryptedData, fileKey.get());
+}
+
+std::unique_ptr<unsigned char[], SodiumZeroDeleter> FileItemWidget::getFileKey(const QJsonObject& jsonResponse) {
     auto fileKey = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_KEYBYTES>();
-    if (!FileCryptoUtils::getFileEncryptionKey(this->fileUuid, fileKey.get(), 
-                                             crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
-        return; // Error already shown to user within getFileEncryptionKey
+    
+    // Check if this is a shared file or owned file
+    if (isOwner || !jsonResponse.contains("key_for_recipient")) {
+        // This is an owned file - use regular key retrieval flow
+        if (!FileCryptoUtils::getFileEncryptionKey(this->fileUuid, fileKey.get(), 
+                                                crypto_aead_xchacha20poly1305_ietf_KEYBYTES, this)) {
+            // Return empty unique_ptr instead of nullptr
+            return std::unique_ptr<unsigned char[], SodiumZeroDeleter>(nullptr, SodiumZeroDeleter(0));
+        }
+    }
+    else {
+        // This is a shared file - use X3DH flow to get the decrypted key
+        if (!getSharedFileKey(jsonResponse, fileKey.get())) {
+            // Return empty unique_ptr instead of nullptr
+            return std::unique_ptr<unsigned char[], SodiumZeroDeleter>(nullptr, SodiumZeroDeleter(0));
+        }
     }
     
-    // Extract nonce and ciphertext and prepare for decryption
+    return fileKey;
+}
+
+bool FileItemWidget::getSharedFileKey(const QJsonObject& jsonResponse, unsigned char* fileKey) {
+    // Extract required parameters from the response
+    QString senderEphemeralKey = jsonResponse["ephemeral_key"].toString();
+    QByteArray encryptedKeyData = QByteArray::fromBase64(jsonResponse["key_for_recipient"].toString().toLatin1());
+    QString recipientSignedPreKey = jsonResponse["spk"].toString();
+    QString oneTimePreKey = jsonResponse["otpk"].toString();
+    
+    // Get sender's identity key (file owner's public key)
+    QString senderIdentityKey;
+    if (ownerLabel) {
+        QString ownerUsername = ownerLabel->text();
+        senderIdentityKey = FriendStorageUtils::getUserPublicKey(ownerUsername, this);
+        if (senderIdentityKey.isEmpty()) {
+            QMessageBox::critical(this, "Download Error", 
+                "Failed to retrieve file owner's public key. Cannot decrypt file.");
+            return false;
+        }
+    } else {
+        QMessageBox::critical(this, "Download Error", "Cannot determine file owner");
+        return false;
+    }
+    
+    // Use FileSharingManagerUtils to get the decrypted file key
+    return FileSharingManagerUtils::receiveSharedFile(
+        this->fileUuid,
+        senderIdentityKey,
+        senderEphemeralKey,
+        encryptedKeyData,
+        recipientSignedPreKey,
+        oneTimePreKey,
+        fileKey,
+        crypto_aead_xchacha20poly1305_ietf_KEYBYTES,
+        this
+    );
+}
+
+bool FileItemWidget::processAndDecryptFile(const QByteArray& encryptedData, const unsigned char* fileKey) {
+    // Extract nonce and ciphertext
     auto fileNonce = make_secure_buffer<crypto_aead_xchacha20poly1305_ietf_NPUBBYTES>();
     SecureVector fileCiphertext;
     if (!extractFileComponents(encryptedData, fileNonce, fileCiphertext)) {
-        return; // Error already shown to user within extractFileComponents
+        return false;
     }
     
     // Create metadata for authenticated decryption
@@ -104,12 +171,13 @@ void FileItemWidget::handleDownload() {
     
     // Decrypt the file
     SecureVector decryptedFile;
-    if (!decryptFile(fileCiphertext, fileKey.get(), fileNonce, metadataBytes, decryptedFile)) {
-        return; // Error already shown to user within decryptFile
+    if (!decryptFile(fileCiphertext, fileKey, fileNonce, metadataBytes, decryptedFile)) {
+        return false;
     }
     
     // Save the decrypted file
     saveDecryptedFile(decryptedFile);
+    return true;
 }
 
 bool FileItemWidget::fetchEncryptedFile(QByteArray& encryptedData) {
@@ -123,6 +191,27 @@ bool FileItemWidget::fetchEncryptedFile(QByteArray& encryptedData) {
     }
     
     QJsonObject jsonResponse = response.jsonData.object();
+    if (!jsonResponse.contains("encrypted_file")) {
+        QMessageBox::critical(this, "Download Error", "Invalid server response: missing encrypted file data");
+        return false;
+    }
+    
+    // Extract encrypted file data from response
+    encryptedData = QByteArray::fromBase64(jsonResponse["encrypted_file"].toString().toLatin1());
+    return true;
+}
+
+bool FileItemWidget::fetchEncryptedFileWithMetadata(QByteArray& encryptedData, QJsonObject& jsonResponse) {
+    std::string downloadEndpoint = FILES_API_ENDPOINT + "/" + this->fileUuid.toStdString();
+    RequestUtils::Response response = LoginSessionManager::getInstance().get(downloadEndpoint);
+    
+    if (!response.success) {
+        QMessageBox::critical(this, "Download Error", 
+            "Failed to download file: " + QString::fromStdString(response.errorMessage));
+        return false;
+    }
+    
+    jsonResponse = response.jsonData.object();
     if (!jsonResponse.contains("encrypted_file")) {
         QMessageBox::critical(this, "Download Error", "Invalid server response: missing encrypted file data");
         return false;
