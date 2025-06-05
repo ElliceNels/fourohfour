@@ -113,19 +113,18 @@ def login():
             if is_rate_limited(ip):
                 clear_flashes()
                 flash("Too many login attempts. Please try again in 5 minutes.", "error")
-                return ('Too many login attempts', 429)
-            # Only authenticate, do not handle cryptographic keys
+                return ('Too many login attempts', 429)            # Only authenticate, do not handle cryptographic keys
             login_success, message = manage_login(password, username)
             record_login_attempt(ip)
             if login_success:
                 session['username'] = username
                 clear_flashes()
                 flash(message, "success")
-                return ('', 200)
+                return jsonify({'success': True, 'message': message}), 200
             else:
                 clear_flashes()
                 flash(message, "error")
-                return (message, 401)
+                return jsonify({'success': False, 'error': message}), 401
         else:
             # Fallback for legacy form POST (should not be used)
             return ('Invalid request', 400)
