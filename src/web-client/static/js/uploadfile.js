@@ -237,23 +237,29 @@ async function addFileKeyToUserKeyfile(
       return false;
     }
 
-    // Get master key for encryption (try to get from session first, then prompt if needed)
-    let masterKey = null;
+    // Get master key for encryption
+    let masterKeyInternal = null; // Renamed to avoid conflict if this scope is nested
     if (password) {
-      masterKey = await getMasterKeyFromKeyfile(password);
+      masterKeyInternal = await getMasterKeyFromKeyfile(password);
     } else {
       // Try to get cached master key if available
       const cachedMasterKey = sessionStorage.getItem('fourohfour_master_key');
       if (cachedMasterKey) {
-        masterKey = sodium.from_base64(
-          cachedMasterKey,
-          sodium.base64_variants.ORIGINAL
-        );
-      } else {
-        console.warn(
-          'No master key available for file key encryption. Storing unencrypted (less secure).'
-        );
+        try {
+          masterKeyInternal = sodium.from_base64(
+            cachedMasterKey,
+            sodium.base64_variants.ORIGINAL
+          );
+        } catch (e) {
+          console.error(
+            'Failed to decode cached master key in addFileKeyToUserKeyfile:',
+            e
+          );
+          masterKeyInternal = null;
+          sessionStorage.removeItem('fourohfour_master_key'); // Clear potentially corrupt cache item
+        }
       }
+      // If still no masterKeyInternal, it remains null here.
     }
 
     // Initialize files section if it doesn't exist
@@ -262,9 +268,9 @@ async function addFileKeyToUserKeyfile(
     }
 
     let keyToStore;
-    if (masterKey) {
+    if (masterKeyInternal) {
       // Encrypt the file key using the master key (secure method)
-      keyToStore = await encryptFileKey(key, masterKey);
+      keyToStore = await encryptFileKey(key, masterKeyInternal);
       if (!keyToStore) {
         console.error(
           'Failed to encrypt file key. Falling back to unencrypted storage.'
@@ -276,7 +282,9 @@ async function addFileKeyToUserKeyfile(
     } else {
       // Store unencrypted as fallback (less secure but functional)
       keyToStore = sodium.to_base64(key, sodium.base64_variants.ORIGINAL);
-      console.warn('Storing file key unencrypted (master key not available)');
+      console.warn(
+        'Storing file key unencrypted (master key not available in addFileKeyToUserKeyfile)'
+      );
     }
 
     // Add the file key to the keyfile (matching desktop client JSON structure)
@@ -467,7 +475,8 @@ async function initializeMasterKeyFromLogin(password) {
 
 // Prompt user for password to decrypt master key
 async function promptForPassword(
-  message = 'Please enter your password to decrypt file keys:'
+  message = 'Please enter your password to decrypt file keys:',
+  errorMessage = null // Added errorMessage parameter
 ) {
   return new Promise((resolve) => {
     // Create a simple modal for password input
@@ -484,8 +493,15 @@ async function promptForPassword(
       box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     `;
 
+    // Display error message if provided
+    let errorHtml = '';
+    if (errorMessage) {
+      errorHtml = `<p style="color: red; margin-bottom: 10px; text-align: center;">${errorMessage}</p>`;
+    }
+
     content.innerHTML = `
       <h3 style="margin-top: 0;">${message}</h3>
+      ${errorHtml} {/* Inserted error message display */}
       <input type="password" id="password-input" style="width: 100%; padding: 8px; margin: 10px 0;" placeholder="Password">
       <div style="text-align: right; margin-top: 15px;">
         <button id="cancel-btn" style="margin-right: 10px; padding: 8px 16px;">Cancel</button>
@@ -666,62 +682,77 @@ window.addEventListener('DOMContentLoaded', function () {
     if (resp.ok) {
       const result = await resp.json();
       const fileUuid = result.uuid;
-      // 4. Store the symmetric key locally, indexed by file UUID
+      // 4. Store the symmetric key locally, indexed by file UUID (legacy direct storage)
       storeFileKey(fileUuid, key);
+
       // 5. Add file key to user's main keyfile with encryption
       let keyfileUpdated = false;
-
-      // Try to get master key from cache first
       let masterKey = null;
-      const cachedMasterKey = sessionStorage.getItem('fourohfour_master_key');
-      if (cachedMasterKey) {
+
+      // Try to get master key from session cache first
+      const cachedMasterKeyBase64 = sessionStorage.getItem(
+        'fourohfour_master_key'
+      );
+      if (cachedMasterKeyBase64) {
         try {
           masterKey = sodium.from_base64(
-            cachedMasterKey,
+            cachedMasterKeyBase64,
             sodium.base64_variants.ORIGINAL
           );
-          keyfileUpdated = await addFileKeyToUserKeyfile(
-            fileUuid,
-            key,
-            file.name
-          );
+          console.log('Using cached master key.');
         } catch (error) {
-          console.error('Failed to use cached master key:', error);
+          console.error('Failed to decode cached master key:', error);
+          masterKey = null; // Invalidate it
+          sessionStorage.removeItem('fourohfour_master_key'); // Clear bad cache entry
         }
       }
 
-      // If no cached master key or failed, prompt for password
-      if (!keyfileUpdated) {
-        const password = await promptForPassword(
-          'Enter your password to encrypt and save the file key:'
+      // If no valid masterKey from cache, prompt the user
+      if (!masterKey) {
+        console.log(
+          'Cached master key not found or invalid. Prompting for password.'
         );
-        if (password) {
-          // Get master key and cache it for future use
-          masterKey = await getMasterKeyFromKeyfile(password);
-          if (masterKey) {
-            cacheMasterKey(masterKey);
-            keyfileUpdated = await addFileKeyToUserKeyfile(
-              fileUuid,
-              key,
-              file.name,
-              password
+        let passwordAttemptErrorMessage = null;
+        while (true) {
+          // Loop until a masterKey is obtained or user cancels
+          const password = await promptForPassword(
+            'Enter your password to encrypt and save the file key:',
+            passwordAttemptErrorMessage
+          );
+
+          if (!password) {
+            // User cancelled the prompt
+            console.log(
+              'User cancelled password entry. File key will be stored unencrypted in the main keyfile.'
             );
-          } else {
-            console.error(
-              'Failed to decrypt master key with provided password'
-            );
+            masterKey = null; // Explicitly ensure masterKey is null for unencrypted storage path
+            break; // Exit the password prompt loop
           }
-        } else {
-          console.log(
-            'User cancelled password entry, falling back to unencrypted storage'
-          );
-          keyfileUpdated = await addFileKeyToUserKeyfile(
-            fileUuid,
-            key,
-            file.name
-          );
+
+          const tempMasterKey = await getMasterKeyFromKeyfile(password);
+          if (tempMasterKey) {
+            masterKey = tempMasterKey;
+            cacheMasterKey(masterKey); // Cache the newly obtained master key
+            console.log('Master key obtained from password and cached.');
+            break; // Exit the password prompt loop
+          } else {
+            // getMasterKeyFromKeyfile logs its own errors
+            passwordAttemptErrorMessage =
+              'Incorrect password. Please try again.';
+            // masterKey remains null, loop will continue
+          }
         }
       }
+
+      // Now, masterKey is either valid (from cache or prompt and now cached) or null (if prompt was cancelled).
+      // addFileKeyToUserKeyfile will use the cached masterKey if available,
+      // or fall back to unencrypted if masterKey is null (e.g., user cancelled prompt).
+      keyfileUpdated = await addFileKeyToUserKeyfile(
+        fileUuid,
+        key,
+        file.name
+        // No password argument needed here as masterKey status (cached or null) is established.
+      );
 
       if (keyfileUpdated) {
         // Download the updated keyfile with the new file key included
