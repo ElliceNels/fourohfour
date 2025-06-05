@@ -252,4 +252,4 @@ def record_login_attempt(ip):
     login_attempts[ip] = attempts
 
 if __name__ == '__main__':
-    app.run(host=config.server.host, port=config.server.port, debug=True)
+    app.run(host=config.server.host, port=config.server.port, debug=config.server.debug)
