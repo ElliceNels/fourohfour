@@ -109,7 +109,7 @@ void FileItemWidget::handleDownload() {
         // Confirm with the user before removing permission
         if (UIUtils::confirmAction("Auto-Remove Permission", 
                                  "This file will be removed from your list after download.\n\n"
-                                 "Thile will need to be sent to you again from the owner if you need access in the future.",
+                                 "The file will need to be sent to you again from the owner if you need access in the future.",
                                  this)) {
             // Use X3DHNetworkUtils to remove permission
             bool removalSuccess = X3DHNetworkUtils::removePermission(
