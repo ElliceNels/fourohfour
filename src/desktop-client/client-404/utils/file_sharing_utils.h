@@ -27,6 +27,15 @@ class FileSharingUtils {
             QString& ephemeralPublicKey,
             QString& ephemeralPrivateKey);
             
+        static bool retrieveRecipientKeyMaterialForX3DH(
+            const QString& publicSignedPreKeyBase64,
+            const QString& publicOneTimePreKeyBase64,
+            QString& privateSignedPreKey,
+            QString& privateOneTimePreKey,
+            QString& privateKey);
+            
+        static bool removeOneTimePreKey(const QString& publicKeyBase64);
+
     private:
         // Helper method to save signed pre-key pair
         static bool saveSignedPreKeyLocally(const QString& publicKeyBase64, 
@@ -55,6 +64,12 @@ class FileSharingUtils {
         static bool encryptAndSaveKeyStorage(const QString &filepath, 
                                      const QByteArray &jsonData, 
                                      const SecureVector &masterKey);
+                                     
+        // Helper method to extract keys from JSON storage
+        static bool extractKeyFromStorage(const QJsonObject& rootObject,
+                                 const QString& keyType,
+                                 const QString& keyIdentifier,
+                                 QString& extractedKey);
 };
 
 #endif // FILE_SHARING_UTILS_H
