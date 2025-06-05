@@ -1,21 +1,21 @@
 {
-    "app_name": "app",
+  "app_name": "app",
 
-    "server": {
-      "host": "0.0.0.0",
-      "port": 8080,
-      "debug": false,
-      "url": "https://fourohfour.gobbler.info"
-    },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "debug": true,
+    "url": "http://localhost:5000"
+  },
 
-    "friends": {
-      "file_path": "src/web-client/friend_file",
-      "extension": ".json"
-    },
+  "friends": {
+    "file_path": "src/web-client/friend_file",
+    "extension": ".json"
+  },
 
-    "logging": {
-      "level": "INFO",
-      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-      "file_path": "logs/app.log"
-    }
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file_path": "logs/app.log"
   }
+}

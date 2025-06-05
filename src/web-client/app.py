@@ -11,6 +11,9 @@ from contextlib import suppress
 from config import config
 import base64
 import requests
+import os
+import json
+import hashlib
 
 login_attempts = {}
 MAX_ATTEMPTS = 5
@@ -25,6 +28,42 @@ import logging
 
 setup_logger()
 logger = logging.getLogger(__name__)
+
+# Directory to store encrypted keyfiles
+KEYFILES_DIR = os.path.join(os.path.dirname(__file__), 'keyfiles')
+if not os.path.exists(KEYFILES_DIR):
+    os.makedirs(KEYFILES_DIR)
+
+def get_keyfile_path(username):
+    """Get the file path for a user's encrypted keyfile"""
+    safe_username = hashlib.sha256(username.encode()).hexdigest()[:32]  # Use hash for safety
+    return os.path.join(KEYFILES_DIR, f"{safe_username}.keyfile")
+
+def store_encrypted_keyfile(username, keyfile_data):
+    """Store encrypted keyfile data for a user"""
+    try:
+        keyfile_path = get_keyfile_path(username)
+        with open(keyfile_path, 'w') as f:
+            json.dump(keyfile_data, f)
+        logger.info(f"Stored encrypted keyfile for user: {username}")
+        return True
+    except Exception as e:
+        logger.error(f"Error storing keyfile for {username}: {str(e)}")
+        return False
+
+def retrieve_encrypted_keyfile(username):
+    """Retrieve encrypted keyfile data for a user"""
+    try:
+        keyfile_path = get_keyfile_path(username)
+        if not os.path.exists(keyfile_path):
+            return None
+        with open(keyfile_path, 'r') as f:
+            keyfile_data = json.load(f)
+        logger.info(f"Retrieved encrypted keyfile for user: {username}")
+        return keyfile_data
+    except Exception as e:
+        logger.error(f"Error retrieving keyfile for {username}: {str(e)}")
+        return None
 
 @app.route('/')
 def title_page():
@@ -45,6 +84,9 @@ def signup():
                 spk_signature = data.get('spk_signature')
                 otpks = data.get('otpks')
                 password = data.get('password')
+                # New: Get encrypted keyfile data for server-side storage
+                encrypted_key = data.get('encrypted_key')
+                encrypted_master_key = data.get('encrypted_master_key')
             except Exception as e:
                 logger.error(f"Error parsing JSON data: {str(e)}")
                 return (f"Error parsing JSON data: {str(e)}", 400)
@@ -61,8 +103,7 @@ def signup():
                 'public_key': public_key,
                 'spk': spk,
                 'spk_signature': spk_signature,
-                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,
-                'otpks': otpks
+                'salt': base64.b64encode(salt).decode() if isinstance(salt, bytes) else salt,                'otpks': otpks
             }
             try:
                 resp = requests.post(signup_url, json=payload)
@@ -71,6 +112,18 @@ def signup():
                 return (f"Error during signup request: {str(e)}", 500)
             if resp.status_code != 200:
                 return (resp.text, resp.status_code)
+            
+            # Store encrypted keyfile server-side if provided
+            if encrypted_key and encrypted_master_key:
+                keyfile_data = {
+                    'encrypted_key': encrypted_key,
+                    'encrypted_master_key': encrypted_master_key,
+                    'salt': salt
+                }
+                if not store_encrypted_keyfile(account_name, keyfile_data):
+                    logger.error(f"Failed to store keyfile for {account_name}")
+                    return ("Failed to store encrypted keyfile", 500)
+            
             session['username'] = account_name
             clear_flashes()
             flash('Registration successful!', 'success')
@@ -283,6 +336,83 @@ def record_login_attempt(ip):
     attempts = login_attempts.get(ip, [])
     attempts.append(now)
     login_attempts[ip] = attempts
+
+@app.route('/test_libsodium')
+def test_libsodium():
+    """Route to test libsodium loading"""
+    return render_template('libsodium_test.html')
+
+@app.route('/get_encrypted_keyfile', methods=['POST'])
+def get_encrypted_keyfile():
+    """Endpoint to retrieve encrypted keyfile for a user during login"""
+    if not request.is_json:
+        return jsonify({'error': 'JSON payload required'}), 400
+    
+    data = request.get_json()
+    username = data.get('username')
+    
+    if not username:
+        return jsonify({'error': 'Username required'}), 400
+    
+    keyfile_data = retrieve_encrypted_keyfile(username)
+    if keyfile_data is None:
+        return jsonify({'error': 'No keyfile found for this user'}), 404
+    
+    return jsonify({
+        'success': True,
+        'keyfile_data': keyfile_data
+    })
+
+@app.route('/test_crypto')
+def test_crypto():
+    """Simple test page to verify libsodium loading"""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Libsodium Test</title>
+        <script src="https://cdn.jsdelivr.net/npm/libsodium-wrappers@0.7.13/dist/sodium.js" 
+                onerror="console.error('Failed to load libsodium from jsdelivr'); loadLibsodiumFallback();"></script>
+        <script>
+          function loadLibsodiumFallback() {
+            console.log('Trying fallback CDN...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/libsodium-wrappers@0.7.13/dist/sodium.js';
+            script.onerror = function() {
+              console.error('Failed to load libsodium from all CDNs');
+              document.getElementById('result').textContent = 'FAILED: Could not load libsodium';
+            };
+            document.head.appendChild(script);
+          }
+        </script>
+    </head>
+    <body>
+        <h1>Libsodium Test</h1>
+        <div id="result">Loading...</div>
+        <script>
+            async function testLibsodium() {
+                console.log('Testing libsodium...');
+                const resultDiv = document.getElementById('result');
+                
+                if (typeof sodium === 'undefined') {
+                    resultDiv.textContent = 'FAILED: sodium object not found';
+                    return;
+                }
+                
+                try {
+                    await sodium.ready;
+                    resultDiv.textContent = 'SUCCESS: libsodium loaded and ready!';
+                    console.log('Libsodium version:', sodium.sodium_version_string());
+                } catch (error) {
+                    resultDiv.textContent = 'FAILED: ' + error;
+                }
+            }
+            
+            setTimeout(testLibsodium, 1000); // Wait 1 second for loading
+        </script>
+    </body>
+    </html>
+    '''
 
 if __name__ == '__main__':
     app.run(host=config.server.host, port=config.server.port, debug=config.server.debug)
