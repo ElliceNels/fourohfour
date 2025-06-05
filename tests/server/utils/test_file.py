@@ -228,11 +228,11 @@ def test_get_file_by_uuid(file_uuid, user_id, file_found, owner, has_permission,
             perm_query.filter_by().all.return_value = [type('Perm', (), {'user_id': 1, 'encryption_key': 'key'})()]
         elif has_permission:
             # Create a mock permission with all required fields
-            mock_permission = type('Perm', (), {
-                'otpk': type('OTPK', (), {'key': 'mock_otpk_key'})(),
-                'ephemeral_key': 'mock_ephemeral_key',
-                'encryption_key': 'mock_encryption_key'
-            })()
+            mock_permission = MagicMock()
+            mock_permission.otpk = MagicMock()
+            mock_permission.otpk.key = "mock_otpk_key"
+            mock_permission.ephemeral_key = "mock_ephemeral_key"
+            mock_permission.encryption_key = "mock_encryption_key"
             perm_query.filter_by().first.return_value = mock_permission
         else:
             perm_query.filter_by().first.return_value = None
