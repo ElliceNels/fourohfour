@@ -4,24 +4,7 @@
     <meta charset="UTF-8">
     <title>View Files - fourohfour Files</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <script>
-        function switchTab(tab) {
-            document.getElementById('owned-btn').classList.remove('active');
-            document.getElementById('shared-btn').classList.remove('active');
-            document.getElementById('owned-section').style.display = 'none';
-            document.getElementById('shared-section').style.display = 'none';
-            if (tab === 'owned') {
-                document.getElementById('owned-btn').classList.add('active');
-                document.getElementById('owned-section').style.display = 'block';
-            } else {
-                document.getElementById('shared-btn').classList.add('active');
-                document.getElementById('shared-section').style.display = 'block';
-            }
-        }
-        window.onload = function() {
-            switchTab('owned');
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/viewfiles.js') }}"></script>
 </head>
 <body>
     <div class="header">
