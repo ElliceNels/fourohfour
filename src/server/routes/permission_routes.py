@@ -74,6 +74,14 @@ def remove_permission(file_uuid, username):
     """
     logger.debug(f"Received request to remove file permission for file {file_uuid} and user {username}")
 
+    # Validate input parameters
+    if not file_uuid or file_uuid == 'None':
+        logger.warning("File UUID is required")
+        return jsonify({'error': 'File UUID is required'}), 400
+    if not username or username == 'None':
+        logger.warning("Username is required")
+        return jsonify({'error': 'Username is required'}), 400
+
     try:
         current_user_info, status_code = get_current_user()
         if status_code != 200:

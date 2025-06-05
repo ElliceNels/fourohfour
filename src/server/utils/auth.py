@@ -20,7 +20,7 @@ def login(username: str, password: str) -> dict:
 
     Returns:
         dict: A tuple containing (response_dict, status_code) where response_dict is either:
-            - On success: {"access_token": str, "refresh_token": str}
+            - On success: {"access_token": str, "refresh_token": str, "spk_outdated": bool, "otpk_count_low": bool}
             - On error: {"error": str} with additional fields for specific error cases
     """
 
@@ -48,14 +48,9 @@ def login(username: str, password: str) -> dict:
         # If spk_updated_at is naive, make it timezone-aware
         user.spk_updated_at = user.spk_updated_at.replace(tzinfo=UTC)
     spk_age = current_time - user.spk_updated_at
-    if spk_age > config.spk.max_age:
+    spk_outdated = spk_age > config.spk.max_age 
+    if spk_outdated:
         logger.warning(f"Login failed for user {username}: SPK is too old (age: {spk_age.days} days)")
-        return jsonify({
-            "error": "SPK is too old",
-            "spk_updated_at": user.spk_updated_at.isoformat(),
-            "max_age_days": config.spk.max_age_days
-        }), 403
-
     # Check if there are enough unused OTPKs
     user_info = {
         "user_id": user.id,
@@ -63,13 +58,9 @@ def login(username: str, password: str) -> dict:
     }
     try:
         otpk_count = get_count_otpk(user_info)
-        if otpk_count < config.otpk.min_unused_count:
+        otpk_count_low = otpk_count < config.otpk.min_unused_count
+        if otpk_count_low:
             logger.warning(f"Login failed for user {username}: Not enough unused OTPKs (count: {otpk_count})")
-            return jsonify({
-                "error": "Not enough unused OTPKs",
-                "current_count": otpk_count,
-                "min_required": config.otpk.min_unused_count
-            }), 403
     except ValueError as e:
         logger.warning(f"Login failed for user {username}: Error counting OTPKs - {str(e)}")
         return jsonify({"error": str(e)}), 400
@@ -79,8 +70,9 @@ def login(username: str, password: str) -> dict:
     return jsonify({
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "spk_updated_at": user.spk_updated_at.isoformat(),
-        "unused_otpk_count": otpk_count
+        "unused_otpk_count": otpk_count,
+        "spk_outdated": spk_outdated,
+        "otpk_count_low": otpk_count_low
     }), 200
 
 def sign_up(username: str, password: str, public_key: str, spk: str, spk_signature: str, salt: bytes) -> dict:
