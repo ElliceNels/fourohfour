@@ -318,43 +318,27 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, third_
         response = client.post("/api/permissions", json=permission_data, headers=headers)
         assert response.status_code == CREATED
     
-    # Prepare removal data
-    remove_data = {}
+    # Prepare URL parameters
+    file_uuid = stored_file_data["file_uuid"] if include_file else None
+    username = logged_in_user["user"]["username"] if is_self_removal else second_signed_up_user["username"] if include_user_id else None
     
-    if include_file:
-        # For NOT_FOUND test case, use a random UUID
-        if expected_status == NOT_FOUND and not is_owner:
-            remove_data["file_uuid"] = str(uuid.uuid4())
-        else:
-            remove_data["file_uuid"] = stored_file_data["file_uuid"]
-    
-    if include_key:
-        key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
-        remove_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
-    
-    if include_user_id:
-        # For forbidden case, we want to try to remove someone else's permission
-        # For self-removal case, use the logged-in user's username
-        # For owner case, use the second user's username
-        if expected_status == FORBIDDEN:
-            # Try to remove the second user's permission (which exists) with the third user (who is neither owner nor permission holder)
-            remove_data["username"] = second_signed_up_user["username"]
-            # Get third user's token
-            response = client.post("/login", json=third_signed_up_user)
-            assert response.status_code == 200
-            third_user_token = response.json["access_token"]
-            headers = {"Authorization": f"Bearer {third_user_token}"}
-        else:
-            remove_data["username"] = logged_in_user["user"]["username"] if is_self_removal else second_signed_up_user["username"]
+    # For forbidden case, use third user's token
+    if expected_status == FORBIDDEN:
+        # Get third user's token
+        response = client.post("/login", json=third_signed_up_user)
+        assert response.status_code == 200
+        third_user_token = response.json["access_token"]
+        headers = {"Authorization": f"Bearer {third_user_token}"}
     
     # Add debug logging
     logger.info(f"Test case: expected_status={expected_status}, is_owner={is_owner}, is_self_removal={is_self_removal}")
     logger.info(f"Logged in user: {logged_in_user['user']['username']}")
     logger.info(f"Second user: {second_signed_up_user['username']}")
-    logger.info(f"Remove data: {remove_data}")
+    logger.info(f"File UUID: {file_uuid}")
+    logger.info(f"Username: {username}")
     
     # Make the removal request
-    response = client.delete(f"/api/permissions/{remove_data['file_uuid']}/{remove_data['username']}", headers=headers)
+    response = client.delete(f"/api/permissions/{file_uuid}/{username}", headers=headers)
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [

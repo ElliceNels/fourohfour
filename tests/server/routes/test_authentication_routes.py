@@ -176,8 +176,15 @@ def test_login(client: FlaskClient, test_user):
     
     response = client.post("/login", json=test_user)
     assert response.status_code == 200
-    assert "access_token" in response.json
-    assert "refresh_token" in response.json
+    data = response.json
+    assert "access_token" in data
+    assert "refresh_token" in data
+    assert "spk_updated_at" in data
+    assert "unused_otpk_count" in data
+    assert "spk_outdated" in data
+    assert "otpk_count_low" in data
+    assert isinstance(data["spk_outdated"], bool)
+    assert isinstance(data["otpk_count_low"], bool)
 
 def test_refresh_token(client: FlaskClient, logged_in_user):
     """Test refreshing access token."""
