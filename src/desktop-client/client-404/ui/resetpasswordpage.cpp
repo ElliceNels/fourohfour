@@ -2,8 +2,6 @@
 #include "pages.h"
 #include "ui_resetpasswordpage.h"
 #include <QMessageBox>
-#include "password_utils.h"
-#include <iostream>
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
@@ -14,10 +12,9 @@
 #include "loginsessionmanager.h"
 #include <QUrl>
 #include <QDebug>
-#include <qstackedwidget.h>
-#include "qwidget.h"
+#include <QWidget>
 #include "constants.h"
-#include "loginsessionmanager.h"
+#include "password_utils.h"
 using namespace std;
 
 ResetPasswordPage::ResetPasswordPage(QWidget *parent) :

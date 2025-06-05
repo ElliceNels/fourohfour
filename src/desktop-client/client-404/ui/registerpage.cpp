@@ -171,8 +171,10 @@ void RegisterPage::onCreateAccountClicked()
     if (!encryptAndSaveKey(this, privKeyBase64, key, accountName)) {
         QMessageBox::critical(this, "Key Encryption Error", 
             "Failed to encrypt and store private key securely. Registration cannot proceed.");
+        sodium_memzero(key, sizeof(key));
         return;
     }
+    sodium_memzero(key, sizeof(key));
 
        // Generate and store one-time pre-key pairs
     QJsonArray oneTimePreKeysJson = FileSharingUtils::generateOneTimePreKeyPairs();

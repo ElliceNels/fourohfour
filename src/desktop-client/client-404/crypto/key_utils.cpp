@@ -9,7 +9,6 @@
 #include <QString>
 #include <QCoreApplication>
 #include <iostream>
-#include <vector>
 #include "constants.h"
 #include "core/loginsessionmanager.h"
 #include "utils/securebufferutils.h"
