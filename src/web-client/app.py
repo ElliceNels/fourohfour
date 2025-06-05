@@ -527,12 +527,18 @@ def proxy_file_upload():
 @app.route('/api/files/<file_uuid>', methods=['GET'])
 def proxy_file_download(file_uuid):
     """Proxy endpoint to download files from the backend server"""
+    logger.info(f"Proxy download endpoint called for file UUID: {file_uuid}")
+    
     # Check if user is logged in via Flask session
     if 'username' not in session:
+        logger.error("User not authenticated in session")
         return jsonify({'error': 'Not authenticated'}), 401
+    
+    logger.info(f"User {session['username']} requesting file download")
     
     # Forward file download request to backend server using session manager tokens
     download_url = config.server.url.rstrip('/') + f'/api/files/{file_uuid}'
+    logger.info(f"Forwarding request to: {download_url}")
     session_manager = LoginSessionManager.getInstance()
     
     try:
