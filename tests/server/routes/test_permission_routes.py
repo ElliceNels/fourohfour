@@ -52,14 +52,23 @@ def client(app_fixture):
 @pytest.fixture
 def test_user():
     """Generate a unique test user for each run with valid base64 cryptographic keys."""
+    """Generate a unique test user for each run with valid base64 cryptographic keys."""
     unique_username = f"test_user_{uuid.uuid4().hex[:8]}"
+    # Generate a random 32-byte value and encode as base64 for public key
     # Generate a random 32-byte value and encode as base64 for public key
     random_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_public_key = base64.b64encode(random_bytes).decode()
     # Generate SPK and signature (mock values for testing)
+    # Generate SPK and signature (mock values for testing)
     spk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
     unique_spk = base64.b64encode(spk_bytes).decode()  # Encode as string for JSON
+    unique_spk = base64.b64encode(spk_bytes).decode()  # Encode as string for JSON
     signature_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+    unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
+    
+    # Generate a random salt and encode as base64
+    salt_bytes = uuid.uuid4().bytes
+    unique_salt = base64.b64encode(salt_bytes).decode()
     unique_spk_signature = base64.b64encode(signature_bytes).decode()  # Encode as string for JSON
     
     # Generate a random salt and encode as base64
@@ -70,6 +79,9 @@ def test_user():
         "username": unique_username,
         "password": "test_password",
         "public_key": unique_public_key,
+        "spk": unique_spk,
+        "spk_signature": unique_spk_signature,
+        "salt": unique_salt
         "spk": unique_spk,
         "spk_signature": unique_spk_signature,
         "salt": unique_salt
@@ -136,6 +148,10 @@ def signed_up_user(client, test_user):
     from server.utils.db_setup import get_session
     from server.utils.auth import hash_password
     
+    from server.models.tables import Users, OTPK
+    from server.utils.db_setup import get_session
+    from server.utils.auth import hash_password
+    
     current_time = datetime.now(UTC)
     with get_session() as db:
         user = Users(
@@ -144,6 +160,7 @@ def signed_up_user(client, test_user):
             public_key=test_user["public_key"],
             spk=test_user["spk"],
             spk_signature=test_user["spk_signature"],
+            salt=base64.b64decode(test_user["salt"]),  # Decode base64 salt to bytes
             salt=base64.b64decode(test_user["salt"]),  # Decode base64 salt to bytes
             spk_updated_at=current_time,
             updated_at=current_time,
@@ -340,6 +357,48 @@ def test_create_permission(client, logged_in_user, second_signed_up_user, stored
     response = client.post("/api/permissions", json=permission_data, headers=headers)
     assert response.status_code == expected_status
 
+@pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
+    (CREATED, True, True, True, True),  # Success: all fields included
+    (CONFLICT, True, True, True, True),  # Conflict: all fields included
+    (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
+    (BAD_REQUEST, True, True, False, True),      # Error: missing username
+    (BAD_REQUEST, False, True, True, True),      # Error: missing key_for_recipient
+    (NOT_FOUND, True, True, True, False),        # Error: file not found
+])
+def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
+    """Test creating file permissions with various scenarios."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    permission_data = {}
+    
+    if include_file:
+        # For NOT_FOUND test case, use a random UUID
+        if expected_status == NOT_FOUND and not is_owner:
+            permission_data["file_uuid"] = str(uuid.uuid4())
+        else:
+            permission_data["file_uuid"] = stored_file_data["file_uuid"]
+    
+    if include_key:
+        # Generate random bytes for keys and encode as base64
+        key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        
+        permission_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
+        permission_data["otpk"] = base64.b64encode(otpk_bytes).decode()
+        permission_data["ephemeral_key"] = base64.b64encode(ephemeral_key_bytes).decode()
+    
+    if include_user_id:
+        permission_data["username"] = second_signed_up_user["username"]
+    
+    if expected_status == CONFLICT:
+        # Create permission first time
+        response = client.post("/api/permissions", json=permission_data, headers=headers)
+        assert response.status_code == CREATED
+    
+    # Now make the actual test request
+    response = client.post("/api/permissions", json=permission_data, headers=headers)
+    assert response.status_code == expected_status
+
 @pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner, is_self_removal", [
     (SUCCESS, True, True, True, True, False),  # Success: owner removing permission
     (SUCCESS, True, True, True, False, True),  # Success: user removing their own permission
@@ -401,12 +460,49 @@ def test_remove_permission(client, logged_in_user, second_signed_up_user, third_
             remove_data["username"] = logged_in_user["user"]["username"] if is_self_removal else second_signed_up_user["username"]
     
     # Make the removal request
-    if not include_file or not include_user_id:
-        # For BAD_REQUEST cases, we should get a 400 error
-        # Use a malformed URL that will trigger a 400 error
-        response = client.delete("/api/permissions/invalid/invalid", headers=headers)
-    else:
-        response = client.delete(f"/api/permissions/{remove_data['file_uuid']}/{remove_data['username']}", headers=headers)
+    response = client.delete("/api/permissions", json=remove_data, headers=headers)
+    assert response.status_code == expected_status
+
+@pytest.mark.parametrize("expected_status, include_key, include_file, include_user_id, is_owner", [
+    (SUCCESS, True, True, True, True),  # Success: all fields included
+    (CONFLICT, True, True, True, True),  # Conflict: all fields included
+    (BAD_REQUEST, True, False, True, True),      # Error: missing file_uuid
+    (BAD_REQUEST, True, True, False, True),      # Error: missing username
+    (BAD_REQUEST, False, True, True, True),      # Error: missing key_for_recipient
+    (NOT_FOUND, True, True, True, False),        # Error: file not found
+])
+def test_create_permission(client, logged_in_user, second_signed_up_user, stored_file_data, expected_status, include_key, include_file, include_user_id, is_owner):
+    """Test creating file permissions with various scenarios."""
+    headers = {"Authorization": f"Bearer {logged_in_user['access_token']}"}
+    permission_data = {}
+    
+    if include_file:
+        # For NOT_FOUND test case, use a random UUID
+        if expected_status == NOT_FOUND and not is_owner:
+            permission_data["file_uuid"] = str(uuid.uuid4())
+        else:
+            permission_data["file_uuid"] = stored_file_data["file_uuid"]
+    
+    if include_key:
+        # Generate random bytes for keys and encode as base64
+        key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        otpk_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        ephemeral_key_bytes = uuid.uuid4().bytes + uuid.uuid4().bytes
+        
+        permission_data["key_for_recipient"] = base64.b64encode(key_bytes).decode()
+        permission_data["otpk"] = base64.b64encode(otpk_bytes).decode()
+        permission_data["ephemeral_key"] = base64.b64encode(ephemeral_key_bytes).decode()
+    
+    if include_user_id:
+        permission_data["username"] = second_signed_up_user["username"]
+    
+    if expected_status == CONFLICT:
+        # Create permission first time
+        response = client.post("/api/permissions", json=permission_data, headers=headers)
+        assert response.status_code == CREATED
+    
+    # Now make the actual test request
+    response = client.post("/api/permissions", json=permission_data, headers=headers)
     assert response.status_code == expected_status
 
 @pytest.mark.parametrize("expected_status, is_owner", [

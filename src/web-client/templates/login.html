@@ -1,55 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login - fourohfour Files</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="{{ url_for('static', filename='js/lib/sodium.js') }}"></script>
     <script src="{{ url_for('static', filename='js/login.js') }}"></script>
-</head>
-<body>
+  </head>
+  <body>
     <div class="header">
-        <div class="header-left">
-            <span class="logo-primary">fourohfour</span><span class="logo-secondary"> Files</span>
-        </div>
+      <div class="header-left">
+        <span class="logo-primary">fourohfour</span
+        ><span class="logo-secondary"> Files</span>
+      </div>
     </div>
     <div class="center-viewport">
-        <div class="hero">
-            <h1 class="hero-title">
-                <span class="hero-primary">Welcome</span> <span class="hero-secondary">Back</span>
-            </h1>
-            <p class="hero-subtitle">Sign in to access your files</p>
-        </div>
+      <div class="hero">
+        <h1 class="hero-title">
+          <span class="hero-primary">Welcome</span>
+          <span class="hero-secondary">Back</span>
+        </h1>
+        <p class="hero-subtitle">Sign in to access your files</p>
+      </div>
 
-        <!-- Flash messages for validation errors/success -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flash-messages">
-              {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-              {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
+      <!-- Flash messages for validation errors/success -->
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %}
+      <div class="flash-messages">
+        {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %} {% endwith %}
 
-        <form class="login-form" method="POST" action="/login" onsubmit="showLoginProgressAndDisableBtn()">
-            <div class="form-group">
-                <label for="username" class="form-label">Username</label>
-                <input id="username" name="username" type="text" required autocomplete="username">
-            </div>
-            <div class="form-group">
-                <label for="password" class="form-label">Password</label>
-                <div class="password-row">
-                    <input id="password" name="password" type="password" required autocomplete="current-password">
-                    <button type="button" id="show-btn" class="btn show-btn" onclick="togglePassword()">Show</button>
-                </div>
-            </div>
-            <button type="submit" class="btn big-btn login-btn" id="login-btn">Log In</button>
-        </form>
-        <div class="form-footer">
-            Don't have an account yet?
-            <a href="{{ url_for('signup') }}">Create New Account</a>
+      <div id="login-error" class="form-error" style="display: none"></div>
+      <form
+        class="login-form"
+        method="POST"
+        action="/login"
+        onsubmit="return false;"
+      >
+        <div class="form-group">
+          <label for="username" class="form-label">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            required
+            autocomplete="username"
+          />
         </div>
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <div class="password-row">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              id="show-btn"
+              class="btn show-btn"
+              onclick="togglePassword()"
+            >
+              Show
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="keyfile" class="form-label"
+            >Keyfile (if not already stored)</label
+          >
+          <input
+            id="keyfile"
+            name="keyfile"
+            type="file"
+            accept=".json,application/json"
+            class="file-input"
+          />
+          <small class="form-hint"
+            >Upload your keyfile if this is your first login on this
+            device</small
+          >
+        </div>
+        <button type="submit" class="btn big-btn login-btn" id="login-btn">
+          Log In
+        </button>
+      </form>
+      <div class="form-footer">
+        Don't have an account yet?
+        <a href="{{ url_for('signup') }}">Create New Account</a>
+      </div>
     </div>
-</body>
+  </body>
 </html>

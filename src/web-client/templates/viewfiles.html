@@ -1,89 +1,159 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>View Files - fourohfour Files</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="{{ url_for('static', filename='js/lib/sodium.js') }}"></script>
     <script src="{{ url_for('static', filename='js/viewfiles.js') }}"></script>
-</head>
-<body>
+  </head>
+  <body>
     <div class="header">
-        <div class="header-left">
-            <span class="logo-primary">fourohfour</span>
-            <span class="logo-secondary">Files</span>
-        </div>
-        <div class="header-actions">
-            <a href="{{ url_for('main_menu') }}" class="btn back-btn">Back</a>
-        </div>
+      <div class="header-left">
+        <span class="logo-primary">fourohfour</span>
+        <span class="logo-secondary">Files</span>
+      </div>
+      <div class="header-actions">
+        <a href="{{ url_for('main_menu') }}" class="btn back-btn">Back</a>
+      </div>
     </div>
-    <div class="center-viewport" style="align-items: flex-start; justify-content: flex-start;">
-        <div class="files-container">
-            <div class="sidebar">
-                <button id="owned-btn" class="sidebar-btn active" onclick="switchTab('owned')">Owned by me</button>
-                <button id="shared-btn" class="sidebar-btn" onclick="switchTab('shared')">Shared with me</button>
-            </div>
-            <div class="files-main">
-                <!-- Owned by me section -->
-                <div id="owned-section">
-                    <div class="files-title">Owned by me</div>
-                    <table class="files-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Size</th>
-                                <th>Owner</th>
-                                <th>Uploaded At</th>
-                                <th></th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Example row, remove or replace with Jinja loop -->
-                            {% for file_data, filename in files_owned %}
-                            <tr>
-                                <td><a href="{{ url_for('view_file', filename=filename) }}" class="btn file-link">{{ filename }}</a></td>
-                                <td>{{ file_data.file_size }}</td>
-                                <td>You</td>
-                                <td>{{ file_data.uploaded_at }}</td>
-                                <td><button class="btn action-btn">Download</button></td>
-                                <td><button class="btn action-btn">Share</button></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <div class="files-table-empty"></div>
-                </div>
-                <!-- Shared with me section -->
-                <div id="shared-section" style="display:none;">
-                    <div class="files-title">Shared with me</div>
-                    <table class="files-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Size</th>
-                                <th>Owner</th>
-                                <th>Uploaded At</th>
-                                <th></th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Example row, remove or replace with Jinja loop -->
-                            {% for file_data, filename in files_shared %}
-                            <tr>
-                                <td><a href="{{ url_for('view_file', filename=filename) }}" class="btn file-link">{{ filename }}</a></td>
-                                <td>{{ file_data.file_size }}</td>
-                                <td>{{ file_data.owner_username }}</td>
-                                <td>{{ file_data.uploaded_at }}</td>
-                                <td><button class="btn action-btn">Download</button></td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                    <div class="files-table-empty"></div>
-                </div>
-            </div>
+    <div
+      class="center-viewport"
+      style="align-items: flex-start; justify-content: flex-start"
+    >
+      <div class="files-container">
+        <div class="sidebar">
+          <button
+            id="owned-btn"
+            class="sidebar-btn active"
+            onclick="switchTab('owned')"
+          >
+            Owned by me
+          </button>
+          <button
+            id="shared-btn"
+            class="sidebar-btn"
+            onclick="switchTab('shared')"
+          >
+            Shared with me
+          </button>
         </div>
+        <div class="files-main">
+          <!-- Owned by me section -->
+          <div id="owned-section">
+            <div class="files-title">Owned by me</div>
+            <table class="files-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Size</th>
+                  <th>Owner</th>
+                  <th>Uploaded At</th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Example row, remove or replace with Jinja loop -->
+                {% for file_data, filename in files_owned %}
+                <tr>
+                  <td>
+                    <a
+                      href="{{ url_for('view_file', filename=filename) }}"
+                      class="btn file-link"
+                      >{{ filename }}</a
+                    >
+                  </td>
+                  <td>{{ file_data.file_size }}</td>
+                  <td>You</td>
+                  <td>{{ file_data.uploaded_at }}</td>
+                  <td>
+                    <button
+                      class="btn action-btn"
+                      onclick="downloadFile('{{ file_data.uuid }}', '{{ filename }}', true)"
+                    >
+                      Download
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      class="btn action-btn"
+                      onclick="shareFile('{{ file_data.uuid }}', '{{ filename }}')"
+                    >
+                      Share
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      class="btn action-btn delete-btn"
+                      onclick="deleteFile('{{ file_data.uuid }}', '{{ filename }}')"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="files-table-empty"></div>
+          </div>
+          <!-- Shared with me section -->
+          <div id="shared-section" style="display: none">
+            <div class="files-title">Shared with me</div>
+            <table class="files-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Size</th>
+                  <th>Owner</th>
+                  <th>Uploaded At</th>
+                  <th></th>
+                  <th></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Example row, remove or replace with Jinja loop -->
+                {% for file_data, filename in files_shared %}
+                <tr>
+                  <td>
+                    <a
+                      href="{{ url_for('view_file', filename=filename) }}"
+                      class="btn file-link"
+                      >{{ filename }}</a
+                    >
+                  </td>
+                  <td>{{ file_data.file_size }}</td>
+                  <td>{{ file_data.owner_username }}</td>
+                  <td>{{ file_data.uploaded_at }}</td>
+                  <td>
+                    <button
+                      class="btn action-btn"
+                      onclick="downloadFile('{{ file_data.uuid }}', '{{ filename }}', false)"
+                    >
+                      Download
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      class="btn action-btn"
+                      onclick="shareFile('{{ file_data.uuid }}', '{{ filename }}')"
+                    >
+                      Share
+                    </button>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+            <div class="files-table-empty"></div>
+          </div>
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
