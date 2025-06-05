@@ -59,33 +59,20 @@ def create_permission():
         logger.error(f"Error creating file permission: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@permission_bp.route('', methods=['DELETE'])
-def remove_permission():
+@permission_bp.route('/<file_uuid>/<username>', methods=['DELETE'])
+def remove_permission(file_uuid, username):
     """Remove a file permission.
     
-    Expected JSON payload:
-    {
-        "file_uuid": <file_uuid>,
-        "username": <username>
-    }
+    Path parameters:
+    - file_uuid: The UUID of the file
+    - username: The username of the user whose permission to remove
 
     Returns:
     {
         "message": "Permission removed successfully"
     }
     """
-    data = request.get_json()
-    logger.debug(f"Received request to remove file permission with data: {data}")
-
-    if not data:
-        logger.warning("No data provided")
-        return jsonify({'error': 'No data provided'}), 400
-
-    required_fields = ['file_uuid', 'username']
-    for field in required_fields:
-        if field not in data:
-            logger.warning(f"{field} is required")
-            return jsonify({'error': f'{field} is required'}), 400
+    logger.debug(f"Received request to remove file permission for file {file_uuid} and user {username}")
 
     try:
         current_user_info, status_code = get_current_user()
@@ -96,8 +83,8 @@ def remove_permission():
         sender_username = current_user_info['username']
 
         return remove_file_permission(
-            data['file_uuid'],
-            data['username'],
+            file_uuid,
+            username,
             sender_username,
             user_id
         )
