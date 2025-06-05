@@ -4,6 +4,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def _format_file_size(bytes_size):
+    """Convert bytes to human readable format (bytes, KB, or MB)."""
+    try:
+        bytes_size = float(bytes_size)
+        if bytes_size < 1024:  # Less than 1 KB
+            return f"{bytes_size:.1f} bytes"
+        elif bytes_size < 1024 * 1024:  # Less than 1 MB
+            kb_size = bytes_size / 1024
+            return f"{kb_size:.1f} KB"
+        else:  # MB or larger
+            mb_size = bytes_size / (1024 * 1024)
+            return f"{mb_size:.1f} MB"
+    except (TypeError, ValueError):
+        return "0 bytes"
+
 def my_files():
     """Fetch files owned/shared with the user."""
     response = LoginSessionManager.getInstance().get(GET_FILES)
@@ -21,6 +36,8 @@ def my_files():
     for file in init_owned_files:
         if file.get("filename") and file.get("format"):
             full_filename = f"{file['filename']}.{file['format']}"
+            # Convert file size to human readable format
+            file['file_size'] = _format_file_size(file['file_size'])
             owned_files.append((file, full_filename))
         else:
             logger.warning(f"Missing filename or format for owned file: {file}")
@@ -30,6 +47,8 @@ def my_files():
     for file in init_shared_files:
         if file.get("filename") and file.get("format"):
             full_filename = f"{file['filename']}.{file['format']}"
+            # Convert file size to human readable format
+            file['file_size'] = _format_file_size(file['file_size'])
             shared_files.append((file, full_filename))
         else:
             logger.warning(f"Missing filename or format for shared file: {file}")
