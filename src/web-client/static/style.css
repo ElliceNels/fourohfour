@@ -532,6 +532,15 @@ input[type='password']:focus {
   background: #1976d2;
 }
 
+/* Delete button styling - danger action */
+.action-btn.delete-btn {
+  background: #e53935;
+}
+
+.action-btn.delete-btn:hover {
+  background: #b71c1c;
+}
+
 /* File input styling */
 .file-input {
   width: 100%;
