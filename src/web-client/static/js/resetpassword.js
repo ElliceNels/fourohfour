@@ -1,9 +1,19 @@
-// JavaScript for resetpassword.html
 function togglePassword() {
-    const fields = document.querySelectorAll('.password-input');
-    fields.forEach(field => {
-        field.type = field.type === 'password' ? 'text' : 'password';
-    });
+    const oldPwd = document.getElementById('old_password');
+    const newPwd = document.getElementById('new_password');
+    const confirm = document.getElementById('confirm_password');
+    const btn = document.getElementById('show-btn');
+    if (oldPwd.type === 'password') {
+        oldPwd.type = 'text';
+        newPwd.type = 'text';
+        confirm.type = 'text';
+        btn.textContent = 'Hide';
+    } else {
+        oldPwd.type = 'password';
+        newPwd.type = 'password';
+        confirm.type = 'password';
+        btn.textContent = 'Show';
+    }
 }
 
 function showResetProgressAndDisableBtn() {
